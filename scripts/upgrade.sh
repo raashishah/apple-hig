@@ -95,7 +95,7 @@ else
   git reset --hard origin/main
 fi
 
-chmod +x setup scripts/upgrade.sh 2>/dev/null || true
+chmod +x setup scripts/upgrade.sh scripts/upgrade-check.sh 2>/dev/null || true
 ./setup
 
 FINAL_VERSION="$(read_version "$INSTALL_DIR")"

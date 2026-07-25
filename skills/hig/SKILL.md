@@ -3,10 +3,10 @@ name: hig
 description: >-
   Design a whole React web app like an Apple designer from existing requirements,
   then implement structure and chrome in the same run. Use for /hig (default),
-  /hig review, /hig adapt, /hig update (or "HIG update"); Apple-like navigation,
+  /hig review, /hig adapt, /hig upgrade (or "HIG upgrade"); Apple-like navigation,
   lists, forms, sheets, materials. Preserves project brand colors and fonts.
   Not for native SwiftUI or backend-only.
-argument-hint: "[review|adapt|update] [target]"
+argument-hint: "[review|adapt|upgrade] [target]"
 user-invocable: true
 ---
 
@@ -21,11 +21,11 @@ One command designs the whole app, then implements it. Brand tokens stay in the 
 | `/hig` | **Default:** design + implement (load `references/verbs/design.md`) |
 | `/hig review [screens]` | Report-only gold QA @768/375 — **never auto-fix** |
 | `/hig adapt [surface]` | One-surface structural fix when user asks |
-| `/hig update` | Pull latest `apple-hig` from GitHub + `./setup` (also say **HIG update**) |
+| `/hig upgrade` | Pull latest `apple-hig` from GitHub + `./setup` (also say **HIG upgrade**) |
 
 Internal only (do not offer as menu): old `teach` / `craft` / `section` files may exist for reference; do not route users through them.
 
-For `/hig update`, load `references/verbs/update.md` (or the sibling skill `hig-update`) and **do not** run design/review preflight.
+For `/hig upgrade`, load `references/verbs/upgrade.md` (or the sibling skill `hig-upgrade`) and **do not** run design/review preflight.
 
 ## Setup (non-optional)
 

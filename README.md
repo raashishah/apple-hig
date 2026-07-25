@@ -1,12 +1,12 @@
 # Apple HIG Web (`/hig`)
 
-> Early feedback release (v0.3.1). Works. Not finished. We want your screenshots and FAIL reports.
+> Early feedback release (**v0.3.2**). Works. Not finished. We want your screenshots and FAIL reports.
 
 A Cursor skill that designs a **React / Next.js web app** like an Apple designer from your existing requirements, then implements structure and chrome in the same run.
 
 Brand colors and fonts stay in **your** project. `/hig` teaches **structure** — navigation, lists, forms, sheets, materials — grounded in [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/), not copied from a patient app.
 
-Inspired by the install/share shape of [gstack](https://github.com/garrytan/gstack): clone once, link globally, invoke with a slash command.
+Inspired by the install/share shape of [gstack](https://github.com/garrytan/gstack): clone once, link globally, invoke with a slash command, **upgrade** when we ship.
 
 ## Install (30 seconds)
 
@@ -17,7 +17,10 @@ git clone --single-branch --depth 1 https://github.com/raashishah/apple-hig.git 
 cd ~/.cursor/skills/apple-hig && chmod +x setup && ./setup
 ```
 
-That symlinks `skills/hig` → `~/.cursor/skills/hig`.
+That links:
+
+- `skills/hig` → `~/.cursor/skills/hig`
+- `skills/hig-upgrade` → `~/.cursor/skills/hig-upgrade`
 
 Then in any Cursor chat:
 
@@ -29,9 +32,9 @@ Then in any Cursor chat:
 
 | Method | When |
 |---|---|
-| `./setup` after clone | Global Cursor skill (recommended) |
-| Add repo as a Cursor plugin / marketplace source | When you want `.cursor-plugin` packaging |
-| Symlink only | `ln -sfn /path/to/apple-hig/skills/hig ~/.cursor/skills/hig` |
+| `./setup` after clone into `~/.cursor/skills/apple-hig` | Recommended for most people |
+| Symlink a developer checkout | You maintain the git repo yourself (e.g. contributors) |
+| Cursor plugin / marketplace source | When you want `.cursor-plugin` packaging |
 
 ## Use
 
@@ -40,17 +43,37 @@ Then in any Cursor chat:
 | `/hig` | **Default.** Ingest requirements → write `DESIGN.md` + `.hig/app-design.md` + `.hig/screens.yaml` → implement structure/chrome screen by screen |
 | `/hig review [screens] --viewport 768,375` | Report-only gold QA. **Never auto-fixes** |
 | `/hig adapt [surface]` | One-surface structural fix when you ask |
-| `/hig update` | Pull latest from GitHub + re-link skills (also say **HIG update**) |
+| `/hig upgrade` | Pull latest from GitHub + re-link skills (also say **HIG upgrade**) |
 
-### Stay current
+## Upgrade (does **not** run automatically)
+
+Nothing background-updates the skill. Same idea as gstack: **you** ask for an upgrade when you want the latest.
 
 When we push to [`raashishah/apple-hig`](https://github.com/raashishah/apple-hig), tell Cursor:
 
 ```text
-HIG update
+HIG upgrade
 ```
 
-or `/hig update`. That runs `scripts/upgrade.sh` (gstack-style): fetch `main`, fast-forward/reset the install clone, `./setup`, summarize `CHANGELOG.md`.
+or `/hig upgrade`.
+
+That runs `scripts/upgrade-check.sh` then `scripts/upgrade.sh`:
+
+1. Find your install (canonical clone or the git root behind `~/.cursor/skills/hig`)
+2. `git fetch origin main`
+3. Fast-forward (or reset shallow clones) to latest
+4. Re-run `./setup`
+5. Summarize `CHANGELOG.md`
+
+### Your machine vs a friend's machine
+
+| Install shape | What happens when GitHub gets a new commit |
+|---|---|
+| **Canonical clone** at `~/.cursor/skills/apple-hig` | Skills stay stale until you run **HIG upgrade** (or `git pull` + `./setup` there) |
+| **Symlink into a local git checkout** you already pull/push | Local edits are live immediately via the symlink. Remote-only commits still need `git pull` / **HIG upgrade** |
+| No install / broken symlink | Re-run the Install block above |
+
+There is **no** auto-upgrade on Cursor launch (yet). Prefer an explicit **HIG upgrade** so upgrades are intentional.
 
 ## What it enforces (hard)
 
@@ -70,6 +93,13 @@ Also baked in:
 - List columns are **browsers** (compact toolbar, dense rows); detail owns the large title
 - Brand veto: marketing / locked spacing projects are report-only on spacing/touch CSS
 - Fail-closed preflight for non-React stacks
+
+## How the skill “learns”
+
+The skill files are **static**. They do not silently rewrite themselves after a session.
+
+- **Per project:** `DESIGN.md`, `AGENTS.md`, `.hig/` hold that app’s brand and prefs (Cursor Continual Learning can update `AGENTS.md`)
+- **Portable plugin:** when a chrome FAIL is proven on a real app, we promote it into `grammar.yaml` + fixtures and **push** this repo — then everyone runs **HIG upgrade**
 
 ## Proof so far
 
@@ -93,7 +123,7 @@ Bare `/hig` on a different React app produced `DESIGN.md` + `.hig/*` and structu
 
 ## Status — honest
 
-**v0.3 is good enough to share for feedback. It is not done.**
+**v0.3.x is good enough to share for feedback. It is not done.**
 
 Still soft / not yet hard FAIL IDs (seen on Pink Depot, not fully encoded):
 
@@ -111,13 +141,11 @@ If something looks wrong on your app, open an issue with:
 ## Architecture
 
 ```text
-skills/hig/
-  SKILL.md                 # thin router + laws
-  references/verbs/        # design (default), review, adapt
-  knowledge/packs/         # Apple-cited pattern packs
-  knowledge/chrome/        # grammar.yaml = FAIL SSOT
-  scripts/load-context.mjs # preflight (fail-closed)
-eval/                      # dry harnesses (no patient mutation)
+skills/hig/              # /hig design · review · adapt · upgrade
+skills/hig-upgrade/      # "HIG upgrade" entry skill
+scripts/upgrade*.sh      # check + pull + setup
+knowledge/chrome/        # grammar.yaml = FAIL SSOT
+eval/                    # dry harnesses (no patient mutation)
 ```
 
 ## Verify locally
@@ -125,6 +153,7 @@ eval/                      # dry harnesses (no patient mutation)
 ```bash
 node eval/run-dry.mjs
 node eval/run-chrome-grammar.mjs
+bash scripts/upgrade-check.sh
 ```
 
 ## Not for

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install /hig (+ /hig-update) into Cursor's global skills folder (gstack-style).
+# Install /hig (+ /hig-upgrade) into Cursor's global skills folder (gstack-style).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -24,13 +24,16 @@ link_skill() {
 mkdir -p "$DEST_DIR"
 chmod +x "$REPO_ROOT/setup" \
   "$REPO_ROOT/scripts/upgrade.sh" \
-  "$REPO_ROOT/scripts/update-check.sh" 2>/dev/null || true
+  "$REPO_ROOT/scripts/upgrade-check.sh" 2>/dev/null || true
+
+# Drop legacy name from 0.3.1
+rm -f "$DEST_DIR/hig-update"
 
 link_skill hig
-link_skill hig-update
+link_skill hig-upgrade
 
 echo
 echo "In Cursor, run:  /hig"
-echo "Update later:    /hig update   (or say \"HIG update\")"
+echo "Upgrade later:   /hig upgrade   (or say \"HIG upgrade\")"
 echo "Also useful:     /hig review --viewport 768,375"
 echo "                 /hig adapt <surface>"

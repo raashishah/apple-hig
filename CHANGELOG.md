@@ -1,12 +1,19 @@
 # Changelog
 
+## 0.3.2 — 2026-07-25
+
+Rename to **upgrade** (not update) and clarify README.
+
+- `/hig upgrade` + skill `hig-upgrade` (say **HIG upgrade**)
+- `scripts/upgrade-check.sh` (was update-check) + `scripts/upgrade.sh`
+- README: no auto-upgrade; install shapes; how the skill “learns”
+- Removes legacy `hig-update` symlink on `./setup`
+
 ## 0.3.1 — 2026-07-25
 
-gstack-style self-update.
+gstack-style self-upgrade (first ship; commands used the word “update”).
 
-- `/hig update` and sibling skill `hig-update` (say **HIG update**)
-- `scripts/update-check.sh` + `scripts/upgrade.sh` pull `origin/main` and re-run `./setup`
-- `VERSION` file at repo root; `./setup` also links `~/.cursor/skills/hig-update`
+- Check/upgrade scripts, `VERSION`, `./setup` dual skill links
 
 ## 0.3.0 — 2026-07-25
 

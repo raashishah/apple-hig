@@ -1,8 +1,8 @@
 {
   "name": "apple-hig",
   "displayName": "Apple HIG Web",
-  "version": "0.3.1",
-  "description": "Design React web apps like an Apple designer from existing requirements, then implement structure/chrome. Preserves brand. Hard chrome FAIL grammar. /hig update upgrades from GitHub. Review and adapt are secondary.",
+  "version": "0.3.2",
+  "description": "Design React web apps like an Apple designer from existing requirements, then implement structure/chrome. Preserves brand. Hard chrome FAIL grammar. /hig upgrade pulls latest from GitHub. Review and adapt are secondary.",
   "author": {
     "name": "Raashi Shah"
   },
