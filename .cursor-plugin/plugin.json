@@ -1,0 +1,15 @@
+{
+  "name": "apple-hig",
+  "displayName": "Apple HIG Web",
+  "version": "0.3.0",
+  "description": "Design React web apps like an Apple designer from existing requirements, then implement structure/chrome. Preserves brand. Hard chrome FAIL grammar. /hig review and adapt are secondary.",
+  "author": {
+    "name": "Raashi Shah"
+  },
+  "homepage": "https://github.com/raashishah/apple-hig",
+  "repository": "https://github.com/raashishah/apple-hig",
+  "license": "MIT",
+  "keywords": ["apple", "hig", "design", "ui", "web", "cursor", "skill"],
+  "category": "developer-tools",
+  "skills": "./skills/"
+}

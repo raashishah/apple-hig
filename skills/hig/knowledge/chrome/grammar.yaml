@@ -1,0 +1,49 @@
+version: 1
+# Solved Apple chrome grammar for web product UIs.
+# Packs cite rule ids only. Criteria live here.
+# Apple URLs only — never patient app paths or brand tokens.
+rules:
+  - id: chrome.view-mode.icons
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [patterns-lists-detail]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/segmented-controls
+    failWhen: "View-mode control shows visible text labels (e.g. List/Grid) as the primary glyph."
+    passWhen: "View-mode is an icon-only segmented control; accessible name via aria-label only."
+
+  - id: chrome.list-browser.toolbar-budget
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [patterns-lists-detail]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/toolbars
+    failWhen: "List/browser pane stacks more than one dedicated option/chrome band above rows so browsing content is secondary."
+    passWhen: "List pane uses one compact toolbar band; content rows dominate the column."
+
+  - id: chrome.list-browser.filter-density
+    severity: P1
+    mutationClass: structure
+    registers: [product, any]
+    packs: [patterns-lists-detail]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/toggles
+    failWhen: "List toolbar uses a full-phrase checkbox/label for a simple filter instead of a compact control."
+    passWhen: "Simple list filters are compact toggles, menu items, or chips; full phrase in aria-label."
+
+  - id: chrome.form.column-cohesion
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [patterns-forms, foundations-layout]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/layout
+    failWhen: "Form title/actions column width does not match the field column (full-bleed header over capped fields)."
+    passWhen: "Form title, primary actions, and fields share one content column width."
+
+  - id: chrome.sidebar.collapsible
+    severity: P1
+    mutationClass: structure
+    registers: [product]
+    packs: [patterns-navigation, foundations-layout]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/sidebars
+    failWhen: "Product md+ sidebar is fixed expanded width with no collapse/expand affordance."
+    passWhen: "Product md+ sidebar supports collapse/expand so the work surface can reclaim width."

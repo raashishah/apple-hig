@@ -1,0 +1,234 @@
+version: 1
+source: apple-hig-docs
+note: "Project-agnostic. Brand lives in each project DESIGN.md."
+sections:
+  - id: gs-principles
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/designing-for-ios
+    topic: Design principles (Hierarchy, Harmony, Consistency)
+    phase: 1
+    relevance: high
+  - id: gs-ipados
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/designing-for-ipados
+    topic: Designing for iPadOS
+    phase: 1
+    relevance: high
+  - id: gs-ios
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/designing-for-ios
+    topic: Designing for iOS (phone fallback)
+    phase: 1
+    relevance: high
+  - id: foundations-color
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/color
+    topic: Color
+    phase: 1
+    relevance: high
+  - id: foundations-typography
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/typography
+    topic: Typography
+    phase: 1
+    relevance: high
+  - id: foundations-layout
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/layout
+    topic: Layout
+    phase: 1
+    relevance: high
+  - id: foundations-materials
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/materials
+    topic: Materials
+    phase: 1
+    relevance: high
+  - id: foundations-accessibility
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/accessibility
+    topic: Accessibility (basics only)
+    phase: 1
+    relevance: high
+  - id: foundations-icons
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/icons
+    topic: Icons
+    phase: 1
+    relevance: high
+  - id: components-sidebars
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/sidebars
+    topic: Sidebars
+    phase: 2
+    relevance: high
+    batch: A
+  - id: components-tab-bars
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/tab-bars
+    topic: Tab bars
+    phase: 2
+    relevance: high
+    batch: A
+  - id: components-split-views
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/split-views
+    topic: Split views
+    phase: 2
+    relevance: high
+    batch: A
+  - id: components-navigation-stacks
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/navigation-bars
+    topic: Navigation stacks
+    phase: 2
+    relevance: high
+    batch: A
+  - id: components-toolbars
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/toolbars
+    topic: Toolbars
+    phase: 2
+    relevance: high
+    batch: A
+  - id: components-lists
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/lists-and-tables
+    topic: Lists
+    phase: 2
+    relevance: high
+    batch: B
+  - id: components-forms
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/data-entry
+    topic: Forms
+    phase: 2
+    relevance: high
+    batch: B
+  - id: components-text-fields
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/text-fields
+    topic: Text fields
+    phase: 2
+    relevance: high
+    batch: B
+  - id: components-steppers
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/steppers
+    topic: Steppers
+    phase: 2
+    relevance: high
+    batch: B
+  - id: components-pickers
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/pickers
+    topic: Pickers
+    phase: 2
+    relevance: high
+    batch: B
+  - id: components-buttons
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/buttons
+    topic: Buttons
+    phase: 2
+    relevance: high
+    batch: B
+  - id: components-segmented-controls
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/segmented-controls
+    topic: Segmented controls
+    phase: 2
+    relevance: high
+    batch: B
+  - id: components-sheets
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/sheets
+    topic: Sheets
+    phase: 2
+    relevance: high
+    batch: C
+  - id: components-alerts
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/alerts
+    topic: Alerts
+    phase: 2
+    relevance: high
+    batch: C
+  - id: components-activity-indicators
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/progress-indicators
+    topic: Activity indicators
+    phase: 2
+    relevance: high
+    batch: C
+  - id: components-progress
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/progress-indicators
+    topic: Progress
+    phase: 2
+    relevance: high
+    batch: C
+  - id: components-status
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/labels
+    topic: Status labels
+    phase: 2
+    relevance: high
+    batch: C
+  - id: components-search-fields
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/search-fields
+    topic: Search fields
+    phase: 2
+    relevance: high
+    batch: D
+  - id: components-searchable-pickers
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/pickers
+    topic: Searchable pickers
+    phase: 2
+    relevance: high
+    batch: D
+  - id: components-menus
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/menus
+    topic: Menus
+    phase: 2
+    relevance: high
+    batch: D
+  - id: patterns-entering-data
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/entering-data
+    topic: Entering data
+    phase: 3
+    relevance: high
+  - id: patterns-feedback
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/feedback
+    topic: Feedback
+    phase: 3
+    relevance: high
+  - id: patterns-loading
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/loading
+    topic: Loading
+    phase: 3
+    relevance: high
+  - id: patterns-modality
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/modality
+    topic: Modality
+    phase: 3
+    relevance: high
+  - id: patterns-multitasking
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/multitasking
+    topic: Multitasking
+    phase: 3
+    relevance: high
+  - id: patterns-searching
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/searching
+    topic: Searching
+    phase: 3
+    relevance: high
+  - id: patterns-settings
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/settings
+    topic: Settings
+    phase: 3
+    relevance: high
+  - id: patterns-undo-redo
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/undo-and-redo
+    topic: Undo/redo (draft save model)
+    phase: 3
+    relevance: high
+  - id: inputs-touch
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/touchscreen-gestures
+    topic: Touch
+    phase: 3
+    relevance: high
+  - id: inputs-keyboard
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/keyboards
+    topic: Keyboard
+    phase: 3
+    relevance: high
+  - id: components-images
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/images
+    topic: Images and attachments
+    phase: gap-fill
+    relevance: high
+  - id: components-cards
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/boxes
+    topic: Cards and contained panels
+    phase: gap-fill
+    relevance: high
+  - id: foundations-motion
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/motion
+    topic: Motion and animation
+    phase: gap-fill
+    relevance: high

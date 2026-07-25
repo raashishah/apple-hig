@@ -1,0 +1,7 @@
+{
+  "name": "hig-brand-veto-fixture",
+  "private": true,
+  "dependencies": {
+    "react": "^18.0.0"
+  }
+}

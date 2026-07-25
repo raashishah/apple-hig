@@ -1,0 +1,13 @@
+---
+description: Lock Apple HIG web chrome and kit usage
+globs: **/*.{tsx,ts,css,jsx,js}
+alwaysApply: false
+---
+
+# Apple HIG UI lock
+
+- Opaque nav and content chrome. No decorative glass on sidebars, bottom bars, or content cards.
+- Glass only on functional overlays (sheets, alerts, pickers), inside `@supports`, with solid fallback.
+- Do not invent new UI CSS outside the project kit / tokens.
+- Do not add status badges on dense list rows unless the product explicitly requires them.
+- Preserve brand colors and fonts from DESIGN.md.

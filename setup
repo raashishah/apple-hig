@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Install /hig into Cursor's global skills folder (gstack-style).
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+SKILL_SRC="$REPO_ROOT/skills/hig"
+DEST_DIR="${HOME}/.cursor/skills"
+DEST="$DEST_DIR/hig"
+
+if [[ ! -f "$SKILL_SRC/SKILL.md" ]]; then
+  echo "error: missing $SKILL_SRC/SKILL.md" >&2
+  exit 1
+fi
+
+mkdir -p "$DEST_DIR"
+
+if [[ -e "$DEST" && ! -L "$DEST" ]]; then
+  echo "error: $DEST exists and is not a symlink. Move it aside, then re-run ./setup" >&2
+  exit 1
+fi
+
+ln -sfn "$SKILL_SRC" "$DEST"
+echo "Installed: $DEST -> $SKILL_SRC"
+echo
+echo "In Cursor, run:  /hig"
+echo "Also useful:     /hig review --viewport 768,375"
+echo "                 /hig adapt <surface>"

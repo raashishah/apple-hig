@@ -1,0 +1,16 @@
+version: 1
+surfaces:
+  - id: view-mode-text
+    file: surfaces/view-mode-text.tsx
+    violates: [chrome.view-mode.icons]
+  - id: list-browser-stack
+    file: surfaces/list-browser-stack.tsx
+    violates:
+      - chrome.list-browser.toolbar-budget
+      - chrome.list-browser.filter-density
+  - id: form-column-mismatch
+    file: surfaces/form-column-mismatch.tsx
+    violates: [chrome.form.column-cohesion]
+  - id: sidebar-fixed
+    file: surfaces/sidebar-fixed.tsx
+    violates: [chrome.sidebar.collapsible]

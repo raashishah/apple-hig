@@ -1,0 +1,8 @@
+# Screen list for /hig implement + review
+version: 1
+screens:
+  - id: example-home
+    route: /
+    title: Home
+    priority: 1
+    status: designed
