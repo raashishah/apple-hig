@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 — 2026-07-25
+
+gstack-style self-update.
+
+- `/hig update` and sibling skill `hig-update` (say **HIG update**)
+- `scripts/update-check.sh` + `scripts/upgrade.sh` pull `origin/main` and re-run `./setup`
+- `VERSION` file at repo root; `./setup` also links `~/.cursor/skills/hig-update`
+
 ## 0.3.0 — 2026-07-25
 
 Public packaging release for feedback.

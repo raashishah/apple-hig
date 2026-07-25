@@ -1,6 +1,6 @@
 # Apple HIG Web (`/hig`)
 
-> Early feedback release (v0.3). Works. Not finished. We want your screenshots and FAIL reports.
+> Early feedback release (v0.3.1). Works. Not finished. We want your screenshots and FAIL reports.
 
 A Cursor skill that designs a **React / Next.js web app** like an Apple designer from your existing requirements, then implements structure and chrome in the same run.
 
@@ -40,6 +40,17 @@ Then in any Cursor chat:
 | `/hig` | **Default.** Ingest requirements → write `DESIGN.md` + `.hig/app-design.md` + `.hig/screens.yaml` → implement structure/chrome screen by screen |
 | `/hig review [screens] --viewport 768,375` | Report-only gold QA. **Never auto-fixes** |
 | `/hig adapt [surface]` | One-surface structural fix when you ask |
+| `/hig update` | Pull latest from GitHub + re-link skills (also say **HIG update**) |
+
+### Stay current
+
+When we push to [`raashishah/apple-hig`](https://github.com/raashishah/apple-hig), tell Cursor:
+
+```text
+HIG update
+```
+
+or `/hig update`. That runs `scripts/upgrade.sh` (gstack-style): fetch `main`, fast-forward/reset the install clone, `./setup`, summarize `CHANGELOG.md`.
 
 ## What it enforces (hard)
 
