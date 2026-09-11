@@ -55,7 +55,7 @@ HIG_PREFLIGHT: <value from JSON>
 6. **Kit lock.** Use the host’s components/tokens. Do not invent a parallel CSS or React system.
 7. **Brand veto.** On `register: brand`, or when `brand_mutation_veto: spacing_and_touch_targets_locked` is in `DESIGN.md`, `/hig review` and `/hig adapt` must **not** change spacing or touch-target CSS. Report only. Structure chrome FAILs still report.
 8. **Marketing ≠ app chrome.** Never force bottom tab bars or NavigationSplitView onto `register: brand` landings.
-9. **Stack fidelity.** SwiftUI/UIKit stay on system containers. Web stays CSS. Detected stack from preflight wins.
+9. **Stack fidelity.** SwiftUI/UIKit stay on system containers. Web stays CSS. Detected stack from preflight wins. `native-apple` wins over incidental help/webview HTML; LaunchScreen.storyboard / leftover `.xib` do not make a SwiftUI app UIKit. Load `hig-react` only when `stack.kind` is React/Next.
 
 ## Default pipeline (swarm)
 

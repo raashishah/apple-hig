@@ -36,7 +36,10 @@ node eval/run-swarm.mjs
 
 ## Swarm / stack (0.4)
 
-- [ ] SwiftUI fixture: mutation open
-- [ ] Web CSS fixture (no React): mutation open
-- [ ] Docs-only fixture still unsupported
-- [ ] Optional hig-react exists and does not inject a kit
+- [x] SwiftUI fixture: mutation open
+- [x] Web CSS fixture (no React): mutation open
+- [x] Docs-only fixture still unsupported
+- [x] Optional hig-react exists and does not inject a kit
+- [x] Asset-catalog flood still finds `.swift` (`kind=swiftui`)
+- [x] Help HTML next to SwiftUI stays `native-apple`, not `mixed`
+- [x] LaunchScreen.storyboard + leftover `.xib` do not force UIKit

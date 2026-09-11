@@ -36,6 +36,60 @@ const SKIP_DIRS = new Set([
   ".build",
   "coverage",
   ".worktrees",
+  "xcuserdata",
+  "Carthage",
+  "Checkouts",
+]);
+const SKIP_DIR_SUFFIXES = [
+  ".xcassets",
+  ".xcstickers",
+  ".scnassets",
+  ".icon",
+  ".bundle",
+  ".framework",
+  ".dSYM",
+  ".xcdatamodeld",
+  ".docc",
+];
+const SOURCE_EXTS = new Set([
+  ".swift",
+  ".m",
+  ".h",
+  ".mm",
+  ".c",
+  ".cpp",
+  ".html",
+  ".htm",
+  ".css",
+  ".scss",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".vue",
+  ".svelte",
+  ".dart",
+  ".qml",
+  ".storyboard",
+  ".xib",
+]);
+const SKIP_FILE_EXTS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".heic",
+  ".pdf",
+  ".svg",
+  ".mp3",
+  ".mp4",
+  ".mov",
+  ".ttf",
+  ".otf",
+  ".woff",
+  ".woff2",
+  ".ico",
 ]);
 
 function firstExisting(dir, names) {
@@ -68,31 +122,62 @@ function isPlaceholderDesign(text) {
   return false;
 }
 
+function skipDumpDir(name) {
+  const lower = name.toLowerCase();
+  if (SKIP_DIRS.has(name)) return true;
+  return SKIP_DIR_SUFFIXES.some((suf) => lower.endsWith(suf));
+}
+
 function walkHints(cwd, maxFiles = 400) {
-  const files = [];
+  const sources = [];
+  const rest = [];
+  function record(rel, ext) {
+    const bucket = SOURCE_EXTS.has(ext) ? sources : rest;
+    if (sources.length + rest.length >= maxFiles) return false;
+    bucket.push(rel);
+    return true;
+  }
   function walk(dir, depth) {
-    if (files.length >= maxFiles || depth > 6) return;
+    if (sources.length + rest.length >= maxFiles || depth > 6) return;
     let ents;
     try {
       ents = fs.readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
+    // Prefer source-looking names so Assets/Help dumps do not starve .swift.
+    ents.sort((a, b) => {
+      const as = SOURCE_EXTS.has(path.extname(a.name).toLowerCase()) ? 0 : 1;
+      const bs = SOURCE_EXTS.has(path.extname(b.name).toLowerCase()) ? 0 : 1;
+      if (as !== bs) return as - bs;
+      const aSrc = /^(sources|source|src|app|classes)$/i.test(a.name) ? 0 : 1;
+      const bSrc = /^(sources|source|src|app|classes)$/i.test(b.name) ? 0 : 1;
+      if (aSrc !== bSrc) return aSrc - bSrc;
+      return a.name.localeCompare(b.name);
+    });
     for (const ent of ents) {
-      if (files.length >= maxFiles) return;
+      if (sources.length + rest.length >= maxFiles) return;
       const name = ent.name;
       if (name.startsWith(".") && name !== ".swift") continue;
+      const full = path.join(dir, name);
       if (ent.isDirectory()) {
-        if (SKIP_DIRS.has(name)) continue;
-        walk(path.join(dir, name), depth + 1);
+        const lower = name.toLowerCase();
+        if (skipDumpDir(name)) continue;
+        if (lower.endsWith(".xcodeproj") || lower.endsWith(".xcworkspace")) {
+          record(path.relative(cwd, full) + "/", "");
+          continue;
+        }
+        walk(full, depth + 1);
         continue;
       }
       if (!ent.isFile()) continue;
-      files.push(path.relative(cwd, path.join(dir, name)));
+      const ext = path.extname(name).toLowerCase();
+      if (SKIP_FILE_EXTS.has(ext)) continue;
+      record(path.relative(cwd, full), ext);
     }
   }
   walk(cwd, 0);
-  return files;
+  return [...sources, ...rest].slice(0, maxFiles);
 }
 
 function readHead(file, n = 4000) {
@@ -109,26 +194,53 @@ function detectStack(cwd) {
   const has = (ext) => lower.some((f) => f.endsWith(ext));
 
   const swiftFiles = files.filter((f) => f.toLowerCase().endsWith(".swift"));
-  const hasStoryboard = has(".storyboard") || has(".xib");
+  const nibFiles = files.filter((f) => {
+    const e = f.toLowerCase();
+    return e.endsWith(".storyboard") || e.endsWith(".xib");
+  });
+  const isLaunchOrLeftoverNib = (rel) => {
+    const base = path.basename(rel).toLowerCase();
+    if (/launch/.test(base)) return true;
+    // Leftover Interface Builder files do not make a SwiftUI app UIKit.
+    return /\.xib$/i.test(rel);
+  };
+  const hasAppStoryboard = nibFiles.some((f) => !isLaunchOrLeftoverNib(f));
   const hasXcode =
     has(".xcodeproj") ||
-    lower.some((f) => f.endsWith(".xcworkspace") || f.includes(".xcodeproj/"));
+    lower.some(
+      (f) =>
+        f.endsWith(".xcworkspace") ||
+        f.endsWith(".xcodeproj/") ||
+        f.includes(".xcodeproj/") ||
+        f.includes(".xcworkspace/"),
+    );
   const hasPackageSwift = lower.includes("package.swift");
+  const hasObjc = has(".m") || has(".mm");
 
   let swiftui = false;
-  let uikit = hasStoryboard;
+  let uikit = false;
   for (const rel of swiftFiles.slice(0, 40)) {
     const text = readHead(path.join(cwd, rel));
     if (/import\s+SwiftUI/.test(text) || /struct\s+\w+\s*:\s*View/.test(text)) {
       swiftui = true;
     }
-    if (/import\s+UIKit/.test(text) || /UIViewController/.test(text)) {
+    const representable =
+      /UIViewRepresentable|UIViewControllerRepresentable/.test(text);
+    if (
+      !representable &&
+      /:\s*UI(View|TableView|CollectionView|Navigation)Controller\b/.test(text)
+    ) {
       uikit = true;
     }
   }
+  if (!swiftui && hasAppStoryboard) uikit = true;
 
   const native =
-    swiftFiles.length > 0 || hasStoryboard || hasXcode || hasPackageSwift;
+    swiftFiles.length > 0 ||
+    hasAppStoryboard ||
+    hasXcode ||
+    hasPackageSwift ||
+    hasObjc;
 
   const pkgPath = path.join(cwd, "package.json");
   let pkg = null;
@@ -151,8 +263,19 @@ function detectStack(cwd) {
   const hasSvelte = "svelte" in deps;
   const hasAngular = "@angular/core" in deps;
 
-  const hasHtml = has(".html");
-  const hasCss = has(".css") || has(".scss");
+  const htmlFiles = files.filter((f) => /\.html?$/i.test(f));
+  const cssFiles = files.filter((f) => /\.(css|scss)$/i.test(f));
+  const hasHtml = htmlFiles.length > 0;
+  const hasCss = cssFiles.length > 0;
+  const incidentalWeb =
+    htmlFiles.length + cssFiles.length > 0 &&
+    htmlFiles.concat(cssFiles).every((f) =>
+      /(^|\/)(help|docs?|documentation|webview|resources|legal|licenses?)\//i.test(
+        f.replace(/\\/g, "/"),
+      ),
+    );
+  const webFramework =
+    hasReact || hasNext || hasVue || hasSvelte || hasAngular;
   const hasQml = has(".qml");
   const hasDart = has(".dart") || lower.includes("pubspec.yaml");
   const cmake = readHead(path.join(cwd, "CMakeLists.txt"));
@@ -170,7 +293,8 @@ function detectStack(cwd) {
     kind = "qt";
     family = "other-ui";
     reason = null;
-  } else if (native && (hasReact || hasNext || hasVue || hasSvelte || hasAngular || hasHtml)) {
+  } else if (native && webFramework) {
+    // Real dual stack (e.g. Swift + React). Incidental help HTML is not mixed.
     kind = "mixed";
     family = "mixed";
     reason = null;
@@ -223,6 +347,8 @@ function detectStack(cwd) {
       css: hasCss,
       react: hasReact,
       xcode: hasXcode,
+      incidentalWeb,
+      webFramework,
     },
   };
 }
