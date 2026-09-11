@@ -68,6 +68,14 @@ What's new:
 
 ## Install (if missing)
 
+Prefer:
+
+```bash
+npx skills add raashishah/apple-hig -g -y
+```
+
+Or:
+
 ```bash
 git clone --single-branch --depth 1 https://github.com/raashishah/apple-hig.git ~/.cursor/skills/apple-hig
 cd ~/.cursor/skills/apple-hig && chmod +x setup && ./setup

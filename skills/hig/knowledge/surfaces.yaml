@@ -1,0 +1,83 @@
+version: 1
+# Parallel swarm surfaces for /hig. Each id maps to one agent + pack + Apple URL.
+# Orchestrator fans these out after preflight. Agents apply HIG in the host stack
+# (SwiftUI / UIKit / CSS / other) — they do not inject a React component kit.
+
+surfaces:
+  - id: layout
+    pack: foundations-layout.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/layout
+    covers: [alignment, safe-areas, split-columns, size-classes]
+  - id: spacing
+    pack: foundations-spacing.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/layout
+    covers: [rhythm, grouping, insets, touch-padding]
+  - id: typography
+    pack: foundations-typography.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/typography
+    covers: [type-ramp, hierarchy, dynamic-type, list-vs-detail]
+  - id: color
+    pack: foundations-color.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/color
+    covers: [semantic-roles, contrast, accent-restraint]
+  - id: materials
+    pack: foundations-materials.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/materials
+    covers: [opaque-chrome, overlay-translucency]
+  - id: motion
+    pack: foundations-motion.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/motion
+    covers: [feedback, interruptibility, reduced-motion]
+  - id: controls
+    pack: patterns-controls.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/buttons
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/toggles
+      - https://developer.apple.com/design/human-interface-guidelines/text-fields
+      - https://developer.apple.com/design/human-interface-guidelines/segmented-controls
+    covers: [buttons, toggles, fields, segmented, hit-targets]
+  - id: navigation
+    pack: patterns-navigation.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/navigation
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/sidebars
+      - https://developer.apple.com/design/human-interface-guidelines/tab-bars
+      - https://developer.apple.com/design/human-interface-guidelines/navigation-bars
+    covers: [location, bars, tabs, sidebar-collapse]
+  - id: lists-split
+    pack: patterns-lists-detail.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/lists-and-tables
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/split-views
+    covers: [list-browser, detail-title, split-views]
+  - id: sheets
+    pack: patterns-sheets.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/sheets
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/alerts
+      - https://developer.apple.com/design/human-interface-guidelines/modality
+    covers: [sheets, alerts, dimming, dismiss]
+  - id: forms
+    pack: patterns-forms.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/entering-data
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/text-fields
+    covers: [labels, errors, primary-action, form-column]
+  - id: accessibility
+    pack: foundations-accessibility.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/accessibility
+    covers: [labels, contrast, hit-targets, reduce-motion, dynamic-type]
+
+requiredIds:
+  - layout
+  - spacing
+  - typography
+  - color
+  - materials
+  - motion
+  - controls
+  - navigation
+  - lists-split
+  - sheets
+  - forms
+  - accessibility

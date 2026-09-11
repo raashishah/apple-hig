@@ -22,7 +22,7 @@ If `reviewAdaptMutation=blocked` OR `register=brand` OR `brandMutationLocked=tru
 ## Steps
 
 1. Load `knowledge/chrome/grammar.yaml` (via `load-chrome-grammar.mjs`) and bind rules for this surface’s archetype
-2. Identify packs (navigation, lists/detail, forms, sheets, materials)
+2. Identify packs (navigation, lists/detail, forms, sheets, materials, controls) for the **host stack** from preflight (SwiftUI/UIKit/web — not a React kit)
 3. Diff surface vs pack checklists **and** chrome `failWhen` lines
 4. Apply smallest structural fixes (chrome hierarchy, list/detail ownership, chrome grammar PASSes)
 5. Preserve brand tokens and copy

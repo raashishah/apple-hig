@@ -23,6 +23,7 @@ From repo root:
 ```bash
 node eval/run-dry.mjs
 node eval/run-chrome-grammar.mjs
+node eval/run-swarm.mjs
 ```
 
 - [x] Sparse fixture: preflight passes; mutation open
@@ -32,3 +33,10 @@ node eval/run-chrome-grammar.mjs
 - [x] `fixtures/chrome-antipatterns` covers view-mode, toolbar budget, filter density, form column, sidebar
 - [x] Packs + SKILL/review/design wire chrome grammar IDs
 - [x] All chrome rules are `mutationClass: structure` (brand veto does not hide them)
+
+## Swarm / stack (0.4)
+
+- [ ] SwiftUI fixture: mutation open
+- [ ] Web CSS fixture (no React): mutation open
+- [ ] Docs-only fixture still unsupported
+- [ ] Optional hig-react exists and does not inject a kit

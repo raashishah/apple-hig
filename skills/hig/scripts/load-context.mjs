@@ -6,6 +6,9 @@
  * Fields include HIG_PREFLIGHT summary:
  *   context=pass|fail stack=pass|unsupported register=product|brand|unknown
  *   design=pass|missing|placeholder brand_snapshot=... mutation=open|blocked|unsupported
+ *
+ * Stack is whatever UI the host has (SwiftUI, UIKit, web/CSS, React, …).
+ * mutation=unsupported only when there is no UI to HIG.
  */
 
 import fs from "node:fs";
@@ -21,6 +24,19 @@ const REQ_GLOBS = [
   "AGENTS.md",
   "DESIGN.md",
 ];
+const SKIP_DIRS = new Set([
+  ".git",
+  "node_modules",
+  "DerivedData",
+  "build",
+  "dist",
+  ".next",
+  "Pods",
+  "vendor",
+  ".build",
+  "coverage",
+  ".worktrees",
+]);
 
 function firstExisting(dir, names) {
   for (const name of names) {
@@ -52,37 +68,162 @@ function isPlaceholderDesign(text) {
   return false;
 }
 
-function detectStack(cwd) {
-  const pkgPath = path.join(cwd, "package.json");
-  if (!fs.existsSync(pkgPath)) {
-    // Climb one level for monorepo app folders that still have package.json here
-    return { supported: false, reason: "no package.json", kind: "none" };
+function walkHints(cwd, maxFiles = 400) {
+  const files = [];
+  function walk(dir, depth) {
+    if (files.length >= maxFiles || depth > 6) return;
+    let ents;
+    try {
+      ents = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const ent of ents) {
+      if (files.length >= maxFiles) return;
+      const name = ent.name;
+      if (name.startsWith(".") && name !== ".swift") continue;
+      if (ent.isDirectory()) {
+        if (SKIP_DIRS.has(name)) continue;
+        walk(path.join(dir, name), depth + 1);
+        continue;
+      }
+      if (!ent.isFile()) continue;
+      files.push(path.relative(cwd, path.join(dir, name)));
+    }
   }
-  let pkg;
+  walk(cwd, 0);
+  return files;
+}
+
+function readHead(file, n = 4000) {
   try {
-    pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    return fs.readFileSync(file, "utf8").slice(0, n);
   } catch {
-    return { supported: false, reason: "invalid package.json", kind: "none" };
+    return "";
+  }
+}
+
+function detectStack(cwd) {
+  const files = walkHints(cwd);
+  const lower = files.map((f) => f.toLowerCase());
+  const has = (ext) => lower.some((f) => f.endsWith(ext));
+
+  const swiftFiles = files.filter((f) => f.toLowerCase().endsWith(".swift"));
+  const hasStoryboard = has(".storyboard") || has(".xib");
+  const hasXcode =
+    has(".xcodeproj") ||
+    lower.some((f) => f.endsWith(".xcworkspace") || f.includes(".xcodeproj/"));
+  const hasPackageSwift = lower.includes("package.swift");
+
+  let swiftui = false;
+  let uikit = hasStoryboard;
+  for (const rel of swiftFiles.slice(0, 40)) {
+    const text = readHead(path.join(cwd, rel));
+    if (/import\s+SwiftUI/.test(text) || /struct\s+\w+\s*:\s*View/.test(text)) {
+      swiftui = true;
+    }
+    if (/import\s+UIKit/.test(text) || /UIViewController/.test(text)) {
+      uikit = true;
+    }
+  }
+
+  const native =
+    swiftFiles.length > 0 || hasStoryboard || hasXcode || hasPackageSwift;
+
+  const pkgPath = path.join(cwd, "package.json");
+  let pkg = null;
+  if (fs.existsSync(pkgPath)) {
+    try {
+      pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    } catch {
+      pkg = null;
+    }
   }
   const deps = {
-    ...(pkg.dependencies || {}),
-    ...(pkg.devDependencies || {}),
+    ...(pkg?.dependencies || {}),
+    ...(pkg?.devDependencies || {}),
   };
   const hasReact = "react" in deps || "react-dom" in deps;
   const hasVite = "vite" in deps;
   const hasNext = "next" in deps;
   const electron = "electron" in deps;
-  if (hasReact || hasNext) {
-    return {
-      supported: true,
-      kind: electron ? "react-electron" : hasNext ? "next" : hasVite ? "react-vite" : "react",
-      reason: null,
-    };
+  const hasVue = "vue" in deps;
+  const hasSvelte = "svelte" in deps;
+  const hasAngular = "@angular/core" in deps;
+
+  const hasHtml = has(".html");
+  const hasCss = has(".css") || has(".scss");
+  const hasQml = has(".qml");
+  const hasDart = has(".dart") || lower.includes("pubspec.yaml");
+  const cmake = readHead(path.join(cwd, "CMakeLists.txt"));
+  const hasQt = hasQml || /find_package\s*\(\s*Qt/i.test(cmake);
+
+  let kind = "none";
+  let family = "none";
+  let reason = "no UI surface (docs/backend only)";
+
+  if (hasDart) {
+    kind = "flutter";
+    family = "other-ui";
+    reason = null;
+  } else if (hasQt) {
+    kind = "qt";
+    family = "other-ui";
+    reason = null;
+  } else if (native && (hasReact || hasNext || hasVue || hasSvelte || hasAngular || hasHtml)) {
+    kind = "mixed";
+    family = "mixed";
+    reason = null;
+  } else if (native) {
+    family = "native-apple";
+    if (swiftui && uikit) kind = "mixed-native";
+    else if (swiftui) kind = "swiftui";
+    else if (uikit) kind = "uikit";
+    else kind = "swift";
+    reason = null;
+  } else if (hasReact || hasNext) {
+    family = "web";
+    kind = electron ? "react-electron" : hasNext ? "next" : hasVite ? "react-vite" : "react";
+    reason = null;
+  } else if (hasVue) {
+    family = "web";
+    kind = "vue";
+    reason = null;
+  } else if (hasSvelte) {
+    family = "web";
+    kind = "svelte";
+    reason = null;
+  } else if (hasAngular) {
+    family = "web";
+    kind = "angular";
+    reason = null;
+  } else if (electron) {
+    family = "web";
+    kind = "electron";
+    reason = null;
+  } else if (hasHtml || hasCss) {
+    family = "web";
+    kind = "web";
+    reason = null;
+  } else if (pkg && (has(".tsx") || has(".jsx") || has(".vue"))) {
+    family = "web";
+    kind = "web";
+    reason = null;
   }
+
+  const supported = family !== "none";
   return {
-    supported: false,
-    reason: "no React/Next UI dependency",
-    kind: "other",
+    supported,
+    kind,
+    family,
+    reason: supported ? null : reason,
+    hints: {
+      swiftFiles: swiftFiles.length,
+      html: hasHtml,
+      css: hasCss,
+      react: hasReact,
+      xcode: hasXcode,
+    },
   };
 }
 
@@ -136,12 +277,13 @@ function snapshotBrandCss(cwd) {
     "src/app.css",
     "styles.css",
     "app/globals.css",
+    "Assets.xcassets",
   ];
   const vars = {};
   const fontFamilies = new Set();
   for (const rel of candidates) {
     const p = path.join(cwd, rel);
-    if (!fs.existsSync(p)) continue;
+    if (!fs.existsSync(p) || fs.statSync(p).isDirectory()) continue;
     let text;
     try {
       text = fs.readFileSync(p, "utf8");
@@ -167,7 +309,10 @@ function snapshotBrandCss(cwd) {
   return {
     cssVars: vars,
     fontFamilies: [...fontFamilies].slice(0, 12),
-    pathsChecked: candidates.filter((c) => fs.existsSync(path.join(cwd, c))),
+    pathsChecked: candidates.filter((c) => {
+      const p = path.join(cwd, c);
+      return fs.existsSync(p) && fs.statSync(p).isFile();
+    }),
   };
 }
 
@@ -183,7 +328,6 @@ function findRequirementPaths(cwd) {
     const p = path.join(cwd, rel);
     if (fs.existsSync(p)) found.push(path.relative(cwd, p));
   }
-  // Parent monorepo docs
   const parentDocs = path.join(cwd, "..", "docs");
   if (fs.existsSync(parentDocs)) {
     found.push(path.relative(cwd, parentDocs));
@@ -204,6 +348,13 @@ function listRoutesHint(cwd) {
     if (!fs.existsSync(p)) continue;
     const text = fs.readFileSync(p, "utf8");
     for (const m of text.matchAll(/path=["'`]([^"'`]+)["'`]/g)) {
+      routes.push(m[1]);
+    }
+  }
+  const swift = walkHints(cwd).filter((f) => f.endsWith(".swift")).slice(0, 20);
+  for (const rel of swift) {
+    const text = readHead(path.join(cwd, rel), 8000);
+    for (const m of text.matchAll(/NavigationLink\s*\(\s*"([^"]+)"/g)) {
       routes.push(m[1]);
     }
   }
@@ -235,7 +386,7 @@ function loadContext(cwd = process.cwd()) {
   let stopLine = null;
   if (!stack.supported) {
     mutation = "unsupported";
-    stopLine = `HIG stop: unsupported stack (${stack.reason}). Need React/Next web UI.`;
+    stopLine = `HIG stop: unsupported stack (${stack.reason}). Need a UI surface (SwiftUI/UIKit, web/CSS, or similar).`;
   }
 
   const designStatus = !hasDesign
@@ -244,13 +395,16 @@ function loadContext(cwd = process.cwd()) {
       ? "pass"
       : "placeholder";
 
-  // Default /hig may write design then implement; missing design does not block mutation for design verb.
-  // review/adapt on brand register: blocked for spacing/touch (enforced in verb files + this flag).
-  const reviewAdaptMutation = brandVeto ? "blocked" : mutation === "unsupported" ? "unsupported" : "open";
+  const reviewAdaptMutation = brandVeto
+    ? "blocked"
+    : mutation === "unsupported"
+      ? "unsupported"
+      : "open";
 
   const preflight = [
     `context=pass`,
     `stack=${stack.supported ? "pass" : "unsupported"}`,
+    `kind=${stack.kind}`,
     `register=${register}`,
     `design=${designStatus}`,
     `brand_veto=${brandVeto ? "on" : "off"}`,
@@ -288,7 +442,6 @@ function loadContext(cwd = process.cwd()) {
     reviewAdaptMutation,
     stopLine,
     HIG_PREFLIGHT: preflight,
-    // Legacy alias for older verb docs
     reqGlobs: REQ_GLOBS,
   };
 }

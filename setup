@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install /hig (+ /hig-upgrade) into Cursor's global skills folder (gstack-style).
+# Install /hig (+ /hig-upgrade, optional /hig-react) into Cursor's global skills folder.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -31,9 +31,9 @@ rm -f "$DEST_DIR/hig-update"
 
 link_skill hig
 link_skill hig-upgrade
+link_skill hig-react
 
 echo
 echo "In Cursor, run:  /hig"
 echo "Upgrade later:   /hig upgrade   (or say \"HIG upgrade\")"
-echo "Also useful:     /hig review --viewport 768,375"
-echo "                 /hig adapt <surface>"
+echo "Install (CLI):   npx skills add raashishah/apple-hig -g -y"

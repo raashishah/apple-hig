@@ -46,3 +46,7 @@ Load `knowledge/chrome/grammar.yaml`. Product register only:
 - [ ] Register-appropriate pattern
 - [ ] Hit targets ≥44px on phone primary nav
 - [ ] Sidebar collapsible on product md+
+
+## Apply in host
+
+SwiftUI: `NavigationStack` / `NavigationSplitView` / `TabView`. UIKit: nav, split, tab controllers. Web: opaque header or sidebar; phone tabs only on product register.

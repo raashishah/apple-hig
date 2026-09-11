@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 — 2026-09-12
+
+`/hig` is a **framework-agnostic swarm**, not a React-only implementer.
+
+- Detect SwiftUI / UIKit / web / React / other UI; fail only when there is no UI
+- Parallel surface agents (layout, type, color, spacing, motion, controls, nav, lists/split, sheets, forms, a11y)
+- Optional `hig-react` mapping skill — no component injection
+- Apple canon (`knowledge/canon.md`) + `surfaces.yaml`
+- Install via `npx skills add raashishah/apple-hig -g -y`
+
 ## 0.3.2 — 2026-07-25
 
 Rename to **upgrade** (not update) and clarify README.

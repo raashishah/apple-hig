@@ -1,15 +1,15 @@
 {
   "name": "apple-hig",
-  "displayName": "Apple HIG Web",
-  "version": "0.3.2",
-  "description": "Design React web apps like an Apple designer from existing requirements, then implement structure/chrome. Preserves brand. Hard chrome FAIL grammar. /hig upgrade pulls latest from GitHub. Review and adapt are secondary.",
+  "displayName": "Apple HIG",
+  "version": "0.4.0",
+  "description": "Apply Apple Human Interface Guidelines 1:1 via a /hig swarm. Framework-agnostic (SwiftUI, UIKit, web/CSS). Optional React mapping. Preserves brand. Hard chrome FAIL grammar.",
   "author": {
     "name": "Raashi Shah"
   },
   "homepage": "https://github.com/raashishah/apple-hig",
   "repository": "https://github.com/raashishah/apple-hig",
   "license": "MIT",
-  "keywords": ["apple", "hig", "design", "ui", "web", "cursor", "skill"],
+  "keywords": ["apple", "hig", "design", "ui", "cursor", "skill"],
   "category": "developer-tools",
   "skills": "./skills/"
 }

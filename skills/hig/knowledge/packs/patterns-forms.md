@@ -42,3 +42,7 @@ Load `knowledge/chrome/grammar.yaml`. Cite in review; implement to PASS:
 - [ ] Touch-sized controls on phone
 - [ ] One clear primary action
 - [ ] Form column cohesion PASS
+
+## Apply in host
+
+SwiftUI `Form` / `LabeledContent`. UIKit grouped table forms. Web: persistent labels, ~44px phone controls, one primary submit; `chrome.form.column-cohesion`.

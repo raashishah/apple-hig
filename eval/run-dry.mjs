@@ -5,7 +5,6 @@
  */
 
 import { spawnSync } from "node:child_process";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,18 +26,12 @@ function run(fixtureRel) {
 
 const results = [];
 
-// Sparse: React present → stack pass
 {
   const j = run("fixtures/sparse");
-  const ok = j.stack?.supported === true && j.mutation === "open";
-  results.push({
-    case: "sparse",
-    ok,
-    preflight: j.HIG_PREFLIGHT,
-  });
+  const ok = j.stack?.supported === true && j.mutation === "open" && j.stack?.kind?.includes("react");
+  results.push({ case: "sparse", ok, preflight: j.HIG_PREFLIGHT, kind: j.stack?.kind });
 }
 
-// Unsupported: no React
 {
   const j = run("fixtures/unsupported");
   const ok =
@@ -53,18 +46,28 @@ const results = [];
   });
 }
 
-// Brand veto: review_adapt_mutation blocked
 {
   const j = run("fixtures/brand-veto");
   const ok =
     j.register === "brand" &&
     j.brandVeto === true &&
     j.reviewAdaptMutation === "blocked";
-  results.push({
-    case: "brand-veto",
-    ok,
-    preflight: j.HIG_PREFLIGHT,
-  });
+  results.push({ case: "brand-veto", ok, preflight: j.HIG_PREFLIGHT });
+}
+
+{
+  const j = run("fixtures/swift-ui");
+  const ok =
+    j.stack?.supported === true &&
+    j.mutation === "open" &&
+    (j.stack?.kind === "swiftui" || j.stack?.family === "native-apple");
+  results.push({ case: "swift-ui", ok, preflight: j.HIG_PREFLIGHT, kind: j.stack?.kind });
+}
+
+{
+  const j = run("fixtures/web-css");
+  const ok = j.stack?.supported === true && j.mutation === "open" && j.stack?.kind === "web";
+  results.push({ case: "web-css", ok, preflight: j.HIG_PREFLIGHT, kind: j.stack?.kind });
 }
 
 const failed = results.filter((r) => !r.ok);

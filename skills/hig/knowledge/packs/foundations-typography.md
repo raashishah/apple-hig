@@ -40,3 +40,7 @@ Typography rarely changes on press; selection/emphasis use weight or secondary c
 - [ ] Brand fonts applied
 - [ ] List vs detail type roles differ
 - [ ] Zoom/reflow does not clip primary labels
+
+## Apply in host
+
+SwiftUI/UIKit: system text styles (`largeTitle` … `caption`) and Dynamic Type. Web: project type ramp in rem; brand font from DESIGN.md — do not force San Francisco.

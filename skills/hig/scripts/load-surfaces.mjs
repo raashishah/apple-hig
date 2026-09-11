@@ -1,0 +1,133 @@
+#!/usr/bin/env node
+/**
+ * Load swarm surface map (knowledge/surfaces.yaml).
+ * Used by /hig orchestrator and eval/run-swarm.mjs.
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+function parseSurfacesYaml(text) {
+  const surfaces = [];
+  const requiredIds = [];
+  let current = null;
+  let section = null;
+  let inAlso = false;
+  let inCovers = false;
+
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/\t/g, "  ");
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+
+    if (/^surfaces:\s*$/.test(line)) {
+      section = "surfaces";
+      current = null;
+      inAlso = false;
+      inCovers = false;
+      continue;
+    }
+    if (/^requiredIds:\s*$/.test(line)) {
+      section = "required";
+      current = null;
+      continue;
+    }
+
+    if (section === "required") {
+      const item = line.match(/^\s*-\s+([a-z0-9-]+)\s*$/);
+      if (item) requiredIds.push(item[1]);
+      continue;
+    }
+
+    if (section !== "surfaces") continue;
+
+    const start = line.match(/^\s*-\s+id:\s*(.+)\s*$/);
+    if (start) {
+      current = {
+        id: start[1].trim(),
+        pack: null,
+        appleUrl: null,
+        also: [],
+        covers: [],
+      };
+      surfaces.push(current);
+      inAlso = false;
+      inCovers = false;
+      continue;
+    }
+    if (!current) continue;
+
+    const pack = line.match(/^\s{4}pack:\s*(.+)\s*$/);
+    if (pack) {
+      current.pack = pack[1].trim();
+      inAlso = false;
+      inCovers = false;
+      continue;
+    }
+    const apple = line.match(/^\s{4}appleUrl:\s*(.+)\s*$/);
+    if (apple) {
+      current.appleUrl = apple[1].trim();
+      inAlso = false;
+      inCovers = false;
+      continue;
+    }
+    if (/^\s{4}also:\s*$/.test(line)) {
+      inAlso = true;
+      inCovers = false;
+      continue;
+    }
+    if (/^\s{4}covers:\s*\[(.*)\]\s*$/.test(line)) {
+      const inner = line.match(/\[(.*)\]/)[1];
+      current.covers = inner.split(",").map((s) => s.trim()).filter(Boolean);
+      inAlso = false;
+      inCovers = false;
+      continue;
+    }
+    if (/^\s{4}covers:\s*$/.test(line)) {
+      inCovers = true;
+      inAlso = false;
+      continue;
+    }
+    if (inAlso) {
+      const item = line.match(/^\s{6}-\s+(\S+)\s*$/);
+      if (item) current.also.push(item[1].trim());
+    }
+    if (inCovers) {
+      const item = line.match(/^\s{6}-\s+(.+)\s*$/);
+      if (item) current.covers.push(item[1].trim());
+    }
+  }
+
+  return { surfaces, requiredIds };
+}
+
+export function loadSurfaces(skillRoot) {
+  const file = path.join(skillRoot, "knowledge", "surfaces.yaml");
+  const parsed = parseSurfacesYaml(fs.readFileSync(file, "utf8"));
+  const byId = Object.fromEntries(parsed.surfaces.map((s) => [s.id, s]));
+  const missing = parsed.requiredIds.filter((id) => !byId[id]);
+  if (missing.length) {
+    throw new Error(`surfaces.yaml missing required ids: ${missing.join(", ")}`);
+  }
+  for (const s of parsed.surfaces) {
+    if (!s.pack || !s.appleUrl) {
+      throw new Error(`surface ${s.id} needs pack + appleUrl`);
+    }
+    const packPath = path.join(skillRoot, "knowledge", "packs", s.pack);
+    if (!fs.existsSync(packPath)) {
+      throw new Error(`missing pack for ${s.id}: ${s.pack}`);
+    }
+  }
+  return { ...parsed, byId, count: parsed.surfaces.length };
+}
+
+const isMain =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+
+if (isMain) {
+  const skillRoot = process.argv[2]
+    ? path.resolve(process.argv[2])
+    : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  process.stdout.write(JSON.stringify(loadSurfaces(skillRoot), null, 2) + "\n");
+}
