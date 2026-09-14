@@ -201,6 +201,53 @@ const results = [];
   results.push({ case: "missing-gated-pack-throws-if-selected", ok, threw, ...detail });
 }
 
+{
+  const surfaces = loadSurfaces(skillRoot);
+  const siri = selectSurfaces(surfaces, {
+    platform: "phone",
+    capabilities: ["siri"],
+  });
+  const siriIds = siri.launched
+    .map((s) => s.id)
+    .filter((id) => id === "siri-app-shortcuts" || id === "app-shortcuts");
+  const phone = selectSurfaces(surfaces, { platform: "phone", capabilities: [] });
+  const sheets = surfaces.byId.sheets;
+  const ok =
+    surfaces.requiredIds.length === 12 &&
+    siriIds.length === 1 &&
+    siriIds[0] === "siri-app-shortcuts" &&
+    !surfaces.surfaces.some((s) => s.id === "app-shortcuts" || s.id === "action-sheets") &&
+    phone.launched.some((s) => s.id === "sheets") &&
+    !phone.launched.some((s) => s.id === "action-sheets") &&
+    (sheets?.compose || []).includes("components-action-sheets.md") &&
+    (surfaces.byId["siri-app-shortcuts"]?.compose || []).includes("system-app-shortcuts.md") &&
+    surfaces.byId["control-center"]?.gate === "capability:controlcenter" &&
+    surfaces.byId["inputs-pencil"]?.gate === "ipad+capability:pencil" &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["pencil"],
+    }).launched.some((s) => s.id === "inputs-pencil") &&
+    selectSurfaces(surfaces, {
+      platform: "ipad",
+      capabilities: ["pencil"],
+    }).launched.some((s) => s.id === "inputs-pencil") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["wallet"],
+    }).launched.some((s) => s.id === "apple-pay") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["controlcenter"],
+    }).launched.some((s) => s.id === "control-center") &&
+    !phone.launched.some((s) => s.id === "control-center");
+  results.push({
+    case: "bugbot-surface-leases",
+    ok,
+    requiredCount: surfaces.requiredIds.length,
+    siriIds,
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

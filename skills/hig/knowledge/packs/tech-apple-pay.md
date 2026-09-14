@@ -1,7 +1,7 @@
 # tech-apple-pay
 
 **Apple:** https://developer.apple.com/design/human-interface-guidelines/apple-pay  
-**Gate:** `capability:applepay` (Apple Pay entitlement / PassKit payments — **not** `requiredIds`)  
+**Gate:** `capability:applepay` (Pay-specific: `PKPaymentAuthorization`, `PKPaymentRequest`, `PKPaymentButton`, `com.apple.developer.in-app-payments` — **not** a bare `import PassKit`). Wallet/pass hosts use `capability:wallet`. **not** `requiredIds`  
 **Also live-link (do not pack artwork):** [Wallet](https://developer.apple.com/design/human-interface-guidelines/wallet), [Tap to Pay on iPhone](https://developer.apple.com/design/human-interface-guidelines/tap-to-pay-on-iphone), [In-app purchase](https://developer.apple.com/design/human-interface-guidelines/in-app-purchase)
 
 Official button assets and payment-sheet chrome. Do **not** complete Pay or biometrics.

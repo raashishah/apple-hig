@@ -578,12 +578,29 @@ function detectCapabilitiesFromTree(cwd) {
   if (/\bimport\s+ActivityKit\b/.test(blob)) capabilities.add("liveactivities");
   if (/\bimport\s+PencilKit\b/.test(blob)) capabilities.add("pencil");
   if (
-    /\bimport\s+PassKit\b/.test(blob) ||
-    /\bPKPaymentAuthorization/.test(blob) ||
-    /com\.apple\.developer\.in-app-payments/.test(blob)
+    /\bControlWidget(?:Toggle|Button)?\b/.test(blob) ||
+    /\bControlWidgetConfiguration\b/.test(blob) ||
+    /\bAppIntentControlConfiguration\b/.test(blob) ||
+    /\bcontrolWidgetActionHint\b/.test(blob)
   ) {
-    capabilities.add("applepay");
+    capabilities.add("controlcenter");
   }
+  const walletSignals =
+    /\bimport\s+PassKit\b/.test(blob) ||
+    /\bPKPass(?:Library)?\b/.test(blob) ||
+    /\bPKAddPassesViewController\b/.test(blob) ||
+    /\bPKAddPassButton\b/.test(blob) ||
+    /\bPKAddSecureElementPassViewController\b/.test(blob) ||
+    /com\.apple\.developer\.pass-type-identifiers/.test(blob);
+  const applePaySignals =
+    /\bPKPaymentAuthorization(?:Controller|ViewController)?\b/.test(blob) ||
+    /\bPKPaymentRequest\b/.test(blob) ||
+    /\bPKPaymentButton\b/.test(blob) ||
+    /\bPayWithApplePayButton\b/.test(blob) ||
+    /\bApplePayButton\b/.test(blob) ||
+    /com\.apple\.developer\.in-app-payments/.test(blob);
+  if (walletSignals) capabilities.add("wallet");
+  if (applePaySignals) capabilities.add("applepay");
   if (
     /\bASAuthorizationAppleID/.test(blob) ||
     /com\.apple\.developer\.applesignin/.test(blob)

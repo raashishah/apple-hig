@@ -5,7 +5,7 @@
 **Pack file:** `system-control-center.md`  
 **R11:** this is **not** swarm id `controls` and **not** `patterns-controls.md`. Required `controls` stays buttons, toggles, text fields, segmented controls.
 
-**Gate (later):** `capability:control-center` (Control Widget / `ControlWidget` / ControlCenter extras). Web-css **skips**.
+**Gate:** `capability:controlcenter` (`ControlWidget` / Control Center control APIs). Ordinary buttons do **not** launch this pack. Web-css **skips**.
 
 ## Apple guidance (1:1)
 

@@ -3,9 +3,10 @@
 **Apple:** https://developer.apple.com/design/human-interface-guidelines/siri  
 **Also:** https://developer.apple.com/design/human-interface-guidelines/app-shortcuts  
 **Gate:** `capability:siri` / App Shortcuts (Info.plist Siri, App Shortcut providers — **not** `requiredIds`)  
+**Compose:** `system-app-shortcuts.md` in this same worker. Do not launch a second exclusive `app-shortcuts` surface.  
 Live pages are **Siri** and **App Shortcuts** only. There is no App Intents HIG article.
 
-Siri and App Shortcuts invariants. Not a React mapping. Do not reprint phrase catalogs.
+Siri and App Shortcuts invariants. Not a React mapping. Do not reprint phrase catalogs. App Intents hosts launch **one** worker.
 
 ## Human-only
 

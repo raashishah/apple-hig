@@ -1,8 +1,8 @@
 # system-app-shortcuts
 
 **Apple:** [App Shortcuts](https://developer.apple.com/design/human-interface-guidelines/app-shortcuts), [Siri](https://developer.apple.com/design/human-interface-guidelines/siri)  
-**Surface id (later):** `app-shortcuts`  
-**Gate (later):** `capability:app-shortcuts` or `capability:siri` (App Intents / App Shortcuts present). Web-css **skips**  
+**Surface id:** compose into `siri-app-shortcuts` — do not take a second exclusive lease  
+**Gate:** `capability:siri` on the Siri worker. Web-css **skips**  
 **Never cite** `/app-intents` (404). App Intents is the **framework**, not a HIG page.
 
 Siri legal/UX invariants that need a human (biometrics, account sheets) stay out of apply. This pack is chrome and copy around system invocation.

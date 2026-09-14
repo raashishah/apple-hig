@@ -55,7 +55,10 @@ surfaces:
     also:
       - https://developer.apple.com/design/human-interface-guidelines/alerts
       - https://developer.apple.com/design/human-interface-guidelines/modality
-    covers: [sheets, alerts, dimming, dismiss]
+      - https://developer.apple.com/design/human-interface-guidelines/action-sheets
+    compose:
+      - components-action-sheets.md
+    covers: [sheets, alerts, dimming, dismiss, action-sheets]
   - id: forms
     pack: patterns-forms.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/entering-data
@@ -189,11 +192,6 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/menus
     gate: always
     covers: [context-menus]
-  - id: action-sheets
-    pack: components-action-sheets.md
-    appleUrl: https://developer.apple.com/design/human-interface-guidelines/action-sheets
-    gate: phone,ipad
-    covers: [action-sheets]
   - id: pickers
     pack: components-pickers.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/pickers
@@ -219,7 +217,7 @@ surfaces:
   - id: control-center
     pack: system-control-center.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/controls
-    gate: phone,ipad
+    gate: capability:controlcenter
     covers: [control-center-controls]
   - id: status-bars
     pack: system-status-bars.md
@@ -246,7 +244,7 @@ surfaces:
   - id: inputs-pencil
     pack: inputs-apple-pencil.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/apple-pencil-and-scribble
-    gate: ipad,capability:pencil
+    gate: ipad+capability:pencil
     covers: [pencil, scribble]
   - id: inputs-game-controls
     pack: inputs-game-controls.md
@@ -273,15 +271,10 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/siri
     also:
       - https://developer.apple.com/design/human-interface-guidelines/app-shortcuts
+    compose:
+      - system-app-shortcuts.md
     gate: capability:siri
     covers: [siri, app-shortcuts]
-  - id: app-shortcuts
-    pack: system-app-shortcuts.md
-    appleUrl: https://developer.apple.com/design/human-interface-guidelines/app-shortcuts
-    also:
-      - https://developer.apple.com/design/human-interface-guidelines/siri
-    gate: capability:siri
-    covers: [app-shortcuts-ui]
   - id: game-center
     pack: tech-cluster-game-center.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/game-center

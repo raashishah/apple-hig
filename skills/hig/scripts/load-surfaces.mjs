@@ -55,12 +55,20 @@ export function gateMatches(gateRaw, preflight) {
   if (gateRaw == null) return false;
   const raw = String(gateRaw).trim();
   if (!raw) return false;
+  // Comma = OR. Plus = AND (e.g. ipad+capability:pencil).
   if (raw.includes(",")) {
     return raw
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean)
       .some((part) => gateMatches(part, preflight));
+  }
+  if (raw.includes("+")) {
+    return raw
+      .split("+")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .every((part) => gateMatches(part, preflight));
   }
   const gate = parseGate(raw);
   if (!gate) return false;
@@ -88,6 +96,7 @@ function parseSurfacesYaml(text) {
   let section = null;
   let inAlso = false;
   let inCovers = false;
+  let inCompose = false;
 
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.replace(/\t/g, "  ");
@@ -98,6 +107,7 @@ function parseSurfacesYaml(text) {
       current = null;
       inAlso = false;
       inCovers = false;
+      inCompose = false;
       continue;
     }
     if (/^requiredIds:\s*$/.test(line)) {
@@ -122,11 +132,13 @@ function parseSurfacesYaml(text) {
         appleUrl: null,
         also: [],
         covers: [],
+        compose: [],
         gate: null,
       };
       surfaces.push(current);
       inAlso = false;
       inCovers = false;
+      inCompose = false;
       continue;
     }
     if (!current) continue;
@@ -135,6 +147,7 @@ function parseSurfacesYaml(text) {
     if (/^\s{4}when:/.test(line)) {
       inAlso = false;
       inCovers = false;
+      inCompose = false;
       continue;
     }
 
@@ -143,6 +156,7 @@ function parseSurfacesYaml(text) {
       current.pack = pack[1].trim();
       inAlso = false;
       inCovers = false;
+      inCompose = false;
       continue;
     }
     const apple = line.match(/^\s{4}appleUrl:\s*(.+)\s*$/);
@@ -150,6 +164,7 @@ function parseSurfacesYaml(text) {
       current.appleUrl = apple[1].trim();
       inAlso = false;
       inCovers = false;
+      inCompose = false;
       continue;
     }
     const gate = line.match(/^\s{4}gate:\s*(.+)\s*$/);
@@ -157,10 +172,18 @@ function parseSurfacesYaml(text) {
       current.gate = gate[1].trim();
       inAlso = false;
       inCovers = false;
+      inCompose = false;
       continue;
     }
     if (/^\s{4}also:\s*$/.test(line)) {
       inAlso = true;
+      inCovers = false;
+      inCompose = false;
+      continue;
+    }
+    if (/^\s{4}compose:\s*$/.test(line)) {
+      inCompose = true;
+      inAlso = false;
       inCovers = false;
       continue;
     }
@@ -169,16 +192,22 @@ function parseSurfacesYaml(text) {
       current.covers = inner.split(",").map((s) => s.trim()).filter(Boolean);
       inAlso = false;
       inCovers = false;
+      inCompose = false;
       continue;
     }
     if (/^\s{4}covers:\s*$/.test(line)) {
       inCovers = true;
       inAlso = false;
+      inCompose = false;
       continue;
     }
     if (inAlso) {
       const item = line.match(/^\s{6}-\s+(\S+)\s*$/);
       if (item) current.also.push(item[1].trim());
+    }
+    if (inCompose) {
+      const item = line.match(/^\s{6}-\s+(\S+)\s*$/);
+      if (item) current.compose.push(item[1].trim());
     }
     if (inCovers) {
       const item = line.match(/^\s{6}-\s+(.+)\s*$/);
@@ -197,6 +226,12 @@ export function requirePacksForSurfaces(skillRoot, surfaces) {
     const packPath = path.join(skillRoot, "knowledge", "packs", s.pack);
     if (!fs.existsSync(packPath)) {
       throw new Error(`missing pack for ${s.id}: ${s.pack}`);
+    }
+    for (const extra of s.compose || []) {
+      const extraPath = path.join(skillRoot, "knowledge", "packs", extra);
+      if (!fs.existsSync(extraPath)) {
+        throw new Error(`missing compose pack for ${s.id}: ${extra}`);
+      }
     }
   }
 }
