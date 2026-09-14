@@ -9,6 +9,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadSurfaces, selectSurfaces } from "../skills/hig/scripts/load-surfaces.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -135,6 +136,65 @@ const results = [];
     ok,
     preflight: j.HIG_PREFLIGHT,
     kind: j.stack?.kind,
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const web = run("fixtures/web-css");
+  const selected = selectSurfaces(surfaces, web);
+  const launchedIds = selected.launched.map((s) => s.id);
+  const requiredOk = surfaces.requiredIds.every((id) => launchedIds.includes(id));
+  const ok =
+    web.stack?.kind === "web" &&
+    !(web.capabilities || []).includes("healthkit") &&
+    !launchedIds.includes("healthkit") &&
+    !launchedIds.includes("game-center") &&
+    !launchedIds.includes("mac-chrome") &&
+    requiredOk;
+  results.push({
+    case: "web-css-skips-tech-gates",
+    ok,
+    platform: web.platform,
+    capabilities: web.capabilities,
+    launchedOptional: launchedIds.filter((id) => !surfaces.requiredIds.includes(id)),
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const j = run("fixtures/tech-present");
+  const selected = selectSurfaces(surfaces, j);
+  const launchedIds = selected.launched.map((s) => s.id);
+  const ok =
+    (j.capabilities || []).includes("healthkit") &&
+    launchedIds.includes("healthkit") &&
+    surfaces.requiredIds.every((id) => launchedIds.includes(id));
+  results.push({
+    case: "tech-present-selects-healthkit",
+    ok,
+    platform: j.platform,
+    capabilities: j.capabilities,
+    launchedHealthkit: launchedIds.includes("healthkit"),
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const j = run("fixtures/tech-absent");
+  const selected = selectSurfaces(surfaces, j);
+  const launchedIds = selected.launched.map((s) => s.id);
+  const ok =
+    !(j.capabilities || []).includes("healthkit") &&
+    !launchedIds.includes("healthkit") &&
+    surfaces.requiredIds.length >= 12;
+  results.push({
+    case: "tech-absent-skips-healthkit",
+    ok,
+    capabilities: j.capabilities,
   });
 }
 

@@ -23,6 +23,7 @@ From context JSON + repo skim (do not invent other products’ brands):
 - `requirementPaths`, parent `docs/`, `AGENTS.md`, README, existing routes (`routesHint`)
 - Existing brand snapshot (`brandSnapshot`)
 - `stack.kind` / `stack.family` (swiftui, uikit, web, react, …)
+- `platform` (`phone` / `ipad` / `desktop` / `games` / `unknown`) and `capabilities` (tokens such as `healthkit`)
 - Infer `register`: `product` for tools/scoreboards/shells; `brand` for marketing/portfolio/landing
 
 Ask **zero** interview questions when enough signal exists. If brand tokens are missing, pick calm defaults from existing assets or a neutral system stack and record them in `DESIGN.md`.
@@ -61,7 +62,13 @@ Do **not** implement serially as a single agent editing all of `src/` at once. F
 
 #### 3a. Audit (parallel)
 
-Launch one Task per surface in `surfaces.yaml` (`subagent_type`: `generalPurpose`) with `references/agents/surface-worker.md`.
+Launch one Task per **selected** surface: every `requiredIds` id, plus optional ids whose flat `gate` matches preflight (`always`, host family `phone`/`ipad`/`desktop`/`games`, or `capability:<token>`).
+
+**Skip** unmatched gated ids — do not launch a worker, do not write `.hig/swarm/<id>.md`. Skip is not a synthesizer drop.
+
+**Drop** is only for a surface that **was launched** and has nothing to mutate.
+
+Use `references/agents/surface-worker.md` (`subagent_type`: `generalPurpose`).
 
 Each worker:
 
