@@ -66,6 +66,22 @@ surfaces:
     pack: foundations-accessibility.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/accessibility
     covers: [labels, contrast, hit-targets, reduce-motion, dynamic-type]
+  # Optional — skipped unless gate matches. Never put these on requiredIds.
+  - id: healthkit
+    pack: healthkit.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/healthkit
+    gate: capability:healthkit
+    covers: [health-permission-copy]
+  - id: game-center
+    pack: game-center.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/game-center
+    gate: capability:gamecenter
+    covers: [game-center-chrome]
+  - id: mac-chrome
+    pack: mac-chrome.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/designing-for-macos
+    gate: desktop
+    covers: [menu-bar, windows, pointing]
 
 requiredIds:
   - layout

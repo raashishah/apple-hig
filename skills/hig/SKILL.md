@@ -65,9 +65,11 @@ HIG_PREFLIGHT: <value from JSON>
 
 ## Swarm surfaces
 
-Load `knowledge/surfaces.yaml` (`node <skill>/scripts/load-surfaces.mjs`). Launch **parallel** Task agents, one per id, using `references/agents/surface-worker.md`:
+Load `knowledge/surfaces.yaml` (`node <skill>/scripts/load-surfaces.mjs`). Launch **parallel** Task agents for **required + matching gated** ids (not every authored pack). Skip unmatched optional surfaces. Use `references/agents/surface-worker.md`.
 
-layout · spacing · typography · color · materials · motion · controls · navigation · lists-split · sheets · forms · accessibility
+Always-on: layout · spacing · typography · color · materials · motion · controls · navigation · lists-split · sheets · forms · accessibility
+
+Optional examples (gate, not `requiredIds`): healthkit · game-center · mac-chrome
 
 Then `references/agents/synthesizer.md` → leased apply workers (`references/agents/apply-worker.md`).
 

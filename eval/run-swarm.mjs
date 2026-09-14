@@ -4,9 +4,10 @@
  */
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadSurfaces } from "../skills/hig/scripts/load-surfaces.mjs";
+import { loadSurfaces, selectSurfaces, requirePacksForSurfaces } from "../skills/hig/scripts/load-surfaces.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.resolve(__dirname, "..");
@@ -105,6 +106,99 @@ const results = [];
     hasToolbars,
     hasNavBars,
   });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  try {
+    const surfaces = loadSurfaces(skillRoot);
+    const required = surfaces.requiredIds;
+    const gated = surfaces.surfaces.filter((s) => s.gate && s.gate !== "always");
+    const stuffed = required.filter((id) => {
+      const s = surfaces.byId[id];
+      return s?.gate?.startsWith("capability:");
+    });
+    ok =
+      required.length >= 12 &&
+      stuffed.length === 0 &&
+      gated.some((s) => s.id === "healthkit" && s.gate === "capability:healthkit") &&
+      !required.includes("healthkit") &&
+      !required.includes("game-center") &&
+      !required.includes("mac-chrome");
+    detail = {
+      requiredCount: required.length,
+      stuffed,
+      gatedIds: gated.map((s) => s.id),
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  }
+  results.push({ case: "gates-not-in-requiredIds", ok, ...detail });
+}
+
+{
+  const surfaces = loadSurfaces(skillRoot);
+  const webSkip = selectSurfaces(surfaces, {
+    platform: "unknown",
+    capabilities: [],
+  });
+  const hk = selectSurfaces(surfaces, {
+    platform: "phone",
+    capabilities: ["healthkit"],
+  });
+  const desktop = selectSurfaces(surfaces, {
+    platform: "desktop",
+    capabilities: [],
+  });
+  const multi = selectSurfaces(surfaces, {
+    platform: "multi",
+    platform_secondary: ["desktop"],
+    capabilities: [],
+  });
+  const ok =
+    !webSkip.launched.some((s) => s.id === "healthkit") &&
+    hk.launched.some((s) => s.id === "healthkit") &&
+    desktop.launched.some((s) => s.id === "mac-chrome") &&
+    multi.launched.some((s) => s.id === "mac-chrome") &&
+    !webSkip.launched.some((s) => s.id === "mac-chrome") &&
+    !webSkip.launched.some((s) => s.id === "game-center");
+  results.push({
+    case: "select-surfaces-gates",
+    ok,
+    webLaunchedOptional: webSkip.launched
+      .filter((s) => !surfaces.requiredIds.includes(s.id))
+      .map((s) => s.id),
+    healthkitOn: hk.launched.some((s) => s.id === "healthkit"),
+  });
+}
+
+{
+  let ok = false;
+  let threw = false;
+  let detail = {};
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-missing-pack-"));
+  try {
+    const tmpSkill = path.join(dir, "hig");
+    fs.cpSync(skillRoot, tmpSkill, { recursive: true });
+    fs.unlinkSync(path.join(tmpSkill, "knowledge", "packs", "healthkit.md"));
+    const loaded = loadSurfaces(tmpSkill, { packPolicy: "required" });
+    const selected = selectSurfaces(loaded, {
+      platform: "phone",
+      capabilities: ["healthkit"],
+    });
+    const health = selected.launched.filter((s) => s.id === "healthkit");
+    try {
+      requirePacksForSurfaces(tmpSkill, health);
+    } catch (err) {
+      threw = /missing pack for healthkit/.test(String(err.message || err));
+      detail = { error: String(err.message || err) };
+    }
+    ok = health.length === 1 && threw;
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "missing-gated-pack-throws-if-selected", ok, threw, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -14,8 +14,9 @@
 
 ## Platform
 
-- platform_primary: phone | ipad | desktop | multi
+- platform_primary: phone | ipad | desktop | games | multi
 - platform_secondary: []
+- capabilities: []
 
 ## Brand
 

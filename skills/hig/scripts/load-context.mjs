@@ -13,6 +13,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DESIGN_NAMES = ["DESIGN.md", "Design.md", "design.md"];
 const AGENTS_NAMES = ["AGENTS.md", "Agents.md", "agents.md"];
@@ -487,6 +488,164 @@ function listRoutesHint(cwd) {
   return [...new Set(routes)];
 }
 
+function parseDesignSignals(designText) {
+  let platform = null;
+  const capabilities = [];
+  const platform_secondary = [];
+  if (!designText) return { platform, platform_secondary, capabilities };
+  const primary = designText.match(
+    /platform_primary:\s*(phone|ipad|desktop|games|multi|unknown)\b/i,
+  );
+  if (primary) platform = primary[1].toLowerCase();
+  const secBracket = designText.match(/platform_secondary:\s*\[([^\]]*)\]/i);
+  const secRaw = secBracket
+    ? secBracket[1]
+    : (() => {
+        const line = designText.match(
+          /^[ \t]*-?[ \t]*platform_secondary:[ \t]*(.+)$/im,
+        );
+        if (!line) return "";
+        const v = line[1].trim();
+        if (v === "[]" || v === "|") return "";
+        return v;
+      })();
+  for (const part of secRaw.split(/[,]+/)) {
+    const tok = part.trim().replace(/^["']|["']$/g, "").toLowerCase();
+    if (["phone", "ipad", "desktop", "games"].includes(tok)) {
+      platform_secondary.push(tok);
+    }
+  }
+  const bracket = designText.match(/capabilities:\s*\[([^\]]*)\]/i);
+  const rawList = bracket
+    ? bracket[1]
+    : (() => {
+        const line = designText.match(/^[ \t]*-?[ \t]*capabilities:[ \t]*(.+)$/im);
+        if (!line) return "";
+        const v = line[1].trim();
+        if (v === "[]" || v === "|") return "";
+        return v;
+      })();
+  for (const part of rawList.split(/[,]+/)) {
+    const tok = part
+      .trim()
+      .replace(/^capability:/, "")
+      .replace(/^["']|["']$/g, "");
+    if (tok && /^[a-z0-9-]+$/i.test(tok)) capabilities.push(tok.toLowerCase());
+  }
+  return { platform, platform_secondary, capabilities };
+}
+
+function detectCapabilitiesFromTree(cwd) {
+  const capabilities = new Set();
+  const files = walkHints(cwd, 400);
+  const blobs = [];
+  for (const rel of files) {
+    const lower = rel.toLowerCase();
+    if (
+      !lower.endsWith(".swift") &&
+      !lower.endsWith(".m") &&
+      !lower.endsWith(".mm") &&
+      !lower.endsWith(".plist") &&
+      !lower.endsWith(".entitlements")
+    ) {
+      continue;
+    }
+    blobs.push(readHead(path.join(cwd, rel), 12000));
+  }
+  const blob = blobs.join("\n");
+  if (
+    /\bimport\s+HealthKit\b/.test(blob) ||
+    /\bHKHealthStore\b/.test(blob) ||
+    /\bNSHealthShareUsageDescription\b/.test(blob) ||
+    /\bNSHealthUpdateUsageDescription\b/.test(blob) ||
+    /com\.apple\.developer\.healthkit/.test(blob)
+  ) {
+    capabilities.add("healthkit");
+  }
+  if (
+    /\bimport\s+GameKit\b/.test(blob) ||
+    /\bGKLocalPlayer\b/.test(blob) ||
+    /com\.apple\.developer\.game-center/.test(blob)
+  ) {
+    capabilities.add("gamecenter");
+  }
+  if (/\bimport\s+SpriteKit\b/.test(blob) || /\bimport\s+GameplayKit\b/.test(blob)) {
+    capabilities.add("games");
+  }
+  return { capabilities, blob };
+}
+
+function parseDeviceFamilyIds(blob) {
+  const ids = new Set();
+  const plistBlock = blob.match(
+    /UIDeviceFamily[\s\S]{0,800}?(?:<\/array>|<\/dict>)/i,
+  );
+  if (plistBlock) {
+    for (const m of plistBlock[0].matchAll(/<integer>\s*(\d+)\s*<\/integer>/gi)) {
+      ids.add(Number(m[1]));
+    }
+  }
+  const json = blob.match(/UIDeviceFamily"\s*:\s*\[([^\]]*)\]/);
+  if (json) {
+    for (const m of json[1].matchAll(/\d+/g)) ids.add(Number(m[0]));
+  }
+  const targeted = blob.match(/TARGETED_DEVICE_FAMILY\s*=\s*"?([0-9, ]+)"?/);
+  if (targeted) {
+    for (const part of targeted[1].split(",")) {
+      const n = Number(part.trim());
+      if (Number.isInteger(n)) ids.add(n);
+    }
+  }
+  return [...ids];
+}
+
+function cheapPlatformBlob(cwd, treeBlob) {
+  const parts = [treeBlob || ""];
+  parts.push(readHead(path.join(cwd, "Package.swift"), 8000));
+  try {
+    const ents = fs.readdirSync(cwd, { withFileTypes: true });
+    for (const ent of ents) {
+      if (ent.isDirectory() && ent.name.endsWith(".xcodeproj")) {
+        parts.push(
+          readHead(path.join(cwd, ent.name, "project.pbxproj"), 8000),
+        );
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return parts.join("\n");
+}
+
+function inferPlatform(cwd, stack, designPlatform, treeBlob) {
+  if (designPlatform) return designPlatform;
+  const blob = cheapPlatformBlob(cwd, treeBlob);
+  if (/\bimport\s+AppKit\b/.test(blob) || /\bNSApplication\b/.test(blob)) {
+    return "desktop";
+  }
+  if (/SDKROOT\s*=\s*macosx\b/.test(blob)) {
+    return "desktop";
+  }
+  const hasMacOS = /\.macOS\s*\(/.test(blob);
+  const hasIOS = /\.iOS\s*\(/.test(blob);
+  if (
+    hasMacOS &&
+    !hasIOS &&
+    (stack?.kind === "swiftui" || /\bimport\s+SwiftUI\b/.test(blob))
+  ) {
+    return "desktop";
+  }
+  if (/\bimport\s+SpriteKit\b/.test(blob) || /\bimport\s+GameplayKit\b/.test(blob)) {
+    return "games";
+  }
+  const families = parseDeviceFamilyIds(blob);
+  if (families.includes(2) && !families.includes(1)) {
+    return "ipad";
+  }
+  if (stack?.family === "native-apple") return "phone";
+  return "unknown";
+}
+
 function loadContext(cwd = process.cwd()) {
   const contextDir = resolveContextDir(cwd);
   const designPath = firstExisting(contextDir, DESIGN_NAMES);
@@ -496,6 +655,15 @@ function loadContext(cwd = process.cwd()) {
   const hasDesign = Boolean(design);
   const teachComplete = hasDesign && !isPlaceholderDesign(design);
   const stack = detectStack(cwd);
+  const designSignals = parseDesignSignals(design);
+  const treeCaps = detectCapabilitiesFromTree(cwd);
+  const capabilitySet = new Set([
+    ...designSignals.capabilities,
+    ...treeCaps.capabilities,
+  ]);
+  const platform = inferPlatform(cwd, stack, designSignals.platform, treeCaps.blob);
+  const platform_secondary = designSignals.platform_secondary || [];
+  const capabilities = [...capabilitySet].sort();
   const register = readRegister(design, cwd);
   const brandSnapshot = snapshotBrandCss(cwd);
   const brandVeto = brandMutationLocked(design) || register === "brand";
@@ -531,6 +699,7 @@ function loadContext(cwd = process.cwd()) {
     `context=pass`,
     `stack=${stack.supported ? "pass" : "unsupported"}`,
     `kind=${stack.kind}`,
+    `platform=${platform}`,
     `register=${register}`,
     `design=${designStatus}`,
     `brand_veto=${brandVeto ? "on" : "off"}`,
@@ -551,6 +720,9 @@ function loadContext(cwd = process.cwd()) {
     placeholderDesign: hasDesign && !teachComplete,
     designStatus,
     stack,
+    platform,
+    platform_secondary,
+    capabilities,
     register,
     brandSnapshot,
     brandVeto,
@@ -572,6 +744,15 @@ function loadContext(cwd = process.cwd()) {
   };
 }
 
-const cwdArg = process.argv[2];
-const result = loadContext(cwdArg ? path.resolve(cwdArg) : process.cwd());
-process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+export { loadContext };
+
+const isMain =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) ===
+    path.resolve(fileURLToPath(import.meta.url));
+
+if (isMain) {
+  const cwdArg = process.argv[2];
+  const result = loadContext(cwdArg ? path.resolve(cwdArg) : process.cwd());
+  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+}

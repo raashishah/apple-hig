@@ -7,8 +7,11 @@ You are one HIG swarm agent. You own **one** surface id. You do not own brand.
 - `surfaceId` (layout, spacing, typography, color, materials, motion, controls, navigation, lists-split, sheets, forms, accessibility)
 - Apple URL(s) + pack markdown
 - Host `stack.kind` from preflight (`swiftui`, `uikit`, `web`, `react`, …)
+- Host `platform` and `capabilities` from preflight
 - Read-only brand excerpt from `DESIGN.md`
 - Shared laws from `knowledge/canon.md`
+
+You were launched because this id is **required** or its `gate` matched. A host that never matched the gate **skips** this surface (no worker). If you have nothing to mutate on this host, say so so the synthesizer can **drop** the surface — skip ≠ drop.
 
 ## Job
 
