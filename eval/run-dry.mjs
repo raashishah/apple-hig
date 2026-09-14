@@ -198,6 +198,46 @@ const results = [];
   });
 }
 
+{
+  const j = run("fixtures/ipad-only");
+  const ok = j.platform === "ipad" && j.stack?.kind === "swiftui";
+  results.push({ case: "ipad-only-plist-is-ipad", ok, platform: j.platform, kind: j.stack?.kind });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const j = run("fixtures/swiftui-mac");
+  const selected = selectSurfaces(surfaces, j);
+  const ok =
+    j.platform === "desktop" &&
+    (j.stack?.kind === "swiftui" || j.stack?.family === "native-apple") &&
+    selected.launched.some((s) => s.id === "mac-chrome");
+  results.push({
+    case: "swiftui-macos-package-is-desktop",
+    ok,
+    platform: j.platform,
+    kind: j.stack?.kind,
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const j = run("fixtures/multi-desktop");
+  const selected = selectSurfaces(surfaces, j);
+  const ok =
+    j.platform === "multi" &&
+    (j.platform_secondary || []).includes("desktop") &&
+    selected.launched.some((s) => s.id === "mac-chrome");
+  results.push({
+    case: "multi-secondary-desktop-launches-mac-chrome",
+    ok,
+    platform: j.platform,
+    platform_secondary: j.platform_secondary,
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

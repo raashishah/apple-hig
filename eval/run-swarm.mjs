@@ -151,10 +151,16 @@ const results = [];
     platform: "desktop",
     capabilities: [],
   });
+  const multi = selectSurfaces(surfaces, {
+    platform: "multi",
+    platform_secondary: ["desktop"],
+    capabilities: [],
+  });
   const ok =
     !webSkip.launched.some((s) => s.id === "healthkit") &&
     hk.launched.some((s) => s.id === "healthkit") &&
     desktop.launched.some((s) => s.id === "mac-chrome") &&
+    multi.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "game-center");
   results.push({

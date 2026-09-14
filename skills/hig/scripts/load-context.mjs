@@ -491,11 +491,30 @@ function listRoutesHint(cwd) {
 function parseDesignSignals(designText) {
   let platform = null;
   const capabilities = [];
-  if (!designText) return { platform, capabilities };
+  const platform_secondary = [];
+  if (!designText) return { platform, platform_secondary, capabilities };
   const primary = designText.match(
     /platform_primary:\s*(phone|ipad|desktop|games|multi|unknown)\b/i,
   );
   if (primary) platform = primary[1].toLowerCase();
+  const secBracket = designText.match(/platform_secondary:\s*\[([^\]]*)\]/i);
+  const secRaw = secBracket
+    ? secBracket[1]
+    : (() => {
+        const line = designText.match(
+          /^[ \t]*-?[ \t]*platform_secondary:[ \t]*(.+)$/im,
+        );
+        if (!line) return "";
+        const v = line[1].trim();
+        if (v === "[]" || v === "|") return "";
+        return v;
+      })();
+  for (const part of secRaw.split(/[,]+/)) {
+    const tok = part.trim().replace(/^["']|["']$/g, "").toLowerCase();
+    if (["phone", "ipad", "desktop", "games"].includes(tok)) {
+      platform_secondary.push(tok);
+    }
+  }
   const bracket = designText.match(/capabilities:\s*\[([^\]]*)\]/i);
   const rawList = bracket
     ? bracket[1]
@@ -513,7 +532,7 @@ function parseDesignSignals(designText) {
       .replace(/^["']|["']$/g, "");
     if (tok && /^[a-z0-9-]+$/i.test(tok)) capabilities.push(tok.toLowerCase());
   }
-  return { platform, capabilities };
+  return { platform, platform_secondary, capabilities };
 }
 
 function detectCapabilitiesFromTree(cwd) {
@@ -556,15 +575,71 @@ function detectCapabilitiesFromTree(cwd) {
   return { capabilities, blob };
 }
 
-function inferPlatform(cwd, stack, designPlatform, blob) {
+function parseDeviceFamilyIds(blob) {
+  const ids = new Set();
+  const plistBlock = blob.match(
+    /UIDeviceFamily[\s\S]{0,800}?(?:<\/array>|<\/dict>)/i,
+  );
+  if (plistBlock) {
+    for (const m of plistBlock[0].matchAll(/<integer>\s*(\d+)\s*<\/integer>/gi)) {
+      ids.add(Number(m[1]));
+    }
+  }
+  const json = blob.match(/UIDeviceFamily"\s*:\s*\[([^\]]*)\]/);
+  if (json) {
+    for (const m of json[1].matchAll(/\d+/g)) ids.add(Number(m[0]));
+  }
+  const targeted = blob.match(/TARGETED_DEVICE_FAMILY\s*=\s*"?([0-9, ]+)"?/);
+  if (targeted) {
+    for (const part of targeted[1].split(",")) {
+      const n = Number(part.trim());
+      if (Number.isInteger(n)) ids.add(n);
+    }
+  }
+  return [...ids];
+}
+
+function cheapPlatformBlob(cwd, treeBlob) {
+  const parts = [treeBlob || ""];
+  parts.push(readHead(path.join(cwd, "Package.swift"), 8000));
+  try {
+    const ents = fs.readdirSync(cwd, { withFileTypes: true });
+    for (const ent of ents) {
+      if (ent.isDirectory() && ent.name.endsWith(".xcodeproj")) {
+        parts.push(
+          readHead(path.join(cwd, ent.name, "project.pbxproj"), 8000),
+        );
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return parts.join("\n");
+}
+
+function inferPlatform(cwd, stack, designPlatform, treeBlob) {
   if (designPlatform) return designPlatform;
+  const blob = cheapPlatformBlob(cwd, treeBlob);
   if (/\bimport\s+AppKit\b/.test(blob) || /\bNSApplication\b/.test(blob)) {
+    return "desktop";
+  }
+  if (/SDKROOT\s*=\s*macosx\b/.test(blob)) {
+    return "desktop";
+  }
+  const hasMacOS = /\.macOS\s*\(/.test(blob);
+  const hasIOS = /\.iOS\s*\(/.test(blob);
+  if (
+    hasMacOS &&
+    !hasIOS &&
+    (stack?.kind === "swiftui" || /\bimport\s+SwiftUI\b/.test(blob))
+  ) {
     return "desktop";
   }
   if (/\bimport\s+SpriteKit\b/.test(blob) || /\bimport\s+GameplayKit\b/.test(blob)) {
     return "games";
   }
-  if (/\bUIDeviceFamily\b/.test(blob) && /[^0-9]2[^0-9]/.test(blob) && !/[^0-9]1[^0-9]/.test(blob)) {
+  const families = parseDeviceFamilyIds(blob);
+  if (families.includes(2) && !families.includes(1)) {
     return "ipad";
   }
   if (stack?.family === "native-apple") return "phone";
@@ -587,6 +662,7 @@ function loadContext(cwd = process.cwd()) {
     ...treeCaps.capabilities,
   ]);
   const platform = inferPlatform(cwd, stack, designSignals.platform, treeCaps.blob);
+  const platform_secondary = designSignals.platform_secondary || [];
   const capabilities = [...capabilitySet].sort();
   const register = readRegister(design, cwd);
   const brandSnapshot = snapshotBrandCss(cwd);
@@ -645,6 +721,7 @@ function loadContext(cwd = process.cwd()) {
     designStatus,
     stack,
     platform,
+    platform_secondary,
     capabilities,
     register,
     brandSnapshot,

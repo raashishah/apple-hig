@@ -23,6 +23,34 @@ function parseGate(raw) {
   return { type: "platform", platform: g, raw: g };
 }
 
+export function hostPlatformSet(preflight) {
+  const set = new Set();
+  const add = (value) => {
+    if (value == null || value === "") return;
+    const v = String(value).trim().toLowerCase();
+    if (v === "multi") {
+      set.add("phone");
+      set.add("ipad");
+      set.add("desktop");
+      return;
+    }
+    if (v === "phone" || v === "ipad" || v === "desktop" || v === "games") {
+      set.add(v);
+    }
+  };
+  add(preflight?.platform);
+  const secondary = preflight?.platform_secondary;
+  if (Array.isArray(secondary)) {
+    for (const item of secondary) add(item);
+  } else if (typeof secondary === "string") {
+    add(secondary);
+  }
+  if (Array.isArray(preflight?.platforms)) {
+    for (const item of preflight.platforms) add(item);
+  }
+  return set;
+}
+
 export function gateMatches(gateRaw, preflight) {
   const gate = parseGate(gateRaw);
   if (!gate) return false;
@@ -34,7 +62,7 @@ export function gateMatches(gateRaw, preflight) {
       return caps.includes(gate.token);
     }
     case "platform":
-      return preflight?.platform === gate.platform;
+      return hostPlatformSet(preflight).has(gate.platform);
     default: {
       const _exhaustive = gate.type;
       void _exhaustive;
