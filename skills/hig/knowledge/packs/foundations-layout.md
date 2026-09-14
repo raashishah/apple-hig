@@ -13,7 +13,7 @@
 ## Web translation
 
 - Use a spacing scale (4/8-based) as CSS variables.
-- App shell: fixed/sticky opaque top or side chrome; main content scrolls independently.
+- App shell: fixed/sticky system top or side chrome; main content scrolls independently. Do not paint a custom opaque bar fill.
 - Split views: list pane has a stable width band; detail flexes. Avoid `min-width` on the list that crushes detail near 768px.
 - Phone: single column; bottom tab bar fixed; content `padding-bottom` clears the bar.
 - Prefer CSS grid/flex for page chrome; avoid nested card stacks for whole pages.

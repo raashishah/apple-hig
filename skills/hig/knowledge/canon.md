@@ -29,7 +29,7 @@ Also required from Apple’s foundations pages:
 - **Hierarchy** before ornament ([Layout](https://developer.apple.com/design/human-interface-guidelines/layout)).
 - **Semantic color**, not decoration ([Color](https://developer.apple.com/design/human-interface-guidelines/color)).
 - **Type as structure** ([Typography](https://developer.apple.com/design/human-interface-guidelines/typography)).
-- **Materials with purpose** ([Materials](https://developer.apple.com/design/human-interface-guidelines/materials)): opaque chrome; translucency only on transient overlays.
+- **Materials with purpose** ([Materials](https://developer.apple.com/design/human-interface-guidelines/materials)): standard system bars (Liquid Glass functional layer vs content layer); no custom opaque bar fills. Live-link [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass).
 - **Motion that explains** ([Motion](https://developer.apple.com/design/human-interface-guidelines/motion)): interruptible, reduced-motion aware, never ornamental bounce.
 - **Accessibility is not optional** ([Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)): Dynamic Type / zoom, contrast, labels, hit targets.
 
@@ -50,7 +50,7 @@ Never copy another patient app’s brand (no Pink Depot rose, no personal-site f
 
 1. **Brand vs structure.** Colors, fonts, voice = host `DESIGN.md`. Packs = structure, density, materials, interaction.
 2. **Apple docs, not patient apps.** Cite Apple HIG URLs. Chrome FAIL IDs live in `knowledge/chrome/grammar.yaml`.
-3. **Materials.** Opaque nav and content chrome. Glass only on functional overlays (sheets, alerts, pickers) with a solid fallback.
+3. **Materials.** Standard system bars, sheets, and controls. No custom opaque fills that fight glass. Respect Reduce Transparency / Increase Contrast. Do not teach `UIDesignRequiresCompatibility` as a design.
 4. **List columns are browsers.** Compact toolbar, dense rows. Detail owns the large title and primary page chrome.
 5. **Chrome grammar.** Solved FAILs have stable IDs. Review cites `structure:<id>`. Soft prose is not a substitute.
 6. **Kit lock.** Use the host’s components and tokens. Do not add a parallel CSS/React system.

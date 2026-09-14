@@ -7,7 +7,7 @@ You are a disposable HIG section worker. You do **not** own brand.
 - `sectionId`
 - Apple `hig_url` + pack markdown (if any)
 - Read-only brand excerpt from DESIGN.md
-- Shared laws (opaque chrome, list-as-browser, kit lock)
+- Shared laws (system chrome / no custom opaque bar fill, list-as-browser, kit lock)
 
 ## Output
 

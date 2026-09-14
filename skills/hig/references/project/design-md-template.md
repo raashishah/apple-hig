@@ -23,7 +23,7 @@
 - accent_and_palette:
 - fonts:
 - anti_references: []
-- materials: opaque-chrome-glass-overlays
+- materials: system-chrome-glass-functional-layer
 
 ## Voice
 
@@ -32,7 +32,7 @@
 
 ## Chrome policy
 
-- nav: opaque
+- nav: system-bars
 - overlays: glass-optional-with-fallback
 - list_columns: browser-density
 - detail: owns-large-title

@@ -102,6 +102,7 @@ const results = [];
     "patterns-forms.md",
     "patterns-navigation.md",
     "foundations-layout.md",
+    "foundations-materials.md",
   ];
   const packHits = {};
   for (const pack of packs) {
@@ -158,6 +159,25 @@ const results = [];
     ok: allStructure && sidebarProductOnly,
     allStructure,
     sidebarProductOnly,
+  });
+}
+
+{
+  const grammar = loadChromeGrammar(skillRoot);
+  const requiresOpaqueBarFill = grammar.rules.filter((rule) => {
+    const demandsOpaque =
+      /\bopaque\b/i.test(rule.passWhen) &&
+      /\b(nav|bar|chrome|fill)\b/i.test(rule.passWhen) &&
+      !/\bno custom opaque\b/i.test(rule.passWhen);
+    const failsIfOpaqueMissing =
+      /\bopaque\b/i.test(rule.failWhen) &&
+      /\b(missing|absent|without|not opaque|keep.*opaque)\b/i.test(rule.failWhen);
+    return demandsOpaque || failsIfOpaqueMissing;
+  });
+  results.push({
+    case: "no-opaque-bar-fill-required",
+    ok: requiresOpaqueBarFill.length === 0 && Boolean(grammar.byId["chrome.bars.system-materials"]),
+    requiresOpaqueBarFill: requiresOpaqueBarFill.map((r) => r.id),
   });
 }
 

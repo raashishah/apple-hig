@@ -47,3 +47,12 @@ rules:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/sidebars
     failWhen: "Product md+ sidebar is fixed expanded width with no collapse/expand affordance."
     passWhen: "Product md+ sidebar supports collapse/expand so the work surface can reclaim width."
+
+  - id: chrome.bars.system-materials
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [foundations-materials, patterns-navigation]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/materials
+    failWhen: "Nav, toolbar, tab bar, or split-view chrome uses a custom opaque fill or tint that fights system materials / Liquid Glass."
+    passWhen: "Chrome uses standard system bars, sheets, and controls; glass is the functional layer and content is the content layer; no custom opaque bar backgrounds. Reduce Transparency and Increase Contrast are respected."

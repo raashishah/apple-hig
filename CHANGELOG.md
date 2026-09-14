@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Live HIG URL hygiene: Toolbars (not `/navigation` or `/navigation-bars`), Gestures, Entering data; ban `/app-intents`
+- Glass-safe chrome: `chrome.bars.system-materials` FAILs custom opaque bar fills; do not FAIL missing opaque nav
+
 ## 0.4.0 — 2026-09-12
 
 `/hig` is a **framework-agnostic swarm**, not a React-only implementer.

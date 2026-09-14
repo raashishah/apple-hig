@@ -14,3 +14,6 @@ surfaces:
   - id: sidebar-fixed
     file: surfaces/sidebar-fixed.tsx
     violates: [chrome.sidebar.collapsible]
+  - id: opaque-bar-fill
+    file: surfaces/opaque-bar-fill.tsx
+    violates: [chrome.bars.system-materials]

@@ -3,5 +3,6 @@
   "chrome.list-browser.toolbar-budget",
   "chrome.list-browser.filter-density",
   "chrome.form.column-cohesion",
-  "chrome.sidebar.collapsible"
+  "chrome.sidebar.collapsible",
+  "chrome.bars.system-materials"
 ]
