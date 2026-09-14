@@ -23,6 +23,7 @@ Layout direction follows script. Do not ship a second mirrored design file; use 
 - `transform: scaleX(-1)` on the whole window (mirrors photos, video, and logos).
 - Hard-coded `margin-left` / `padding-right` for chrome that should follow reading direction.
 - Assuming a back chevron always points left.
+- `dir="auto"` on `html` or the locale root (follows the first strongly directional character, so Latin chrome keeps Arabic/Hebrew sessions LTR).
 
 ## Apply in host
 
@@ -30,7 +31,7 @@ Layout direction follows script. Do not ship a second mirrored design file; use 
 |---|---|
 | SwiftUI | `layoutDirection`; `leading`/`trailing` padding; `flipsForRightToLeftLayoutDirection` only on directional glyphs |
 | UIKit | Auto Layout leading/trailing; `semanticContentAttribute`; `imageFlippedForRightToLeftLayoutDirection` |
-| Web / CSS | `dir="rtl"` / `dir="auto"` on `html` or locale root; logical properties (`margin-inline-start`, `inset-inline-end`, `text-align: start`) |
+| Web / CSS | Explicit `dir="ltr"` or `dir="rtl"` on `html` or locale root from the locale — never `auto`; logical properties (`margin-inline-start`, `inset-inline-end`, `text-align: start`) |
 | Mac | Window chrome follows AppKit leading; document canvases that represent physical pages may stay LTR |
 
 ## Craft checklist
