@@ -238,6 +238,125 @@ const results = [];
   });
 }
 
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const j = run("fixtures/siri-intents");
+  const selected = selectSurfaces(surfaces, j);
+  const launchedIds = selected.launched.map((s) => s.id);
+  const siriIds = launchedIds.filter((id) => id === "siri-app-shortcuts" || id === "app-shortcuts");
+  const ok =
+    (j.capabilities || []).includes("siri") &&
+    siriIds.length === 1 &&
+    siriIds[0] === "siri-app-shortcuts" &&
+    !launchedIds.includes("app-shortcuts") &&
+    (surfaces.byId["siri-app-shortcuts"]?.compose || []).includes("system-app-shortcuts.md");
+  results.push({
+    case: "siri-intents-one-surface",
+    ok,
+    capabilities: j.capabilities,
+    siriIds,
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const j = run("fixtures/swift-ui");
+  const selected = selectSurfaces(surfaces, j);
+  const launchedIds = selected.launched.map((s) => s.id);
+  const sheets = surfaces.byId.sheets;
+  const ok =
+    launchedIds.includes("sheets") &&
+    !launchedIds.includes("action-sheets") &&
+    !surfaces.surfaces.some((s) => s.id === "action-sheets") &&
+    (sheets?.compose || []).includes("components-action-sheets.md");
+  results.push({
+    case: "sheets-compose-no-action-sheets-lease",
+    ok,
+    launchedIds: launchedIds.filter((id) => id === "sheets" || id === "action-sheets"),
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const j = run("fixtures/passkit-wallet");
+  const selected = selectSurfaces(surfaces, j);
+  const launchedIds = selected.launched.map((s) => s.id);
+  const ok =
+    (j.capabilities || []).includes("wallet") &&
+    !(j.capabilities || []).includes("applepay") &&
+    launchedIds.includes("commerce") &&
+    !launchedIds.includes("apple-pay");
+  results.push({
+    case: "passkit-wallet-not-applepay",
+    ok,
+    capabilities: j.capabilities,
+    launchedApplePay: launchedIds.includes("apple-pay"),
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const j = run("fixtures/apple-pay");
+  const selected = selectSurfaces(surfaces, j);
+  const launchedIds = selected.launched.map((s) => s.id);
+  const ok =
+    (j.capabilities || []).includes("applepay") &&
+    launchedIds.includes("apple-pay");
+  results.push({
+    case: "apple-pay-signals-select-apple-pay",
+    ok,
+    capabilities: j.capabilities,
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const widget = run("fixtures/control-widget");
+  const phone = run("fixtures/swift-ui");
+  const widgetIds = selectSurfaces(surfaces, widget).launched.map((s) => s.id);
+  const phoneIds = selectSurfaces(surfaces, phone).launched.map((s) => s.id);
+  const ok =
+    (widget.capabilities || []).includes("controlcenter") &&
+    widgetIds.includes("control-center") &&
+    !(phone.capabilities || []).includes("controlcenter") &&
+    !phoneIds.includes("control-center");
+  results.push({
+    case: "control-widget-selects-control-center",
+    ok,
+    widgetCaps: widget.capabilities,
+    phoneCaps: phone.capabilities,
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const phone = run("fixtures/iphone-pencilkit");
+  const pad = run("fixtures/ipad-pencilkit");
+  const phoneIds = selectSurfaces(surfaces, phone).launched.map((s) => s.id);
+  const padIds = selectSurfaces(surfaces, pad).launched.map((s) => s.id);
+  const ok =
+    phone.platform === "phone" &&
+    (phone.capabilities || []).includes("pencil") &&
+    !phoneIds.includes("inputs-pencil") &&
+    pad.platform === "ipad" &&
+    (pad.capabilities || []).includes("pencil") &&
+    padIds.includes("inputs-pencil");
+  results.push({
+    case: "pencil-and-gate-ipad-only",
+    ok,
+    phonePlatform: phone.platform,
+    padPlatform: pad.platform,
+    phoneLaunchedPencil: phoneIds.includes("inputs-pencil"),
+    padLaunchedPencil: padIds.includes("inputs-pencil"),
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

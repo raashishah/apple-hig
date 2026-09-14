@@ -6,6 +6,8 @@
 - Glass-safe chrome: `chrome.bars.system-materials` FAILs custom opaque bar fills; do not FAIL missing opaque nav
 - Surface gates: optional ids use flat `gate`; preflight `platform` + `capabilities`; skip ≠ synthesizer drop; tech stays off `requiredIds`
 - Platform gates: iPad-only `UIDeviceFamily` `[2]`; SwiftUI Mac via `.macOS(`; `multi` / `platform_secondary` include desktop for `mac-chrome`
+- Wire Getting Started, foundations, patterns, inputs, system, and tech packs as gated surfaces (`requiredIds` still 12)
+- One Siri worker (compose App Shortcuts); sheets compose action sheets; PassKit → wallet not Apple Pay; Control Widget gates Control Center; Pencil is iPad AND pencil
 
 ## 0.4.0 — 2026-09-12
 

@@ -77,7 +77,7 @@ Each worker:
 - Does not edit product source
 - Cites Apple URLs + `structure:chrome.*` when `failWhen` matches
 
-If the Task tool is unavailable, simulate the swarm yourself: still write one audit file per surface before any product edit.
+If the Task tool is unavailable, simulate the swarm yourself: still write one audit file per **selected** surface before any product edit.
 
 #### 3b. Synthesize
 

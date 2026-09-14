@@ -1,7 +1,8 @@
 # patterns-sheets
 
 **Apple:** https://developer.apple.com/design/human-interface-guidelines/sheets  
-**Also:** alerts, action sheets
+**Also:** alerts, action sheets  
+**Compose:** `components-action-sheets.md` in this same worker. Phone/iPad action-sheet guidance rides here — do not take a second exclusive lease on overlay files.
 
 ## Apple guidance (web-relevant)
 
