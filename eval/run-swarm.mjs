@@ -181,7 +181,7 @@ const results = [];
   try {
     const tmpSkill = path.join(dir, "hig");
     fs.cpSync(skillRoot, tmpSkill, { recursive: true });
-    fs.unlinkSync(path.join(tmpSkill, "knowledge", "packs", "healthkit.md"));
+    fs.unlinkSync(path.join(tmpSkill, "knowledge", "packs", "tech-healthkit.md"));
     const loaded = loadSurfaces(tmpSkill, { packPolicy: "required" });
     const selected = selectSurfaces(loaded, {
       platform: "phone",

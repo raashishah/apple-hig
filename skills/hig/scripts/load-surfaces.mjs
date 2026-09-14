@@ -52,7 +52,17 @@ export function hostPlatformSet(preflight) {
 }
 
 export function gateMatches(gateRaw, preflight) {
-  const gate = parseGate(gateRaw);
+  if (gateRaw == null) return false;
+  const raw = String(gateRaw).trim();
+  if (!raw) return false;
+  if (raw.includes(",")) {
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .some((part) => gateMatches(part, preflight));
+  }
+  const gate = parseGate(raw);
   if (!gate) return false;
   switch (gate.type) {
     case "always":

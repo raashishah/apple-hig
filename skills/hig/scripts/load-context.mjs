@@ -572,6 +572,46 @@ function detectCapabilitiesFromTree(cwd) {
   if (/\bimport\s+SpriteKit\b/.test(blob) || /\bimport\s+GameplayKit\b/.test(blob)) {
     capabilities.add("games");
   }
+  if (/\bimport\s+WidgetKit\b/.test(blob) || /\bWidgetBundle\b/.test(blob)) {
+    capabilities.add("widgets");
+  }
+  if (/\bimport\s+ActivityKit\b/.test(blob)) capabilities.add("liveactivities");
+  if (/\bimport\s+PencilKit\b/.test(blob)) capabilities.add("pencil");
+  if (
+    /\bimport\s+PassKit\b/.test(blob) ||
+    /\bPKPaymentAuthorization/.test(blob) ||
+    /com\.apple\.developer\.in-app-payments/.test(blob)
+  ) {
+    capabilities.add("applepay");
+  }
+  if (
+    /\bASAuthorizationAppleID/.test(blob) ||
+    /com\.apple\.developer\.applesignin/.test(blob)
+  ) {
+    capabilities.add("signinwithapple");
+  }
+  if (
+    /\bimport\s+AppIntents\b/.test(blob) ||
+    /\bimport\s+Intents\b/.test(blob) ||
+    /\bINShortcut\b/.test(blob)
+  ) {
+    capabilities.add("siri");
+  }
+  if (/\bimport\s+CarPlay\b/.test(blob)) capabilities.add("carplay");
+  if (/\bimport\s+MapKit\b/.test(blob)) capabilities.add("mapkit");
+  if (/\bimport\s+CloudKit\b/.test(blob) || /\bCKContainer\b/.test(blob)) {
+    capabilities.add("icloud");
+  }
+  if (/\bimport\s+GroupActivities\b/.test(blob)) capabilities.add("shareplay");
+  if (/\bimport\s+StoreKit\b/.test(blob)) capabilities.add("iap");
+  if (/\bimport\s+CareKit\b/.test(blob)) capabilities.add("carekit");
+  if (/\bimport\s+ResearchKit\b/.test(blob)) capabilities.add("researchkit");
+  if (/\bimport\s+HomeKit\b/.test(blob)) capabilities.add("homekit");
+  if (/\bimport\s+PhotosUI\b/.test(blob) || /\bimport\s+Photos\b/.test(blob)) {
+    capabilities.add("photos");
+  }
+  if (/\bimport\s+ARKit\b/.test(blob)) capabilities.add("arkit");
+  if (/\bimport\s+CoreML\b/.test(blob)) capabilities.add("coreml");
   return { capabilities, blob };
 }
 

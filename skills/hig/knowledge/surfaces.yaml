@@ -66,22 +66,266 @@ surfaces:
     pack: foundations-accessibility.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/accessibility
     covers: [labels, contrast, hit-targets, reduce-motion, dynamic-type]
-  # Optional — skipped unless gate matches. Never put these on requiredIds.
-  - id: healthkit
-    pack: healthkit.md
-    appleUrl: https://developer.apple.com/design/human-interface-guidelines/healthkit
-    gate: capability:healthkit
-    covers: [health-permission-copy]
-  - id: game-center
-    pack: game-center.md
-    appleUrl: https://developer.apple.com/design/human-interface-guidelines/game-center
-    gate: capability:gamecenter
-    covers: [game-center-chrome]
+  # Optional. Never put tech or Mac/games/inputs/system experiences on requiredIds.
+  - id: design-principles
+    pack: design-principles.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/design-principles
+    gate: always
+    covers: [clarity, deference, depth]
+  - id: gs-ios
+    pack: designing-for-ios.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/designing-for-ios
+    gate: phone
+    covers: [iphone-gs]
+  - id: gs-ipados
+    pack: designing-for-ipados.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/designing-for-ipados
+    gate: ipad
+    covers: [ipad-gs]
   - id: mac-chrome
-    pack: mac-chrome.md
+    pack: designing-for-macos.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/designing-for-macos
     gate: desktop
     covers: [menu-bar, windows, pointing]
+  - id: gs-games
+    pack: designing-for-games.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/designing-for-games
+    gate: games
+    covers: [hud, game-center-link]
+  - id: icons
+    pack: foundations-icons.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/icons
+    gate: always
+    covers: [sf-symbols, icon-weight]
+  - id: writing
+    pack: foundations-writing.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/writing
+    gate: always
+    covers: [voice, labels]
+  - id: privacy
+    pack: foundations-privacy.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/privacy
+    gate: always
+    covers: [permission-copy]
+  - id: inclusion
+    pack: foundations-inclusion.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/inclusion
+    gate: always
+    covers: [inclusive-copy]
+  - id: right-to-left
+    pack: foundations-right-to-left.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/right-to-left
+    gate: always
+    covers: [leading-trailing]
+  - id: images
+    pack: foundations-images.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/images
+    gate: always
+    covers: [photos-in-ui]
+  - id: branding
+    pack: foundations-branding.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/branding
+    gate: always
+    covers: [mark-restraint]
+  - id: app-icons
+    pack: foundations-app-icons.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/app-icons
+    gate: always
+    covers: [icon-composer]
+  - id: search
+    pack: patterns-search.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/searching
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/search-fields
+    gate: always
+    covers: [search-fields]
+  - id: settings
+    pack: patterns-settings.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/settings
+    gate: always
+    covers: [preferences]
+  - id: feedback
+    pack: patterns-feedback.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/feedback
+    gate: always
+    covers: [toasts, haptics]
+  - id: loading
+    pack: patterns-loading.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/loading
+    gate: always
+    covers: [skeletons]
+  - id: undo
+    pack: patterns-undo.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/undo-and-redo
+    gate: always
+    covers: [shake-undo]
+  - id: drag-and-drop
+    pack: patterns-drag-and-drop.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/drag-and-drop
+    gate: always
+    covers: [drop-contract]
+  - id: onboarding
+    pack: patterns-onboarding.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/onboarding
+    gate: always
+    covers: [first-launch]
+  - id: notifications
+    pack: patterns-notifications.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/managing-notifications
+    gate: always
+    covers: [permission-timing]
+  - id: launching
+    pack: patterns-launching.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/launching
+    gate: always
+    covers: [launch-screen]
+  - id: toolbars
+    pack: components-toolbars.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/toolbars
+    gate: always
+    covers: [toolbar-actions]
+  - id: menus
+    pack: components-menus.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/menus
+    gate: always
+    covers: [context-menus]
+  - id: action-sheets
+    pack: components-action-sheets.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/action-sheets
+    gate: phone,ipad
+    covers: [action-sheets]
+  - id: pickers
+    pack: components-pickers.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/pickers
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/steppers
+    gate: always
+    covers: [pickers, steppers]
+  - id: progress
+    pack: components-progress.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/progress-indicators
+    gate: always
+    covers: [progress]
+  - id: widgets
+    pack: system-widgets.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets
+    gate: capability:widgets
+    covers: [home-screen-widgets]
+  - id: live-activities
+    pack: system-live-activities.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/live-activities
+    gate: capability:liveactivities
+    covers: [live-activities]
+  - id: control-center
+    pack: system-control-center.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/controls
+    gate: phone,ipad
+    covers: [control-center-controls]
+  - id: status-bars
+    pack: system-status-bars.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/status-bars
+    gate: phone,ipad
+    covers: [status-bar]
+  - id: inputs-gestures
+    pack: inputs-gestures.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/gestures
+    gate: phone,ipad
+    covers: [multitouch]
+  - id: inputs-keyboards
+    pack: inputs-keyboards.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/keyboards
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards
+    gate: phone,ipad,desktop
+    covers: [hardware-keyboard, virtual-keyboard]
+  - id: inputs-pointing
+    pack: inputs-pointing-devices.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/pointing-devices
+    gate: ipad,desktop
+    covers: [pointer]
+  - id: inputs-pencil
+    pack: inputs-apple-pencil.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/apple-pencil-and-scribble
+    gate: ipad,capability:pencil
+    covers: [pencil, scribble]
+  - id: inputs-game-controls
+    pack: inputs-game-controls.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/game-controls
+    gate: games,capability:games
+    covers: [game-inputs]
+  - id: healthkit
+    pack: tech-healthkit.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/healthkit
+    gate: capability:healthkit
+    covers: [health-permission-copy]
+  - id: apple-pay
+    pack: tech-apple-pay.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/apple-pay
+    gate: capability:applepay
+    covers: [pay-button]
+  - id: sign-in-with-apple
+    pack: tech-sign-in-with-apple.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple
+    gate: capability:signinwithapple
+    covers: [siwa]
+  - id: siri-app-shortcuts
+    pack: tech-siri-app-shortcuts.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/siri
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/app-shortcuts
+    gate: capability:siri
+    covers: [siri, app-shortcuts]
+  - id: app-shortcuts
+    pack: system-app-shortcuts.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/app-shortcuts
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/siri
+    gate: capability:siri
+    covers: [app-shortcuts-ui]
+  - id: game-center
+    pack: tech-cluster-game-center.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/game-center
+    gate: capability:gamecenter
+    covers: [game-center-chrome]
+  - id: carplay-maps
+    pack: tech-cluster-carplay-maps.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/carplay
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/maps
+    gate: capability:carplay,capability:mapkit
+    covers: [carplay, maps]
+  - id: commerce
+    pack: tech-cluster-commerce.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/in-app-purchase
+    gate: capability:iap,capability:wallet,capability:taptopay,capability:nfc,capability:idverifier
+    covers: [iap, wallet]
+  - id: health-research
+    pack: tech-cluster-health-research.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/carekit
+    also:
+      - https://developer.apple.com/design/human-interface-guidelines/researchkit
+    gate: capability:carekit,capability:researchkit
+    covers: [carekit, researchkit]
+  - id: icloud-shareplay
+    pack: tech-cluster-icloud-shareplay.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/icloud
+    gate: capability:icloud,capability:shareplay,capability:airplay,capability:homekit
+    covers: [icloud, shareplay]
+  - id: media-intelligence
+    pack: tech-cluster-media-intelligence.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/live-photos
+    gate: capability:photos,capability:shazam,capability:genai,capability:coreml,capability:arkit
+    covers: [photos, genai, ar]
+  - id: platform-tech
+    pack: tech-cluster-platform.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/mac-catalyst
+    gate: capability:maccatalyst,capability:alwayson,capability:appclips,capability:imessage
+    covers: [catalyst, app-clips]
+  - id: voiceover-tech
+    pack: tech-cluster-voiceover.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/voiceover
+    gate: capability:voiceover
+    covers: [voiceover-link]
 
 requiredIds:
   - layout
