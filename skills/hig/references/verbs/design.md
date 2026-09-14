@@ -62,7 +62,7 @@ Do **not** implement serially as a single agent editing all of `src/` at once. F
 
 #### 3a. Audit (parallel)
 
-Launch one Task per **selected** surface: every `requiredIds` id, plus optional ids whose flat `gate` matches preflight (`always`, host family `phone`/`ipad`/`desktop`/`games`, or `capability:<token>`).
+Launch one Task per **selected** surface: every `requiredIds` id, plus optional ids whose flat `gate` matches preflight (`always`, host family `phone`/`ipad`/`desktop`/`games`/`duo`, or `capability:<token>`).
 
 **Skip** unmatched gated ids — do not launch a worker, do not write `.hig/swarm/<id>.md`. Skip is not a synthesizer drop.
 

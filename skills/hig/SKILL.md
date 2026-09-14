@@ -69,7 +69,7 @@ Load `knowledge/surfaces.yaml` (`node <skill>/scripts/load-surfaces.mjs`). Launc
 
 Always-on: layout · spacing · typography · color · materials · motion · controls · navigation · lists-split · sheets · forms · accessibility
 
-Optional examples (gate, not `requiredIds`): healthkit · game-center · mac-chrome
+Optional examples (gate, not `requiredIds`): healthkit · game-center · mac-chrome · gs-iphone-duo
 
 Then `references/agents/synthesizer.md` → leased apply workers (`references/agents/apply-worker.md`).
 

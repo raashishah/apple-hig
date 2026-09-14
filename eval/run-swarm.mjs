@@ -248,6 +248,33 @@ const results = [];
   });
 }
 
+{
+  const surfaces = loadSurfaces(skillRoot);
+  const phone = selectSurfaces(surfaces, { platform: "phone", capabilities: [] });
+  const byCap = selectSurfaces(surfaces, {
+    platform: "phone",
+    capabilities: ["duo"],
+  });
+  const byPlatform = selectSurfaces(surfaces, {
+    platform: "duo",
+    capabilities: [],
+  });
+  const ok =
+    surfaces.requiredIds.length === 12 &&
+    !surfaces.requiredIds.includes("gs-iphone-duo") &&
+    surfaces.byId["gs-iphone-duo"]?.gate === "duo,capability:duo" &&
+    !phone.launched.some((s) => s.id === "gs-iphone-duo") &&
+    byCap.launched.some((s) => s.id === "gs-iphone-duo") &&
+    byCap.launched.some((s) => s.id === "gs-ios") &&
+    byPlatform.launched.some((s) => s.id === "gs-iphone-duo") &&
+    byPlatform.launched.some((s) => s.id === "gs-ios");
+  results.push({
+    case: "iphone-duo-gate",
+    ok,
+    requiredCount: surfaces.requiredIds.length,
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
