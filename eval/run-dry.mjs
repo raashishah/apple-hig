@@ -406,6 +406,23 @@ const results = [];
   });
 }
 
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const regions = run("fixtures/iphone-duo-reserved-regions");
+  const ids = selectSurfaces(surfaces, regions).launched.map((s) => s.id);
+  const ok =
+    (regions.capabilities || []).includes("duo") &&
+    ids.includes("gs-iphone-duo") &&
+    !run("fixtures/swift-ui").capabilities?.includes("duo");
+  results.push({
+    case: "reserved-regions-only-selects-iphone-duo",
+    ok,
+    capabilities: regions.capabilities,
+    launchedDuo: ids.includes("gs-iphone-duo"),
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

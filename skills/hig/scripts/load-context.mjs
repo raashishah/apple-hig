@@ -584,7 +584,8 @@ function detectCapabilitiesFromTree(cwd) {
     /\bArrangementView\b/.test(blob) ||
     /\bUIArrangementViewController\b/.test(blob) ||
     /\barrangementViewStyle\b/.test(blob) ||
-    /\breservedRegion\s*\(/.test(blob)
+    /\bUIViewReservedRegion\b/.test(blob) ||
+    /\breservedRegions?\b/.test(blob)
   ) {
     capabilities.add("duo");
   }

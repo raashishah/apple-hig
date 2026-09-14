@@ -42,8 +42,8 @@ iPhone Duo Getting started. Two displays, one continuous app. Not a stretched cu
 
 | Host | How |
 |---|---|
-| SwiftUI | System `TabView` / `NavigationStack` bars; `NavigationSplitView` or `sidebarAdaptable` tabs on inner regular width; `ArrangementView` for split/overlay; `GeometryProxy.reservedRegion` for custom displacement |
-| UIKit | System nav/tab/toolbar; `UISplitViewController`; `UIArrangementViewController`; `UIView` reserved-region query |
+| SwiftUI | System `TabView` / `NavigationStack` bars; `NavigationSplitView` or `sidebarAdaptable` tabs on inner regular width; `ArrangementView` for split/overlay; `GeometryProxy.reservedRegions` for custom displacement |
+| UIKit | System nav/tab/toolbar; `UISplitViewController`; `UIArrangementViewController`; `UIViewReservedRegion` / `reservedRegions(` |
 | Web / CSS | **Skip** unless DESIGN.md opts into Duo. Then two size-class layouts only — never invent iOS vertical bars or fold geometry |
 
 ## Checklist
