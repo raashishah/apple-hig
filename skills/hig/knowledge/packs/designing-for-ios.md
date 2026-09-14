@@ -6,9 +6,9 @@
 
 iPhone Getting started. Feel of the platform — not a component catalog.
 
-## Out of wave — iPhone Duo
+## iPhone Duo
 
-[Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo) is **live** (inner/outer displays, poses, vertical bars). This wave **does not pack Duo**. Do not invent pose layouts, arrangement pixels, or fold numbers. Do **not** claim iOS Getting started is complete on a current iPhone host. Link the live page; wait for a later unit.
+[Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo) is a **separate** gated pack (`gs-iphone-duo`). Current iPhone hosts stay on this page. Do not apply outer/inner, vertical-bar, fold, or arrangement rules here.
 
 ## Apple guidance
 

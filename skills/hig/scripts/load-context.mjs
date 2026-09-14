@@ -494,7 +494,7 @@ function parseDesignSignals(designText) {
   const platform_secondary = [];
   if (!designText) return { platform, platform_secondary, capabilities };
   const primary = designText.match(
-    /platform_primary:\s*(phone|ipad|desktop|games|multi|unknown)\b/i,
+    /platform_primary:\s*(phone|ipad|desktop|games|multi|duo|unknown)\b/i,
   );
   if (primary) platform = primary[1].toLowerCase();
   const secBracket = designText.match(/platform_secondary:\s*\[([^\]]*)\]/i);
@@ -511,7 +511,7 @@ function parseDesignSignals(designText) {
       })();
   for (const part of secRaw.split(/[,]+/)) {
     const tok = part.trim().replace(/^["']|["']$/g, "").toLowerCase();
-    if (["phone", "ipad", "desktop", "games"].includes(tok)) {
+    if (["phone", "ipad", "desktop", "games", "duo"].includes(tok)) {
       platform_secondary.push(tok);
     }
   }
@@ -531,6 +531,9 @@ function parseDesignSignals(designText) {
       .replace(/^capability:/, "")
       .replace(/^["']|["']$/g, "");
     if (tok && /^[a-z0-9-]+$/i.test(tok)) capabilities.push(tok.toLowerCase());
+  }
+  if (platform === "duo" && !capabilities.includes("duo")) {
+    capabilities.push("duo");
   }
   return { platform, platform_secondary, capabilities };
 }
@@ -577,6 +580,14 @@ function detectCapabilitiesFromTree(cwd) {
   }
   if (/\bimport\s+ActivityKit\b/.test(blob)) capabilities.add("liveactivities");
   if (/\bimport\s+PencilKit\b/.test(blob)) capabilities.add("pencil");
+  if (
+    /\bArrangementView\b/.test(blob) ||
+    /\bUIArrangementViewController\b/.test(blob) ||
+    /\barrangementViewStyle\b/.test(blob) ||
+    /\breservedRegion\s*\(/.test(blob)
+  ) {
+    capabilities.add("duo");
+  }
   if (
     /\bControlWidget(?:Toggle|Button)?\b/.test(blob) ||
     /\bControlWidgetConfiguration\b/.test(blob) ||

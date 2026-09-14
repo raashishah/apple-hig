@@ -80,6 +80,11 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/designing-for-ios
     gate: phone
     covers: [iphone-gs]
+  - id: gs-iphone-duo
+    pack: designing-for-iphone-duo.md
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo
+    gate: duo,capability:duo
+    covers: [iphone-duo, outer-inner, poses, vertical-bars]
   - id: gs-ipados
     pack: designing-for-ipados.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/designing-for-ipados

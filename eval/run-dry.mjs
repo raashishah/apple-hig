@@ -357,6 +357,55 @@ const results = [];
   });
 }
 
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const phone = run("fixtures/swift-ui");
+  const phoneIds = selectSurfaces(surfaces, phone).launched.map((s) => s.id);
+  const ok =
+    phone.platform === "phone" &&
+    !(phone.capabilities || []).includes("duo") &&
+    !phoneIds.includes("gs-iphone-duo") &&
+    phoneIds.includes("gs-ios") &&
+    surfaces.requiredIds.length === 12;
+  results.push({
+    case: "phone-only-skips-iphone-duo",
+    ok,
+    platform: phone.platform,
+    capabilities: phone.capabilities,
+    launchedDuo: phoneIds.includes("gs-iphone-duo"),
+  });
+}
+
+{
+  const skillRoot = path.join(root, "skills", "hig");
+  const surfaces = loadSurfaces(skillRoot);
+  const design = run("fixtures/iphone-duo-design");
+  const host = run("fixtures/iphone-duo-host");
+  const platform = run("fixtures/iphone-duo-platform");
+  const designIds = selectSurfaces(surfaces, design).launched.map((s) => s.id);
+  const hostIds = selectSurfaces(surfaces, host).launched.map((s) => s.id);
+  const platformIds = selectSurfaces(surfaces, platform).launched.map((s) => s.id);
+  const ok =
+    (design.capabilities || []).includes("duo") &&
+    designIds.includes("gs-iphone-duo") &&
+    designIds.includes("gs-ios") &&
+    (host.capabilities || []).includes("duo") &&
+    hostIds.includes("gs-iphone-duo") &&
+    platform.platform === "duo" &&
+    (platform.capabilities || []).includes("duo") &&
+    platformIds.includes("gs-iphone-duo") &&
+    platformIds.includes("gs-ios");
+  results.push({
+    case: "duo-design-or-host-selects-iphone-duo",
+    ok,
+    designCaps: design.capabilities,
+    hostCaps: host.capabilities,
+    platform: platform.platform,
+    platformCaps: platform.capabilities,
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

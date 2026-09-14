@@ -14,9 +14,10 @@
 
 ## Platform
 
-- platform_primary: phone | ipad | desktop | games | multi
+- platform_primary: phone | ipad | desktop | games | multi | duo
 - platform_secondary: []
 - capabilities: []
+  # `duo` or `platform_primary: duo` selects Designing for iPhone Duo. Current iPhone omits both.
 
 ## Brand
 

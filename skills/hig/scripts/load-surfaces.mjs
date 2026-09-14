@@ -34,6 +34,11 @@ export function hostPlatformSet(preflight) {
       set.add("desktop");
       return;
     }
+    if (v === "duo") {
+      set.add("duo");
+      set.add("phone");
+      return;
+    }
     if (v === "phone" || v === "ipad" || v === "desktop" || v === "games") {
       set.add(v);
     }
