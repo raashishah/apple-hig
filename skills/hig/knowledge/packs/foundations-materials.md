@@ -1,13 +1,15 @@
 # foundations-materials
 
 **Apple:** https://developer.apple.com/design/human-interface-guidelines/materials  
+**Also:** [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass) (live; do not freeze pixels)  
 **Phase:** 1
 
 ## Apple guidance (web-relevant)
 
 - Materials help separate layers (chrome vs content vs transient surfaces).
+- Liquid Glass is the **functional layer** (standard bars, sheets, popovers, controls). Content is the **content layer**.
 - Vibrancy/blur are purposeful, not a default aesthetic.
-- Content readability beats glass fashion.
+- Content readability beats glass fashion. Test Reduce Transparency and Increase Contrast.
 
 ## Web translation (workspace canon)
 
@@ -15,11 +17,12 @@
 
 | Layer | Material |
 |---|---|
-| Sidebar, top nav, bottom tab bar, page background, list rows | **Opaque** |
-| Sheets, alerts, modal pickers (functional overlays) | **Glass optional** inside `@supports (backdrop-filter: …)` with solid fallback |
+| Sidebar, top nav, bottom tab bar (functional chrome) | **System / glass-safe** — no custom opaque bar fill or tint |
+| Page background, list rows (content) | **Solid / content materials** (ultra-thin through thick as needed) |
+| Sheets, alerts, modal pickers (functional overlays) | **System overlay** inside `@supports (backdrop-filter: …)` with solid fallback |
 
 ```css
-/* Overlay only — never default nav */
+/* Overlay only — never a painted opaque nav fill */
 .overlay-surface {
   background: var(--overlay-solid);
 }
@@ -31,26 +34,39 @@
 }
 ```
 
+Do not ship a fake glass recipe for bars. Prefer the host system component.
+
 ## Do
 
-- Keep primary navigation solid and legible.
+- Use standard system bars, sheets, and controls.
 - Use elevation sparingly (hairline separators > heavy shadows for Apple-like web).
+- Keep chrome legible when Reduce Transparency / Increase Contrast is on.
 
 ## Don't
 
-- Frosted glass on sidebars, bottom bars, or content cards by default.
+- Custom opaque fills on navigation, tool, or tab bars, or on split-view chrome.
+- Teaching `UIDesignRequiresCompatibility` as a supported look.
 - Stacking multiple translucent layers until text fails contrast.
 
 ## Interaction states
 
 Overlays: enter/exit opacity + translate with reduced-motion fallbacks. Chrome materials stay stable while scrolling.
 
+## Chrome gates
+
+- `chrome.bars.system-materials`
+
 ## Craft checklist
 
-- [ ] Nav/content opaque
-- [ ] Glass limited to functional overlays + `@supports` fallback
-- [ ] No liquid-glass token leakage into primary chrome without an explicit product decision
+- [ ] No custom opaque bar fill
+- [ ] Glass limited to the functional layer + `@supports` fallback on web overlays
+- [ ] Reduce Transparency / Increase Contrast considered
+- [ ] No liquid-glass token leakage into content without an explicit product decision
 
 ## Apply in host
 
-Swift: system materials on **transient** overlays; opaque bars by default. Web: opaque nav/content; overlay glass only inside `@supports` with solid fallback.
+| Host | How |
+|---|---|
+| SwiftUI | System `Toolbar` / `NavigationStack` / `.sheet` materials; do not paint bar backgrounds |
+| UIKit | System bars (`UINavigationBar`, `UIToolbar`, `UITabBar`) without custom `backgroundColor` / bar tint that fights glass |
+| Web / CSS | Do not fill nav with an opaque solid that impersonates a pre-iOS 26 bar; overlay glass only inside `@supports` with solid fallback |

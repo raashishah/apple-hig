@@ -17,6 +17,7 @@ const REQUIRED_CLASSES = [
   "chrome.list-browser.toolbar-budget",
   "chrome.form.column-cohesion",
   "chrome.sidebar.collapsible",
+  "chrome.bars.system-materials",
 ];
 
 function parseSimpleYaml(text) {

@@ -66,8 +66,8 @@ sections:
     relevance: high
     batch: A
   - id: components-navigation-stacks
-    hig_url: https://developer.apple.com/design/human-interface-guidelines/navigation-bars
-    topic: Navigation stacks
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/toolbars
+    topic: Navigation stacks (HIG Toolbars; UINavigationBar is an API alias)
     phase: 2
     relevance: high
     batch: A
@@ -84,7 +84,7 @@ sections:
     relevance: high
     batch: B
   - id: components-forms
-    hig_url: https://developer.apple.com/design/human-interface-guidelines/data-entry
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/entering-data
     topic: Forms
     phase: 2
     relevance: high
@@ -208,7 +208,7 @@ sections:
     phase: 3
     relevance: high
   - id: inputs-touch
-    hig_url: https://developer.apple.com/design/human-interface-guidelines/touchscreen-gestures
+    hig_url: https://developer.apple.com/design/human-interface-guidelines/gestures
     topic: Touch
     phase: 3
     relevance: high

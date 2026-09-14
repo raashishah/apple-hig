@@ -23,7 +23,7 @@ surfaces:
   - id: materials
     pack: foundations-materials.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/materials
-    covers: [opaque-chrome, overlay-translucency]
+    covers: [system-chrome, glass-functional-layer, overlay-translucency]
   - id: motion
     pack: foundations-motion.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/motion
@@ -38,11 +38,10 @@ surfaces:
     covers: [buttons, toggles, fields, segmented, hit-targets]
   - id: navigation
     pack: patterns-navigation.md
-    appleUrl: https://developer.apple.com/design/human-interface-guidelines/navigation
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/tab-bars
     also:
       - https://developer.apple.com/design/human-interface-guidelines/sidebars
-      - https://developer.apple.com/design/human-interface-guidelines/tab-bars
-      - https://developer.apple.com/design/human-interface-guidelines/navigation-bars
+      - https://developer.apple.com/design/human-interface-guidelines/toolbars
     covers: [location, bars, tabs, sidebar-collapse]
   - id: lists-split
     pack: patterns-lists-detail.md

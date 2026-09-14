@@ -16,12 +16,12 @@
 
 ## Do
 
-- Keep underlying nav opaque; only the overlay softens.
+- Keep underlying nav as system chrome; only the overlay is a separate material. Do not paint an opaque custom bar under the sheet.
 - Reduced-motion: opacity only, no large slides if preferred.
 
 ## Don't
 
-- Glass on page chrome.
+- Custom opaque fills on page chrome, or decorative glass on content cards.
 - Nested modal stacks without a strong reason.
 
 ## Interaction states

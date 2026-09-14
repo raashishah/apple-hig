@@ -61,6 +61,52 @@ const results = [];
   results.push({ case: "react-skill-no-kit", ok });
 }
 
+{
+  const yamlRoots = [
+    path.join(skillRoot, "knowledge", "surfaces.yaml"),
+    path.join(skillRoot, "knowledge", "registry.yaml"),
+    path.join(skillRoot, "knowledge", "chrome", "grammar.yaml"),
+  ];
+  const packDir = path.join(skillRoot, "knowledge", "packs");
+  const texts = yamlRoots.map((p) => fs.readFileSync(p, "utf8"));
+  for (const name of fs.readdirSync(packDir)) {
+    if (name.endsWith(".md")) texts.push(fs.readFileSync(path.join(packDir, name), "utf8"));
+  }
+  const blob = texts.join("\n");
+  const forbiddenHits = [];
+  for (const slug of ["data-entry", "app-intents", "touchscreen-gestures", "navigation-bars"]) {
+    if (blob.includes(`/human-interface-guidelines/${slug}`)) forbiddenHits.push(slug);
+  }
+  if (/human-interface-guidelines\/navigation(?![\w-])/.test(blob)) forbiddenHits.push("navigation");
+
+  let nav = null;
+  try {
+    nav = loadSurfaces(skillRoot).surfaces.find((s) => s.id === "navigation");
+  } catch {
+    nav = null;
+  }
+  const loaded = [nav?.appleUrl, ...(nav?.also || [])].filter(Boolean);
+  const hasToolbars = loaded.some((u) => u.endsWith("/toolbars"));
+  const hasNavBars = loaded.some((u) => u.includes("/navigation-bars"));
+  const hasTabBars = loaded.some((u) => u.endsWith("/tab-bars"));
+  const hasSidebars = loaded.some((u) => u.endsWith("/sidebars"));
+
+  results.push({
+    case: "live-url-hygiene",
+    ok:
+      forbiddenHits.length === 0 &&
+      hasToolbars &&
+      hasTabBars &&
+      hasSidebars &&
+      !hasNavBars &&
+      Boolean(nav),
+    forbiddenHits,
+    loaded,
+    hasToolbars,
+    hasNavBars,
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

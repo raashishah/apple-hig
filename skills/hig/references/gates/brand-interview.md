@@ -11,6 +11,6 @@ Required fields to collect:
 - accent_and_palette: free text or token list
 - fonts: free text
 - anti_references: list
-- materials: opaque-chrome-glass-overlays (default) | custom note
+- materials: system-chrome-glass-functional-layer (default) | custom note
 
 Stop and wait for answers between rounds.
