@@ -44,3 +44,7 @@ Load `knowledge/chrome/grammar.yaml`. Cite these IDs in review; implement to PAS
 - [ ] 768 split survives
 - [ ] 375 single-column path
 - [ ] Chrome gates above would PASS
+
+## Apply in host
+
+SwiftUI `List` + detail; UIKit table/collection + split. Web: list column is a browser (compact toolbar, dense rows); detail owns the large title.

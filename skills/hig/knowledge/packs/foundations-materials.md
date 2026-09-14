@@ -50,3 +50,7 @@ Overlays: enter/exit opacity + translate with reduced-motion fallbacks. Chrome m
 - [ ] Nav/content opaque
 - [ ] Glass limited to functional overlays + `@supports` fallback
 - [ ] No liquid-glass token leakage into primary chrome without an explicit product decision
+
+## Apply in host
+
+Swift: system materials on **transient** overlays; opaque bars by default. Web: opaque nav/content; overlay glass only inside `@supports` with solid fallback.

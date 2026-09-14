@@ -46,3 +46,11 @@ Layout itself is structural; focus order should follow visual order.
 - [ ] Phone bottom chrome fixed + content inset
 - [ ] Spacing uses tokens, not magic numbers
 - [ ] Form column + sidebar chrome gates PASS when applicable
+
+## Apply in host
+
+| Host | How |
+|---|---|
+| SwiftUI | `NavigationSplitView`, safe-area, size classes — not a custom CSS grid |
+| UIKit | `UISplitViewController`, layout margins, readable content guide |
+| Web / CSS | Existing spacing tokens; split list band + flexing detail |

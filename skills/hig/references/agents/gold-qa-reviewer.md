@@ -19,3 +19,7 @@ At each requested viewport (default 768 and 375), judge whether the screen feels
 ## Output
 
 PASS/FAIL per screen + viewport, P0/P1/P2 list, each tagged `brand` or `structure`. Chrome FAILs must use `structure:chrome.…` IDs. Brand veto does not hide structure codes. No code edits unless the parent explicitly asks.
+
+## Ive bar
+
+FAIL the screen if it is busy, ornamental, or unclear — even when chrome IDs pass. Extreme simplicity, clarity, restraint. No extra cards, no glass fashion, no parallel widget kit.

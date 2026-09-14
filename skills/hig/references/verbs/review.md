@@ -26,7 +26,7 @@ Encoded check: `node <skill>/scripts/load-context.mjs` → `reviewAdaptMutation`
 
 1. Load `knowledge/chrome/grammar.yaml` + `knowledge/chrome/review-rubric.md` (via `load-chrome-grammar.mjs`)
 2. Load relevant pattern packs (Chrome gates = IDs only)
-3. Inspect UI at **768** and **375** (default)
+3. Inspect UI at **768** and **375** (web default). Native: compact and regular width. Use host stack from preflight — do not assume React.
 4. Optional Task with `references/agents/gold-qa-reviewer.md`
 5. Match chrome `failWhen` lines. Emit `structure:<rule.id>` for each hit
 6. Report P0 / P1 / P2 tagged `brand` or `structure`

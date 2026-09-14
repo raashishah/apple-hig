@@ -34,3 +34,7 @@ Overlay: enter / idle / exit. Actions: default / pressed / disabled.
 - [ ] Dismiss path
 - [ ] Focus management
 - [ ] Alert copy is short
+
+## Apply in host
+
+SwiftUI `.sheet` / `.alert`. UIKit `UISheetPresentationController`. Web: dialog + scrim + Esc; glass only on the overlay with solid fallback.

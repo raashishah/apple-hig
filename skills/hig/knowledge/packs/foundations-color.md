@@ -47,3 +47,7 @@
 - [ ] Light/dark (if claimed) both use semantic roles
 - [ ] Separators ≠ heavy borders everywhere
 - [ ] Contrast checked on primary filled controls
+
+## Apply in host
+
+Map HIG semantic roles (label, secondary label, fills, separators, accent) onto the host palette. Do not invent a new hue. Swift: `Color.accentColor` / Asset Catalog. Web: existing CSS variables.
