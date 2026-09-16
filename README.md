@@ -1,14 +1,8 @@
 # Apple HIG (`/hig`)
 
-> Early feedback release (**v0.4.0**). Works. Not finished. We want your screenshots and FAIL reports.
+> Early feedback release (**v0.4.0**). Works. Not finished — [send feedback](docs/PROOF.md#how-to-send-feedback).
 
-A Cursor **skill repo** that applies [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) **1:1** to whatever project you run `/hig` in — SwiftUI, UIKit, web/CSS, React/Next, or similar. Not a React design-system fashion layer.
-
-`/hig` fans out a **swarm** of surface agents (layout, typography, colour, spacing, motion, controls, navigation, lists/split, sheets, forms, accessibility, and gated platform packs) and applies the rules **in place** on the host until the UI feels Apple-native: extreme simplicity, clarity, restraint.
-
-Brand colors and fonts stay in **your** project. `/hig` teaches **structure** — navigation, lists, forms, sheets, materials — grounded in Apple HIG docs, not copied from a patient app.
-
-Inspired by the install shape of [gstack](https://github.com/garrytan/gstack) and the Agent Skills CLI.
+A Cursor **skill repo** that applies [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) **1:1** to whatever project you run `/hig` in — SwiftUI, UIKit, web/CSS, React/Next, or similar. It fans out surface agents and applies rules **in place** until the UI feels Apple-native. Your brand colors and fonts stay in the project; `/hig` teaches **structure** (navigation, lists, forms, sheets, materials), not a parallel component library.
 
 ## Install
 
@@ -18,22 +12,15 @@ Inspired by the install shape of [gstack](https://github.com/garrytan/gstack) an
 npx skills add raashishah/apple-hig -g -y
 ```
 
-That installs the skills globally (typically `~/.cursor/skills/`). Then in any Cursor chat:
+Then in any Cursor chat:
 
 ```text
 /hig
 ```
 
-### Other installs
+**Contributors:** clone [`raashishah/apple-hig`](https://github.com/raashishah/apple-hig), run `./setup` (symlinks `hig`, `hig-upgrade`, `hig-react` into `~/.cursor/skills/`). See [`setup`](setup) and [`skills/hig-upgrade/SKILL.md`](skills/hig-upgrade/SKILL.md) for other install shapes.
 
-| Method | When |
-|---|---|
-| `npx skills add raashishah/apple-hig -g -y` | Recommended |
-| Clone + `./setup` | `git clone --single-branch --depth 1 https://github.com/raashishah/apple-hig.git ~/.cursor/skills/apple-hig && cd ~/.cursor/skills/apple-hig && chmod +x setup && ./setup` |
-| Symlink a developer checkout | Contributors; `./setup` links `skills/hig`, `skills/hig-upgrade`, `skills/hig-react` |
-| Cursor plugin / marketplace source | When you want `.cursor-plugin` packaging |
-
-## Use
+## Commands
 
 | Command | What happens |
 |---|---|
@@ -42,51 +29,15 @@ That installs the skills globally (typically `~/.cursor/skills/`). Then in any C
 | `/hig adapt [surface]` | One-surface structural fix when you ask |
 | `/hig upgrade` | Pull latest from GitHub + re-link skills (also say **HIG upgrade**) |
 
-## How `/hig` runs the swarm
+Pipeline detail: [`skills/hig/SKILL.md`](skills/hig/SKILL.md) and [`skills/hig/references/verbs/design.md`](skills/hig/references/verbs/design.md). Surface list: [`skills/hig/knowledge/surfaces.yaml`](skills/hig/knowledge/surfaces.yaml).
 
-1. **Preflight** — `load-context.mjs` detects the host stack (SwiftUI / UIKit / web / React / …), platform, and capabilities. Backend-only repos stop. Smarter detection skips `.xcassets` and other resource trees, treats incidental help/webview HTML as `native-apple`, and ignores `LaunchScreen.storyboard` / leftover `.xib` so SwiftUI hosts are not misclassified as UIKit.
-2. **Ingest** — reads this project’s requirements, routes, and brand tokens. Writes `DESIGN.md` + `.hig/*` for this product (never another app’s look).
-3. **Audit (parallel)** — one agent per **gated** HIG surface in `surfaces.yaml` writes `.hig/swarm/<surface>.md` from Apple’s docs + the host files. Platform/capability gates skip inapplicable surfaces (iPad, Mac, Duo, Wallet, etc.). No product edits yet.
-4. **Synthesize** — exclusive file leases in `.hig/swarm/plan.yaml`. Decorative proposals are dropped.
-5. **Apply (parallel)** — leased workers edit host files in the host language (system Swift containers, existing CSS — **no injected React kit**).
-6. **Gold QA** — structure vs chrome grammar (`structure:chrome.*`). Repeat up to 3 rounds until it feels native.
+## Upgrade
 
-Optional **`hig-react`**: loaded only when preflight is React/Next. Maps HIG to DOM/ARIA. Still no component library.
-
-## Upgrade (does **not** run automatically)
-
-Nothing background-updates the skill. Same idea as gstack: **you** ask for an upgrade when you want the latest.
-
-When we push to [`raashishah/apple-hig`](https://github.com/raashishah/apple-hig), tell Cursor:
-
-```text
-HIG upgrade
-```
-
-or `/hig upgrade`.
-
-That runs `scripts/upgrade-check.sh` then `scripts/upgrade.sh`:
-
-1. Find your install (canonical clone or the git root behind `~/.cursor/skills/hig`)
-2. `git fetch origin main`
-3. Fast-forward (or reset shallow clones) to latest
-4. Re-run `./setup`
-5. Summarize `CHANGELOG.md`
-
-### Your machine vs a friend's machine
-
-| Install shape | What happens when GitHub gets a new commit |
-|---|---|
-| **Canonical clone** at `~/.cursor/skills/apple-hig` | Skills stay stale until you run **HIG upgrade** (or `git pull` + `./setup` there) |
-| **`npx skills add`** global install | Re-run `npx skills add raashishah/apple-hig -g -y` or **HIG upgrade** |
-| **Symlink into a local git checkout** you already pull/push | Local edits are live immediately via the symlink. Remote-only commits still need `git pull` / **HIG upgrade** |
-| No install / broken symlink | Re-run the Install block above |
-
-There is **no** auto-upgrade on Cursor launch (yet). Prefer an explicit **HIG upgrade** so upgrades are intentional.
+Nothing auto-updates. When we push to GitHub, say **HIG upgrade** or `/hig upgrade`. Full flow: [`skills/hig-upgrade/SKILL.md`](skills/hig-upgrade/SKILL.md).
 
 ## What it enforces (hard)
 
-Chrome grammar (`skills/hig/knowledge/chrome/grammar.yaml`) — soft prose is not enough:
+Chrome grammar ([`skills/hig/knowledge/chrome/grammar.yaml`](skills/hig/knowledge/chrome/grammar.yaml)) — soft prose is not enough:
 
 | FAIL ID | Meaning |
 |---|---|
@@ -97,78 +48,29 @@ Chrome grammar (`skills/hig/knowledge/chrome/grammar.yaml`) — soft prose is no
 | `chrome.sidebar.collapsible` | Product md+ sidebar can collapse |
 | `chrome.bars.system-materials` | No custom opaque bar fills fighting system materials / Liquid Glass |
 
-Also baked in:
-
-- System materials on chrome; glass only on functional overlays (`@supports` + solid fallback)
-- List columns are **browsers** (compact toolbar, dense rows); detail owns the large title
-- Brand veto: marketing / locked spacing projects are report-only on spacing/touch CSS
-- Fail-closed preflight when there is no UI to mutate
+Principles (materials arbitration, list-as-browser, brand veto): [`skills/hig/knowledge/canon.md`](skills/hig/knowledge/canon.md). Optional React mapping (no kit): [`skills/hig-react/SKILL.md`](skills/hig-react/SKILL.md).
 
 ## How the skill “learns”
 
-The skill files are **static**. They do not silently rewrite themselves after a session.
+Skill files are **static** — they do not silently rewrite after a session. Per-project prefs live in `DESIGN.md`, `AGENTS.md`, and `.hig/`. Proven chrome FAILs get promoted into `grammar.yaml` + fixtures here; everyone else runs **HIG upgrade**.
 
-- **Per project:** `DESIGN.md`, `AGENTS.md`, `.hig/` hold that app’s brand and prefs (Cursor Continual Learning can update `AGENTS.md`)
-- **Portable plugin:** when a chrome FAIL is proven on a real app, we promote it into `grammar.yaml` + fixtures and **push** this repo — then everyone runs **HIG upgrade**
+## Proof
 
-## Proof so far
+- **Pink Depot** — dogfood inventory app; gold QA @768/@375 PASS 2026-07-09
+- **admissionsdemo** — portable React patient; structure without stealing Pink Depot tokens
 
-### Pink Depot (dogfood product UI)
+Details, gaps, and feedback template: [`docs/PROOF.md`](docs/PROOF.md).
 
-Inventory / order tool. `/hig` + live gold QA @768/@375 drove:
-
-- Fixed phone bottom nav; usable Inventory split @768
-- Icon List/Grid + single-band inventory toolbar
-- Cohesive add forms (header/actions/fields same width)
-- Collapsible sidebar
-- Shared split/list lifecycle (no dead empty “Select a…” panes; short creates in detail; long creates full-page centered)
-
-Gold rerun **2026-07-09 PASS** unlocked kit extraction later. Chrome grammar rules were extracted from failures that kept shipping as soft “make it denser” advice.
-
-Details: [docs/PROOF.md](docs/PROOF.md)
-
-### admissionsdemo (portable patient)
-
-Bare `/hig` on a different React app produced `DESIGN.md` + `.hig/*` and structure without stealing Pink Depot brand tokens.
-
-## Status — honest
-
-**v0.4.x is good enough to share for feedback on any UI stack. It is not done.**
-
-Still soft / not yet hard FAIL IDs (seen on Pink Depot, not fully encoded):
-
-- Starved thin list rail beside empty detail whitespace
-- Nested Add → empty select loops / orphan half-width `/new` forms
-- Shared list status lifecycle (`loading` \| `empty` \| `ready` \| `fault`) as a grammar rule
-- CSS kit extraction (`apple-hig-kit`) — deferred until more gold passes
-
-If something looks wrong on your app, open an issue with:
-
-1. Viewport (768 and/or 375 for web; compact + regular for native)
-2. Screenshot
-3. Which FAIL ID you expected (or a new ID proposal)
-
-## Architecture
+## Repo layout
 
 ```text
 skills/hig/              # /hig orchestrator + Apple canon + swarm
 skills/hig-react/        # optional React/DOM mapping (not a kit)
 skills/hig-upgrade/      # "HIG upgrade" entry skill
-knowledge/canon.md       # Apple fidelity principles
-knowledge/surfaces.yaml  # swarm surface SSOT (with platform/capability gates)
-scripts/upgrade*.sh      # check + pull + setup
-knowledge/chrome/        # grammar.yaml = FAIL SSOT
 eval/                    # dry harnesses (no patient mutation)
 ```
 
-## Verify locally
-
-```bash
-node eval/run-dry.mjs
-node eval/run-chrome-grammar.mjs
-node eval/run-swarm.mjs
-bash scripts/upgrade-check.sh
-```
+Contributors: verify with [`eval/CHECKLIST.md`](eval/CHECKLIST.md).
 
 ## Not for
 
