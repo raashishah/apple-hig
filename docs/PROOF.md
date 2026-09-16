@@ -1,4 +1,4 @@
-# Proof notes (v0.3)
+# Proof notes (v0.4.0)
 
 What `/hig` actually changed on real apps — and what is still missing.
 
