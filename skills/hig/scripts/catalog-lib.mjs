@@ -590,6 +590,7 @@ function affordanceMissing(need, present) {
     case "liveviewing":
     case "snippet":
     case "genai":
+    case "alwayson":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1014,6 +1015,14 @@ export function scanAffordances(files) {
     /\bFoundationModels\b/.test(blob)
   ) {
     found.push("genai");
+  }
+  if (
+    /\bdata-always-on\b/.test(blob) ||
+    /\bisLuminanceReduced\b/.test(blob) ||
+    /\bWKSupportsAlwaysOnDisplay\b/.test(blob) ||
+    /\bsupportsAlwaysOnDisplay\b/.test(blob)
+  ) {
+    found.push("alwayson");
   }
   return found;
 }

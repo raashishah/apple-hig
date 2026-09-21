@@ -374,3 +374,7 @@ heuristics:
     match: presented as human-authored
   - id: genai-no-revert
     match: no way to dismiss, revert, or retry
+  - id: always-on-sensitive
+    match: Sensitive information
+  - id: always-on-stop-motion
+    match: stops instantly
