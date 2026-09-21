@@ -810,6 +810,119 @@ function scanRewriteSystemAlerts(files) {
   return out;
 }
 
+function isHiddenMarkup(html) {
+  return (
+    /\bhidden\b/i.test(html) ||
+    /aria-hidden=["']true["']/i.test(html) ||
+    /\bsr-only\b/.test(html) ||
+    /display\s*:\s*none/i.test(html) ||
+    /opacity\s*:\s*0(?:\.0+)?(?:\s|;|"|')/i.test(html) ||
+    /visibility\s*:\s*hidden/i.test(html) ||
+    /font-size\s*:\s*(?:[0-9]|10)px/i.test(html)
+  );
+}
+
+function permissionRegions(text) {
+  const extra = [];
+  const re = /<([A-Za-z][\w]*)\b([^>]*data-permission[^>]*)>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(text))) extra.push(m[0]);
+  return [...dialogRegions(text), ...extra];
+}
+
+function controlTags(region) {
+  return [
+    ...(region.match(/<button\b[\s\S]*?<\/button>/gi) || []),
+    ...(region.match(/<a\b[\s\S]*?<\/a>/gi) || []),
+  ];
+}
+
+function scanDarkPatternAllow(files) {
+  const out = [];
+  for (const f of files) {
+    for (const region of permissionRegions(f.text)) {
+      const controls = controlTags(region);
+      const allow = controls.filter((c) => />\s*Allow\s*</i.test(c));
+      if (!allow.length) continue;
+      const deny = controls.filter((c) =>
+        />\s*(Don't Allow|Don't allow|Deny|Not now)\s*</i.test(c),
+      );
+      const readableDeny = deny.filter((c) => !isHiddenMarkup(c));
+      if (!readableDeny.length) {
+        out.push(hit(f.path, "Allow is the only readable permission control"));
+      }
+    }
+  }
+  return out;
+}
+
+function applyDarkPatternAllow(text) {
+  return text.replace(
+    /<(button|a)\b([^>]*)>(\s*(?:Don't Allow|Don't allow|Deny|Not now)\s*)<\/\1>/gi,
+    (all, tag, attrs, label) => {
+      if (!isHiddenMarkup(all)) return all;
+      const nextAttrs = attrs
+        .replace(/\s*hidden(?:=["'][^"']*["'])?/gi, "")
+        .replace(/\s*aria-hidden=["']true["']/gi, "")
+        .replace(/(\bclass(?:Name)?=["'][^"']*)\bsr-only\b\s*/g, "$1")
+        .replace(/display\s*:\s*none\s*;?/gi, "")
+        .replace(/opacity\s*:\s*0(?:\.0+)?\s*;?/gi, "")
+        .replace(/visibility\s*:\s*hidden\s*;?/gi, "")
+        .replace(/font-size\s*:\s*(?:[0-9]|10)px\s*;?/gi, "");
+      return `<${tag}${nextAttrs}>${label}</${tag}>`;
+    },
+  );
+}
+
+function isMarketingFile(file) {
+  return (
+    /data-marketing|data-register=["']brand["']/i.test(file.text) ||
+    /(^|\/)(Landing|Marketing|Hero)(Page|View|Screen)?\.(tsx|jsx|html|vue|swift)$/i.test(
+      file.path,
+    )
+  );
+}
+
+function hasDevicePrompt(text) {
+  return (
+    /getUserMedia\s*\(/i.test(text) ||
+    /geolocation\.getCurrentPosition/i.test(text) ||
+    /would like to access your (camera|mic(?:rophone)?|location)/i.test(text) ||
+    /allow .{0,40}(camera|mic(?:rophone)?|location)/i.test(text)
+  );
+}
+
+function scanPreemptiveMarketing(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isMarketingFile(f)) continue;
+    if (hasDevicePrompt(f.text)) {
+      out.push(hit(f.path, "camera/mic/location prompt on a marketing screen"));
+    }
+  }
+  return out;
+}
+
+function scanRewriteOrAutomate(files) {
+  const out = scanRewriteSystemAlerts(files);
+  for (const f of files) {
+    if (
+      /querySelector[\s\S]{0,120}Allow[\s\S]{0,40}\.click\s*\(/i.test(f.text) ||
+      /\.click\s*\([\s\S]{0,40}Allow/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "scripted Allow click"));
+    }
+    if (
+      /(useEffect|componentDidMount|DOMContentLoaded|onMounted)\s*\([\s\S]{0,500}(requestPermission|getUserMedia|geolocation\.getCurrentPosition)/i.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "auto permission without a gesture"));
+    }
+  }
+  return out;
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -852,6 +965,12 @@ function scanHeuristic(id, files) {
       return scanTitleCaseHelp(files);
     case "rewrite-system-alerts":
       return scanRewriteSystemAlerts(files);
+    case "dark-pattern-allow-only":
+      return scanDarkPatternAllow(files);
+    case "preemptive-permission-on-marketing":
+      return scanPreemptiveMarketing(files);
+    case "rewrite-or-automate-system-ui":
+      return scanRewriteOrAutomate(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -901,6 +1020,12 @@ function applyHeuristic(id, file) {
     case "title-case-long-help":
       return applyTitleCaseHelp(file.text);
     case "rewrite-system-alerts":
+      return file.text;
+    case "dark-pattern-allow-only":
+      return applyDarkPatternAllow(file.text);
+    case "preemptive-permission-on-marketing":
+      return file.text;
+    case "rewrite-or-automate-system-ui":
       return file.text;
     default: {
       const _exhaustive = id;

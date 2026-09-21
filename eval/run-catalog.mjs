@@ -699,6 +699,10 @@ const results = [];
       (catalog.byId.writing?.dontHeuristicIds || []).includes("sarcastic-error-hides-fix") &&
       (catalog.byId.writing?.dontHeuristicIds || []).includes("title-case-long-help") &&
       (catalog.byId.writing?.dontHeuristicIds || []).includes("rewrite-system-alerts") &&
+      catalog.byId.privacy?.dontCoverageComplete === true &&
+      (catalog.byId.privacy?.dontHeuristicIds || []).includes("dark-pattern-allow-only") &&
+      (catalog.byId.privacy?.dontHeuristicIds || []).includes("preemptive-permission-on-marketing") &&
+      (catalog.byId.privacy?.dontHeuristicIds || []).includes("rewrite-or-automate-system-ui") &&
       catalog.byId.menus?.dontCoverageComplete === false &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -808,11 +812,12 @@ const results = [];
       skipStatus.topics.searching?.state === "already-compliant" &&
       skipStatus.topics["search-fields"]?.state === "already-compliant" &&
       skipStatus.topics.writing?.state === "already-compliant" &&
+      skipStatus.topics.privacy?.state === "already-compliant" &&
       skipStatus.topics.settings?.state === "skipped-no-affordance" &&
       skipStatus.topics["undo-and-redo"]?.state === "skipped-no-affordance" &&
       !skipReport.plan.waveTopicIds.includes("searching") &&
       !skipReport.plan.waveTopicIds.includes("writing") &&
-      skipReport.plan.waveTopicIds.includes("privacy") &&
+      skipReport.plan.waveTopicIds.includes("inclusion") &&
       !skipReport.plan.waveTopicIds.includes("menus") &&
       skipReport.plan.coverage.remaining > 0 &&
       holdStatus.topics.menus?.state === "pending" &&
@@ -1070,7 +1075,7 @@ const results = [];
       titleChrome: titleReport.chrome.pass === true,
       alertChrome: alertReport.chrome.pass === true,
       passWriting: passStatus.topics.writing?.state === "already-compliant",
-      passPrivacy: passStatus.topics.privacy?.state === "pending",
+      passPrivacy: passStatus.topics.privacy?.state === "already-compliant",
       remaining: passReport.plan.coverage.remaining > 0,
       cutePending: cuteStatus.topics.writing?.state === "pending",
       cuteUnchanged: cute === origCute,
@@ -1133,6 +1138,7 @@ const results = [];
       report.chrome.pass === true &&
       required.every((id) => status.topics[id]?.state === "already-compliant") &&
       status.topics.writing?.state === "already-compliant" &&
+      status.topics.privacy?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1209,6 +1215,7 @@ const results = [];
       !/background:\s*#000/.test(chromeCss) &&
       !/#fff/i.test(chromeCss) &&
       status.topics.writing?.state === "already-compliant" &&
+      status.topics.privacy?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1279,6 +1286,7 @@ const results = [];
       status.topics.typography?.state === "pending" &&
       status.topics.accessibility?.state === "already-compliant" &&
       status.topics.writing?.state === "already-compliant" &&
+      status.topics.privacy?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1297,6 +1305,141 @@ const results = [];
     fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-prose-dont-holds-unfixable", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-privacy-pass-"));
+  const allowDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-privacy-allow-"));
+  const hideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-privacy-hide-"));
+  const marketDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-privacy-market-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, allowDir, { recursive: true });
+    fs.cpSync(src, hideDir, { recursive: true });
+    fs.cpSync(src, marketDir, { recursive: true });
+    const origAllow = `export function AllowOnly() {
+  return (
+    <div role="dialog">
+      <p>Allow camera access?</p>
+      <button type="button">Allow</button>
+    </div>
+  );
+}
+`;
+    const origMarket = `export function Landing() {
+  navigator.mediaDevices.getUserMedia({ video: true });
+  return (
+    <main data-marketing>
+      <h1>Welcome</h1>
+    </main>
+  );
+}
+`;
+    fs.writeFileSync(path.join(allowDir, "AllowOnly.tsx"), origAllow);
+    fs.writeFileSync(
+      path.join(hideDir, "HiddenDeny.tsx"),
+      `export function HiddenDeny() {
+  return (
+    <div role="dialog">
+      <p>Allow camera access?</p>
+      <button type="button">Allow</button>
+      <button type="button" className="sr-only" aria-hidden="true">
+        Don't Allow
+      </button>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(path.join(marketDir, "Landing.tsx"), origMarket);
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const allowReport = applyCatalog({
+      cwd: allowDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const hideReport = applyCatalog({
+      cwd: hideDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const marketReport = applyCatalog({
+      cwd: marketDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const allowStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(allowDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const hideStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(hideDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const marketStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(marketDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const allow = fs.readFileSync(path.join(allowDir, "AllowOnly.tsx"), "utf8");
+    const hidden = fs.readFileSync(path.join(hideDir, "HiddenDeny.tsx"), "utf8");
+    const market = fs.readFileSync(path.join(marketDir, "Landing.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(allowDir),
+      ...walkSource(hideDir),
+      ...walkSource(marketDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      allowChrome: allowReport.chrome.pass === true,
+      hideChrome: hideReport.chrome.pass === true,
+      marketChrome: marketReport.chrome.pass === true,
+      passPrivacy: passStatus.topics.privacy?.state === "already-compliant",
+      passInclusion: passStatus.topics.inclusion?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      allowPending: allowStatus.topics.privacy?.state === "pending",
+      allowUnchanged: allow === origAllow,
+      hideApplied: hideStatus.topics.privacy?.state === "applied",
+      hideNoSr: !/\bsr-only\b/.test(hidden),
+      hideNoAria: !/aria-hidden=["']true["']/.test(hidden),
+      hideHasDeny: /Don't Allow/.test(hidden),
+      marketPending: marketStatus.topics.privacy?.state === "pending",
+      marketUnchanged: market === origMarket,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPrivacy: passStatus.topics.privacy?.state,
+      allowPrivacy: allowStatus.topics.privacy?.state,
+      hidePrivacy: hideStatus.topics.privacy?.state,
+      marketPrivacy: marketStatus.topics.privacy?.state,
+      hidden,
+      remaining: passReport.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(allowDir, { recursive: true, force: true });
+    fs.rmSync(hideDir, { recursive: true, force: true });
+    fs.rmSync(marketDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-privacy-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

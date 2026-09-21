@@ -42,3 +42,9 @@ heuristics:
     match: Title Case On Every Long Sentence in body help
   - id: rewrite-system-alerts
     match: Rewriting system alerts
+  - id: dark-pattern-allow-only
+    match: Dark-pattern Allow as the only readable control
+  - id: preemptive-permission-on-marketing
+    match: Pre-emptive camera/mic/location prompts on a marketing screen
+  - id: rewrite-or-automate-system-ui
+    match: Rewriting or automating system permission
