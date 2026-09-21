@@ -398,3 +398,7 @@ heuristics:
     match: tap or touch
   - id: nfc-jargon
     match: NFC tag
+  - id: ar-jargon
+    match: world detection
+  - id: ar-glyph-misused
+    match: non-ARKit

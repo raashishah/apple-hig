@@ -85,6 +85,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["nearby-interactions"]?.affordance === "nearby" &&
     surfaces.byId["activity-rings"]?.affordance === "activityring" &&
     surfaces.byId.nfc?.affordance === "nfc" &&
+    surfaces.byId["augmented-reality"]?.affordance === "ar" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -480,6 +481,7 @@ const results = [];
     "nearby-interactions",
     "activity-rings",
     "nfc",
+    "augmented-reality",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -909,6 +911,30 @@ const results = [];
       text: '<button type="button">Add to Apple Wallet</button>',
     },
   ]);
+  const arOnly = scanAffordances([
+    {
+      path: "View.tsx",
+      text: '<div data-ar><button type="button">View</button></div>',
+    },
+  ]);
+  const relArOnly = scanAffordances([
+    {
+      path: "Product.tsx",
+      text: '<a rel="ar" href="chair.usdz">View</a>',
+    },
+  ]);
+  const arWordOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Preview this in augmented reality.</p>",
+    },
+  ]);
+  const css3dOnly = scanAffordances([
+    {
+      path: "Spin.css",
+      text: ".hero { transform: rotateX(20deg); }",
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -1144,6 +1170,16 @@ const results = [];
       !formOnly.includes("nfc") &&
       !passList.includes("nfc") &&
       !pageOnly.includes("nfc") &&
+      arOnly.includes("ar") &&
+      relArOnly.includes("ar") &&
+      !arWordOnly.includes("ar") &&
+      !imgOnly.includes("ar") &&
+      !css3dOnly.includes("ar") &&
+      !nfcOnly.includes("ar") &&
+      !nearbyOnly.includes("ar") &&
+      !formOnly.includes("ar") &&
+      !passList.includes("ar") &&
+      !pageOnly.includes("ar") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1763,6 +1799,15 @@ const results = [];
       (catalog.byId.nfc?.dontHeuristicIds || []).includes("nfc-jargon") &&
       catalog.byId.nfc?.pack === "tech-nfc.md" &&
       catalog.byId.nfc?.appliesWhen === "always" &&
+      catalog.byId["augmented-reality"]?.dontCoverageComplete === true &&
+      (catalog.byId["augmented-reality"]?.dontHeuristicIds || []).includes(
+        "ar-jargon",
+      ) &&
+      (catalog.byId["augmented-reality"]?.dontHeuristicIds || []).includes(
+        "ar-glyph-misused",
+      ) &&
+      catalog.byId["augmented-reality"]?.pack === "tech-augmented-reality.md" &&
+      catalog.byId["augmented-reality"]?.appliesWhen === "always" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1892,6 +1937,7 @@ const results = [];
       "nearby-interactions",
       "activity-rings",
       "nfc",
+      "augmented-reality",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -8647,6 +8693,138 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-nfc-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ar-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ar-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ar-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-ar data-ar-jargon data-ar-altered data-ar-non-arkit>
+      <button type="button">View</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      Unable to find a plane. Adjust tracking.
+      <button type="button">View</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passAr:
+        passStatus.topics["augmented-reality"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixAr: fixStatus.topics["augmented-reality"]?.state === "applied",
+      systemKept: /data-ar/.test(fixed) && />\s*View\s*</.test(fixed),
+      markersGone:
+        !/data-ar-jargon/.test(fixed) &&
+        !/data-ar-altered/.test(fixed) &&
+        !/data-ar-non-arkit/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAr: holdStatus.topics["augmented-reality"]?.state === "pending",
+      holdStillJargon:
+        /data-ar/.test(held) &&
+        /Adjust tracking/.test(held) &&
+        /View/.test(held),
+      holdNotInvented:
+        !/ARView/.test(held) &&
+        !/ARSCNView/.test(held) &&
+        !/ARQuickLookPreviewing/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAr: passStatus.topics["augmented-reality"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixAr: fixStatus.topics["augmented-reality"]?.state,
+      holdAr: holdStatus.topics["augmented-reality"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-ar-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

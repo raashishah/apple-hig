@@ -595,6 +595,7 @@ function affordanceMissing(need, present) {
     case "nearby":
     case "activityring":
     case "nfc":
+    case "ar":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1061,6 +1062,15 @@ export function scanAffordances(files) {
     /\bCoreNFC\b/.test(blob)
   ) {
     found.push("nfc");
+  }
+  if (
+    /\bdata-ar\b/.test(blob) ||
+    /\bARView\b/.test(blob) ||
+    /\bARSCNView\b/.test(blob) ||
+    /\bARQuickLookPreviewing\b/.test(blob) ||
+    /\brel=["']ar["']/.test(blob)
+  ) {
+    found.push("ar");
   }
   return found;
 }
