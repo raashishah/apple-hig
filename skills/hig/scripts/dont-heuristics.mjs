@@ -2610,8 +2610,8 @@ function applyHeuristic(id, file) {
 
 function applyWanted(files, ids) {
   const mutated = new Set();
-  for (const id of ids) {
-    if (scanHeuristic(id, files).length === 0) continue;
+  const hitIds = ids.filter((id) => scanHeuristic(id, files).length > 0);
+  for (const id of hitIds) {
     for (const file of files) {
       const next = applyHeuristic(id, file);
       if (next === file.text) continue;
@@ -2623,6 +2623,11 @@ function applyWanted(files, ids) {
   if (scanReduceMotion(files).length && css && !/prefers-reduced-motion/i.test(css.text)) {
     css.text = `${css.text.trimEnd()}\n${REDUCE_CSS}`;
     mutated.add("motion-without-reduce");
+  }
+  if (mutated.size) {
+    // Sibling Don'ts can share an applier; credit every pre-apply hit so the
+    // cleaned topic accounts as applied instead of already-compliant.
+    for (const id of hitIds) mutated.add(id);
   }
   return mutated;
 }
