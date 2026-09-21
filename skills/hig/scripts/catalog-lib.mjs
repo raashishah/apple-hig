@@ -576,6 +576,7 @@ function affordanceMissing(need, present) {
     case "fullscreen":
     case "filebrowser":
     case "focus":
+    case "account":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -890,6 +891,13 @@ export function scanAffordances(files) {
     /\bpreferredFocusEnvironments\b/.test(blob)
   ) {
     found.push("focus");
+  }
+  if (
+    /\bdata-account\b/.test(blob) ||
+    /\bdata-sign-in\b/.test(blob) ||
+    /\bdata-signin\b/.test(blob)
+  ) {
+    found.push("account");
   }
   return found;
 }

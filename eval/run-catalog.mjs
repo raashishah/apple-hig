@@ -67,6 +67,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["going-full-screen"]?.affordance === "fullscreen" &&
     surfaces.byId["file-management"]?.affordance === "filebrowser" &&
     surfaces.byId["focus-and-selection"]?.affordance === "focus" &&
+    surfaces.byId["managing-accounts"]?.affordance === "account" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -444,6 +445,7 @@ const results = [];
     "going-full-screen",
     "file-management",
     "focus-and-selection",
+    "managing-accounts",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -711,6 +713,24 @@ const results = [];
       text: '<input autofocus />',
     },
   ]);
+  const accountOnly = scanAffordances([
+    {
+      path: "Gate.tsx",
+      text: '<div data-account><button type="button">Sign In</button></div>',
+    },
+  ]);
+  const passwordOnly = scanAffordances([
+    {
+      path: "Secret.tsx",
+      text: '<input type="password" />',
+    },
+  ]);
+  const siwaOnly = scanAffordances([
+    {
+      path: "Apple.tsx",
+      text: '<button type="button">Sign in with Apple</button>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -752,6 +772,7 @@ const results = [];
       !passList.includes("fullscreen") &&
       !passList.includes("filebrowser") &&
       !passList.includes("focus") &&
+      !passList.includes("account") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -782,6 +803,7 @@ const results = [];
       !formOnly.includes("fullscreen") &&
       !formOnly.includes("filebrowser") &&
       !formOnly.includes("focus") &&
+      !formOnly.includes("account") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -857,6 +879,13 @@ const results = [];
       !autofocusOnly.includes("focus") &&
       !formOnly.includes("focus") &&
       !pageOnly.includes("focus") &&
+      accountOnly.includes("account") &&
+      !passwordOnly.includes("account") &&
+      !siwaOnly.includes("account") &&
+      !formOnly.includes("account") &&
+      !settingsPage.includes("account") &&
+      !onboardingOnly.includes("account") &&
+      !pageOnly.includes("account") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1287,6 +1316,17 @@ const results = [];
         "custom-focus-effect",
       ) &&
       catalog.byId["focus-and-selection"]?.pack === "inputs-focus-and-selection.md" &&
+      catalog.byId["managing-accounts"]?.dontCoverageComplete === true &&
+      (catalog.byId["managing-accounts"]?.dontHeuristicIds || []).includes(
+        "force-account-before-use",
+      ) &&
+      (catalog.byId["managing-accounts"]?.dontHeuristicIds || []).includes(
+        "buried-account-deletion",
+      ) &&
+      (catalog.byId["managing-accounts"]?.dontHeuristicIds || []).includes(
+        "passcode-for-account-auth",
+      ) &&
+      catalog.byId["managing-accounts"]?.pack === "patterns-managing-accounts.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1399,6 +1439,7 @@ const results = [];
       "going-full-screen",
       "file-management",
       "focus-and-selection",
+      "managing-accounts",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -5744,6 +5785,142 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-focus-and-selection-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-account-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-account-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-account-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-account data-force-account data-buried-deletion data-passcode-auth>
+      <button type="button">Sign In</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-account data-no-guest>
+      <button type="button">Sign In</button>
+      <p>Enter your passcode</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passAccount: passStatus.topics["managing-accounts"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixAccount: fixStatus.topics["managing-accounts"]?.state === "applied",
+      systemKept:
+        /data-account/.test(fixed) && />\s*Sign In\s*</.test(fixed),
+      markersGone:
+        !/data-force-account/.test(fixed) &&
+        !/data-buried-deletion/.test(fixed) &&
+        !/data-passcode-auth/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAccount: holdStatus.topics["managing-accounts"]?.state === "pending",
+      holdStillWall:
+        /data-account/.test(held) &&
+        /data-no-guest/.test(held) &&
+        /passcode/i.test(held) &&
+        />\s*Sign In\s*</.test(held),
+      holdNotInvented:
+        !/Skip/.test(held) &&
+        !/without an account/i.test(held) &&
+        !/Delete Account/.test(held) &&
+        !/Face ID/.test(held) &&
+        !/Touch ID/.test(held) &&
+        !/guest/i.test(held.replace("data-no-guest", "")),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAccount: passStatus.topics["managing-accounts"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixAccount: fixStatus.topics["managing-accounts"]?.state,
+      holdAccount: holdStatus.topics["managing-accounts"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-managing-accounts-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

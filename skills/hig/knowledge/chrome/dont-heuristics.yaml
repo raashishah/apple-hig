@@ -300,3 +300,9 @@ heuristics:
     match: without people's interaction
   - id: custom-focus-effect
     match: custom focus effects
+  - id: force-account-before-use
+    match: delaying sign-in
+  - id: buried-account-deletion
+    match: privacy policy or terms
+  - id: passcode-for-account-auth
+    match: passcode used for account

@@ -3926,6 +3926,66 @@ function applyCustomFocusEffect(text) {
   return text.replace(/\s*data-custom-focus-effect(?:="[^"]*")?/g, "");
 }
 
+function hasAccountChrome(text) {
+  return (
+    /\bdata-account\b/.test(text) ||
+    /\bdata-sign-in\b/.test(text) ||
+    /\bdata-signin\b/.test(text)
+  );
+}
+
+function scanForceAccountBeforeUse(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-force-account/.test(f.text)) {
+      out.push(hit(f.path, "account required before people can use the app"));
+      continue;
+    }
+    if (!hasAccountChrome(f.text)) continue;
+    if (/\bdata-no-guest\b/.test(f.text)) {
+      out.push(hit(f.path, "account required before people can use the app"));
+    }
+  }
+  return out;
+}
+
+function applyForceAccountBeforeUse(text) {
+  return text.replace(/\s*data-force-account(?:="[^"]*")?/g, "");
+}
+
+function scanBuriedAccountDeletion(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-buried-deletion/.test(f.text)) {
+      out.push(hit(f.path, "account deletion buried in Privacy Policy or Terms"));
+    }
+  }
+  return out;
+}
+
+function applyBuriedAccountDeletion(text) {
+  return text.replace(/\s*data-buried-deletion(?:="[^"]*")?/g, "");
+}
+
+function scanPasscodeForAccountAuth(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-passcode-auth/.test(f.text)) {
+      out.push(hit(f.path, "passcode used for account authentication"));
+      continue;
+    }
+    if (!hasAccountChrome(f.text)) continue;
+    if (/\bpasscode\b/i.test(f.text)) {
+      out.push(hit(f.path, "passcode used for account authentication"));
+    }
+  }
+  return out;
+}
+
+function applyPasscodeForAccountAuth(text) {
+  return text.replace(/\s*data-passcode-auth(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4241,6 +4301,12 @@ function scanHeuristic(id, files) {
       return scanStealFocus(files);
     case "custom-focus-effect":
       return scanCustomFocusEffect(files);
+    case "force-account-before-use":
+      return scanForceAccountBeforeUse(files);
+    case "buried-account-deletion":
+      return scanBuriedAccountDeletion(files);
+    case "passcode-for-account-auth":
+      return scanPasscodeForAccountAuth(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4549,6 +4615,12 @@ function applyHeuristic(id, file) {
       return applyStealFocus(file.text);
     case "custom-focus-effect":
       return applyCustomFocusEffect(file.text);
+    case "force-account-before-use":
+      return applyForceAccountBeforeUse(file.text);
+    case "buried-account-deletion":
+      return applyBuriedAccountDeletion(file.text);
+    case "passcode-for-account-auth":
+      return applyPasscodeForAccountAuth(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

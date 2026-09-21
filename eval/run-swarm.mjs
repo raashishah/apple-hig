@@ -313,6 +313,7 @@ const results = [];
     surfaces.byId["going-full-screen"]?.affordance === "fullscreen" &&
     surfaces.byId["file-management"]?.affordance === "filebrowser" &&
     surfaces.byId["focus-and-selection"]?.affordance === "focus" &&
+    surfaces.byId["managing-accounts"]?.affordance === "account" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;
