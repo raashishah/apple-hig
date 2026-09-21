@@ -186,6 +186,36 @@ function kitOrFont(text) {
 }
 
 {
+  const src = path.join(__dirname, "fixtures", "chrome-antipatterns");
+  const dir = copyFixture(src);
+  try {
+    const report = applyChrome({ cwd: dir, skillRoot, register: "product", write: true });
+    const appliedIds = new Set(report.applied.map((a) => a.id));
+    const orig = fs.readFileSync(path.join(src, "surfaces", "sidebar-fixed.tsx"), "utf8");
+    const origUnchanged = !/aria-expanded=/.test(orig);
+    const hostText = walkSource(dir)
+      .map((f) => f.text)
+      .join("\n");
+    results.push({
+      case: "mechanical-apply-clears-p1",
+      ok:
+        report.before.fails.some((f) => f.id === "chrome.list-browser.filter-density") &&
+        report.before.fails.some((f) => f.id === "chrome.sidebar.collapsible") &&
+        report.after.fails.length === 0 &&
+        appliedIds.has("chrome.list-browser.filter-density") &&
+        appliedIds.has("chrome.sidebar.collapsible") &&
+        origUnchanged &&
+        !kitOrFont(hostText),
+      afterFails: report.after.fails,
+      applied: [...appliedIds],
+      origUnchanged,
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+{
   const src = path.join(__dirname, "fixtures", "chrome-pass");
   const dir = copyFixture(src);
   try {

@@ -17,6 +17,7 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - Catalog `failWhen` / `passWhen` derived at load from `grammar.yaml` + pack Do/Don't (not title stubs, not Apply-in-host). Unpackaged rows stay stubs.
 - Mechanical apply for dual-stack P0s: `scripts/apply-chrome.mjs` (`chrome.view-mode.icons`, `chrome.bars.system-materials`) on a web host and a Swift host; no kit or font rewrite. Other P0s still use `recipes.md`.
 - Mechanical apply for remaining P0 IDs (`toolbar-budget`, `form.column-cohesion`, `fashion-glass`, `card-grid-home`) plus `nested-cards` on tmp copies of `chrome-antipatterns`. Filter-density and sidebar still use `recipes.md`. Committed fixtures stay dirty.
+- Mechanical apply for remaining P1 IDs (`filter-density`, `sidebar.collapsible`). `apply-chrome.mjs` now owns every grammar ID. Committed fixtures stay dirty.
 
 ## Unreleased
 

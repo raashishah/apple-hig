@@ -2,7 +2,7 @@
 
 Load with `grammar.yaml`. For each `structure:<id>` FAIL, apply the host snippet. Do not invent a kit. Do not paraphrase the FAIL away.
 
-`scripts/apply-chrome.mjs` applies the P0 recipes it owns. Use this file for every other ID (including P1).
+`scripts/apply-chrome.mjs` applies the grammar recipes it owns. Use this file when a host variant is outside those recipes.
 
 ## chrome.view-mode.icons
 

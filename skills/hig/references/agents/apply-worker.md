@@ -9,7 +9,7 @@ You implement **one leased surface** from `.hig/swarm/plan.yaml`.
 - Your `.hig/swarm/<surfaceId>.md` audit
 - Pack + Apple URL, plus any catalog topics on this surface from `plan-catalog.mjs` (use that JSON's derived `failWhen` / `passWhen` / `chromeIds`, not the title stub in `catalog.yaml`)
 - Host stack
-- `knowledge/chrome/recipes.md` for any `structure:chrome.*` in your audit and for each `chromeIds` entry on the lease. Parent runs `scripts/apply-chrome.mjs` after leases for the P0 IDs it owns.
+- `knowledge/chrome/recipes.md` for any `structure:chrome.*` in your audit and for each `chromeIds` entry on the lease. Parent runs `scripts/apply-chrome.mjs` after leases for the grammar IDs it owns.
 
 ## Job
 

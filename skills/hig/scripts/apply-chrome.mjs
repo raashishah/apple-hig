@@ -160,10 +160,43 @@ function applyNestedCards(file) {
   return text;
 }
 
+function applyFilterDensity(file) {
+  let text = file.text;
+  if (!/data-chrome-band|data-list-pane|toolbar|filter/i.test(text)) return text;
+  text = text.replace(
+    /<label>\s*<input\b[^>]*type=["']checkbox["'][^>]*\/?>\s*([^<]+?)\s*<\/label>/gi,
+    (_, phrase) => {
+      const name = phrase.trim();
+      return `<button type="button" aria-label="${name}" aria-pressed={false}><svg width="16" height="16" aria-hidden="true"></svg></button>`;
+    },
+  );
+  return text;
+}
+
+function applySidebarCollapsible(file) {
+  let text = file.text;
+  if (!/<aside\b|data-sidebar|NavigationSplitView/.test(text)) return text;
+  if (
+    /aria-expanded=/.test(text) ||
+    /data-collapsed/.test(text) ||
+    /aria-label=["'][^"']*collapse sidebar/i.test(text) ||
+    /sidebarToggle/.test(text)
+  ) {
+    return text;
+  }
+  text = text.replace(
+    /(<aside\b[^>]*>)(\s*)/i,
+    `$1$2<button type="button" aria-expanded={true} aria-label="Collapse sidebar"></button>$2`,
+  );
+  return text;
+}
+
 const RECIPES = {
   "chrome.view-mode.icons": applyViewModeIcons,
   "chrome.list-browser.toolbar-budget": applyToolbarBudget,
+  "chrome.list-browser.filter-density": applyFilterDensity,
   "chrome.form.column-cohesion": applyFormColumn,
+  "chrome.sidebar.collapsible": applySidebarCollapsible,
   "chrome.bars.system-materials": applySystemMaterials,
   "chrome.materials.fashion-glass": applyFashionGlass,
   "chrome.layout.card-grid-home": applyCardGridHome,
