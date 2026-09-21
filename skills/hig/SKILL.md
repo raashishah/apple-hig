@@ -96,4 +96,4 @@ Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Rec
 
 Deep Apple URLs remain in `knowledge/registry.yaml` for rare leaves. That file is not the apply catalog.
 
-Live Apple article inventory: `knowledge/catalog.yaml` (refresh with `scripts/sync-hig-catalog.mjs`). Planner: `scripts/plan-catalog.mjs`. Catalog apply: `scripts/apply-catalog.mjs`. It does not replace wave-0 apply. Catalog `failWhen` / `passWhen` are derived at load from `grammar.yaml` plus pack **Do** / **Don't** (not the title stub, and not **Apply in host**). Required-surface prose Don'ts use `knowledge/chrome/dont-heuristics.yaml`.
+Live Apple article inventory: `knowledge/catalog.yaml` (refresh with `scripts/sync-hig-catalog.mjs`). Planner: `scripts/plan-catalog.mjs`. Catalog apply: `scripts/apply-catalog.mjs`. It does not replace wave-0 apply. Catalog `failWhen` / `passWhen` are derived at load from `grammar.yaml` plus pack **Do** / **Don't** (not the title stub, and not **Apply in host**). Required-surface and writing prose Don'ts use `knowledge/chrome/dont-heuristics.yaml`.
