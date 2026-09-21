@@ -366,3 +366,7 @@ heuristics:
     match: not distinguished from video-on-demand
   - id: live-audio-after-leave
     match: leaving the live tab
+  - id: snippet-dialogue-text
+    match: Spoken dialogue text
+  - id: snippet-too-tall
+    match: taller than 400

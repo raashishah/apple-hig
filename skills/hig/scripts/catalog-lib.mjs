@@ -588,6 +588,7 @@ function affordanceMissing(need, present) {
     case "gyro":
     case "quickaction":
     case "liveviewing":
+    case "snippet":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -995,6 +996,13 @@ export function scanAffordances(files) {
   }
   if (/\bdata-live-viewing\b/.test(blob)) {
     found.push("liveviewing");
+  }
+  if (
+    /\bdata-snippet\b/.test(blob) ||
+    /\bSnippetIntent\b/.test(blob) ||
+    /\bInteractiveSnippetIntent\b/.test(blob)
+  ) {
+    found.push("snippet");
   }
   return found;
 }
