@@ -3986,6 +3986,67 @@ function applyPasscodeForAccountAuth(text) {
   return text.replace(/\s*data-passcode-auth(?:="[^"]*")?/g, "");
 }
 
+function hasTabView(text) {
+  return (
+    /\bdata-tab-view\b/.test(text) ||
+    /\bNSTabView\b/.test(text) ||
+    ( /role=["']tablist["']/i.test(text) && /role=["']tabpanel["']/i.test(text) )
+  );
+}
+
+function countTabViewTabs(text) {
+  const roleTabs = (String(text).match(/role=["']tab["']/gi) || []).length;
+  const items = (String(text).match(/\bNSTabViewItem\b/g) || []).length;
+  return Math.max(roleTabs, items);
+}
+
+function scanPopupTabsSwitch(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-popup-tabs/.test(f.text)) {
+      out.push(hit(f.path, "pop-up button used to switch between tabs"));
+    }
+  }
+  return out;
+}
+
+function applyPopupTabsSwitch(text) {
+  return text.replace(/\s*data-popup-tabs(?:="[^"]*")?/g, "");
+}
+
+function scanMoreThanSixTabs(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-too-many-tabs/.test(f.text)) {
+      out.push(hit(f.path, "more than six tabs in a tab view"));
+      continue;
+    }
+    if (!hasTabView(f.text)) continue;
+    if (countTabViewTabs(f.text) > 6) {
+      out.push(hit(f.path, "more than six tabs in a tab view"));
+    }
+  }
+  return out;
+}
+
+function applyMoreThanSixTabs(text) {
+  return text.replace(/\s*data-too-many-tabs(?:="[^"]*")?/g, "");
+}
+
+function scanCrossPaneControls(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-cross-pane/.test(f.text)) {
+      out.push(hit(f.path, "controls in a pane that affect content in another pane"));
+    }
+  }
+  return out;
+}
+
+function applyCrossPaneControls(text) {
+  return text.replace(/\s*data-cross-pane(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4307,6 +4368,12 @@ function scanHeuristic(id, files) {
       return scanBuriedAccountDeletion(files);
     case "passcode-for-account-auth":
       return scanPasscodeForAccountAuth(files);
+    case "popup-tabs-switch":
+      return scanPopupTabsSwitch(files);
+    case "more-than-six-tabs":
+      return scanMoreThanSixTabs(files);
+    case "cross-pane-controls":
+      return scanCrossPaneControls(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4621,6 +4688,12 @@ function applyHeuristic(id, file) {
       return applyBuriedAccountDeletion(file.text);
     case "passcode-for-account-auth":
       return applyPasscodeForAccountAuth(file.text);
+    case "popup-tabs-switch":
+      return applyPopupTabsSwitch(file.text);
+    case "more-than-six-tabs":
+      return applyMoreThanSixTabs(file.text);
+    case "cross-pane-controls":
+      return applyCrossPaneControls(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

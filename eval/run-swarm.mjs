@@ -314,6 +314,7 @@ const results = [];
     surfaces.byId["file-management"]?.affordance === "filebrowser" &&
     surfaces.byId["focus-and-selection"]?.affordance === "focus" &&
     surfaces.byId["managing-accounts"]?.affordance === "account" &&
+    surfaces.byId["tab-views"]?.affordance === "tabview" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

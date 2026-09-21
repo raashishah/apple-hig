@@ -577,6 +577,7 @@ function affordanceMissing(need, present) {
     case "filebrowser":
     case "focus":
     case "account":
+    case "tabview":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -898,6 +899,13 @@ export function scanAffordances(files) {
     /\bdata-signin\b/.test(blob)
   ) {
     found.push("account");
+  }
+  if (
+    /\bdata-tab-view\b/.test(blob) ||
+    /\bNSTabView\b/.test(blob) ||
+    ( /role=["']tablist["']/i.test(blob) && /role=["']tabpanel["']/i.test(blob) )
+  ) {
+    found.push("tabview");
   }
   return found;
 }

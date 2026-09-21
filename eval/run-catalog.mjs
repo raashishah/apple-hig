@@ -68,6 +68,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["file-management"]?.affordance === "filebrowser" &&
     surfaces.byId["focus-and-selection"]?.affordance === "focus" &&
     surfaces.byId["managing-accounts"]?.affordance === "account" &&
+    surfaces.byId["tab-views"]?.affordance === "tabview" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -167,7 +168,7 @@ const results = [];
   const lists = catalog.byId["lists-and-tables"];
   const type = catalog.byId.typography;
   const layout = catalog.byId.layout;
-  const stub = catalog.byId["tab-views"];
+  const stub = catalog.byId["the-menu-bar"];
   const planned = planGoalLoop({
     catalog,
     surfaces: loadSurfaces(skillRoot),
@@ -446,6 +447,7 @@ const results = [];
     "file-management",
     "focus-and-selection",
     "managing-accounts",
+    "tab-views",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -731,6 +733,24 @@ const results = [];
       text: '<button type="button">Sign in with Apple</button>',
     },
   ]);
+  const tabViewOnly = scanAffordances([
+    {
+      path: "Panes.tsx",
+      text: '<div data-tab-view><div role="tablist"><button type="button" role="tab">One</button></div><div role="tabpanel">Pane</div></div>',
+    },
+  ]);
+  const tabBarOnly = scanAffordances([
+    {
+      path: "Tabs.tsx",
+      text: '<nav data-nav><a href="/home">Home</a><a href="/search">Search</a></nav>',
+    },
+  ]);
+  const tablistOnly = scanAffordances([
+    {
+      path: "Seg.tsx",
+      text: '<div role="tablist"><button type="button" role="tab">A</button></div>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -773,6 +793,7 @@ const results = [];
       !passList.includes("filebrowser") &&
       !passList.includes("focus") &&
       !passList.includes("account") &&
+      !passList.includes("tabview") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -804,6 +825,7 @@ const results = [];
       !formOnly.includes("filebrowser") &&
       !formOnly.includes("focus") &&
       !formOnly.includes("account") &&
+      !formOnly.includes("tabview") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -886,6 +908,11 @@ const results = [];
       !settingsPage.includes("account") &&
       !onboardingOnly.includes("account") &&
       !pageOnly.includes("account") &&
+      tabViewOnly.includes("tabview") &&
+      !tabBarOnly.includes("tabview") &&
+      !tablistOnly.includes("tabview") &&
+      !formOnly.includes("tabview") &&
+      !pageOnly.includes("tabview") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -993,7 +1020,7 @@ const results = [];
   const catalog = loadCatalog(skillRoot);
   const buttons = catalog.byId.buttons;
   const fields = catalog.byId["text-fields"];
-  const stub = catalog.byId["tab-views"];
+  const stub = catalog.byId["the-menu-bar"];
   const rtl = catalog.byId["right-to-left"];
   results.push({
     case: "pack-chrome-gates-and-dont-tokens",
@@ -1327,7 +1354,17 @@ const results = [];
         "passcode-for-account-auth",
       ) &&
       catalog.byId["managing-accounts"]?.pack === "patterns-managing-accounts.md" &&
-      isTitleStub(catalog.byId["tab-views"]) &&
+      catalog.byId["tab-views"]?.dontCoverageComplete === true &&
+      (catalog.byId["tab-views"]?.dontHeuristicIds || []).includes(
+        "popup-tabs-switch",
+      ) &&
+      (catalog.byId["tab-views"]?.dontHeuristicIds || []).includes(
+        "more-than-six-tabs",
+      ) &&
+      (catalog.byId["tab-views"]?.dontHeuristicIds || []).includes(
+        "cross-pane-controls",
+      ) &&
+      catalog.byId["tab-views"]?.pack === "components-tab-views.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1440,6 +1477,7 @@ const results = [];
       "file-management",
       "focus-and-selection",
       "managing-accounts",
+      "tab-views",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -3536,7 +3574,7 @@ struct OneTorch: ControlWidget {
       passPull: passStatus.topics["pull-down-buttons"]?.state === "skipped-no-affordance",
       passPopup: passStatus.topics["pop-up-buttons"]?.state === "skipped-no-affordance",
       passNotify: passStatus.topics.notifications?.state === "skipped-no-affordance",
-      passTabViews: passStatus.topics["tab-views"]?.state === "skipped-no-pack",
+      passTabViews: passStatus.topics["tab-views"]?.state === "skipped-no-affordance",
       passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
       remaining: passReport.plan.coverage.remaining > 0,
       destUnchanged,
@@ -5921,6 +5959,148 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-managing-accounts-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tabview-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tabview-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tabview-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-tab-view data-popup-tabs data-too-many-tabs data-cross-pane>
+      <div role="tablist">
+        <button type="button" role="tab">One</button>
+        <button type="button" role="tab">Two</button>
+      </div>
+      <div role="tabpanel">Pane</div>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-tab-view>
+      <div role="tablist">
+        <button type="button" role="tab">One</button>
+        <button type="button" role="tab">Two</button>
+        <button type="button" role="tab">Three</button>
+        <button type="button" role="tab">Four</button>
+        <button type="button" role="tab">Five</button>
+        <button type="button" role="tab">Six</button>
+        <button type="button" role="tab">Seven</button>
+      </div>
+      <div role="tabpanel">Pane</div>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passTabs: passStatus.topics["tab-views"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixTabs: fixStatus.topics["tab-views"]?.state === "applied",
+      systemKept:
+        /data-tab-view/.test(fixed) &&
+        />\s*One\s*</.test(fixed) &&
+        />\s*Pane\s*</.test(fixed),
+      markersGone:
+        !/data-popup-tabs/.test(fixed) &&
+        !/data-too-many-tabs/.test(fixed) &&
+        !/data-cross-pane/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdTabs: holdStatus.topics["tab-views"]?.state === "pending",
+      holdStillSeven:
+        /data-tab-view/.test(held) &&
+        (held.match(/role=["']tab["']/g) || []).length === 7,
+      holdNotInvented: !/<select\b/i.test(held) && !/popup/i.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passTabs: passStatus.topics["tab-views"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixTabs: fixStatus.topics["tab-views"]?.state,
+      holdTabs: holdStatus.topics["tab-views"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-tab-views-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

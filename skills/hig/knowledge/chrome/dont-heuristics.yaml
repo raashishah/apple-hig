@@ -306,3 +306,9 @@ heuristics:
     match: privacy policy or terms
   - id: passcode-for-account-auth
     match: passcode used for account
+  - id: popup-tabs-switch
+    match: pop-up button used to switch
+  - id: more-than-six-tabs
+    match: more than six tabs
+  - id: cross-pane-controls
+    match: affect content in another pane
