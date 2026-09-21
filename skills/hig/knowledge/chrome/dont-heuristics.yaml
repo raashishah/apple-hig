@@ -410,3 +410,9 @@ heuristics:
     match: ID Verifier button
   - id: idv-comm-symbol
     match: NFC or QR
+  - id: iap-confirm-sheet
+    match: confirmation sheet
+  - id: iap-refund-buried
+    match: Refund-request button
+  - id: iap-refund-policy
+    match: refund policies

@@ -598,6 +598,7 @@ function affordanceMissing(need, present) {
     case "ar":
     case "taptopay":
     case "idverifier":
+    case "iap":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1089,6 +1090,14 @@ export function scanAffordances(files) {
     /\bMobileDriversLicenseRawDataRequest\b/.test(blob)
   ) {
     found.push("idverifier");
+  }
+  if (
+    /\bdata-in-app-purchase\b/.test(blob) ||
+    /\bStoreKit\b/.test(blob) ||
+    /\bSKPaymentQueue\b/.test(blob) ||
+    /\bProduct\.purchase\b/.test(blob)
+  ) {
+    found.push("iap");
   }
   return found;
 }
