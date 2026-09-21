@@ -23,6 +23,12 @@ Steppers sit in this pack (same selection/input concern). Do not invent a Digita
 - Small changes: stepper alone. Wide ranges: stepper **and** a text field (e.g. print copies).
 - macOS: consider Shift-click for a larger increment. Not on watchOS or tvOS.
 
+## Don't
+
+- Push a new screen solely to show a picker.
+- A stepper with no visible neighbouring value.
+- Overweight wheels for a short list.
+
 ## Apply in host
 
 Use platform pickers. Do not ship a custom wheel on the web unless the host already has that control.

@@ -733,7 +733,20 @@ const results = [];
       (catalog.byId.layout?.dontHeuristicIds || []).includes("dashboard-card-grid-home") &&
       (catalog.byId["entering-data"]?.dontHeuristicIds || []).includes("equal-weight-submits") &&
       catalog.byId["design-principles"]?.dontCoverageComplete === false &&
-      catalog.byId.menus?.dontCoverageComplete === false &&
+      catalog.byId.menus?.dontCoverageComplete === true &&
+      catalog.byId.pickers?.dontCoverageComplete === true &&
+      catalog.byId.steppers?.dontCoverageComplete === true &&
+      catalog.byId["progress-indicators"]?.dontCoverageComplete === true &&
+      catalog.byId.buttons?.dontCoverageComplete === true &&
+      catalog.byId.toggles?.dontCoverageComplete === true &&
+      catalog.byId["text-fields"]?.dontCoverageComplete === true &&
+      catalog.byId["segmented-controls"]?.dontCoverageComplete === true &&
+      (catalog.byId.menus?.dontHeuristicIds || []).includes("hide-unavailable-menu-items") &&
+      (catalog.byId.pickers?.dontHeuristicIds || []).includes("overweight-wheel-short-list") &&
+      (catalog.byId["progress-indicators"]?.dontHeuristicIds || []).includes(
+        "morph-circular-bar",
+      ) &&
+      (catalog.byId.buttons?.dontHeuristicIds || []).includes("ok-instead-of-verb") &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
       (catalog.byId.searching?.dontHeuristicIds || []).includes("hide-only-path-behind-search") &&
@@ -857,7 +870,7 @@ const results = [];
       skipReport.plan.waveTopicIds.includes("design-principles") &&
       !skipReport.plan.waveTopicIds.includes("menus") &&
       skipReport.plan.coverage.remaining > 0 &&
-      holdStatus.topics.menus?.state === "pending" &&
+      holdStatus.topics.menus?.state === "already-compliant" &&
       holdStatus.topics.settings?.state === "already-compliant" &&
       holdStatus.topics["undo-and-redo"]?.state === "already-compliant" &&
       holdStatus.topics.pickers?.state === "skipped-no-affordance" &&
@@ -2162,6 +2175,204 @@ const results = [];
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-chrome-backed-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-host-widget-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-host-widget-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-host-widget-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HiddenMenu.tsx"),
+      `export function HiddenMenu() {
+  return (
+    <div role="menu">
+      <button type="button" role="menuitem">Share</button>
+      <button type="button" role="menuitem" hidden>Paste</button>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "CountryWheel.tsx"),
+      `export function CountryWheel() {
+  return (
+    <div data-ios-wheel>
+      <div>United States</div>
+      <div>Canada</div>
+      <div>Mexico</div>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Morph.tsx"),
+      `export function Morph() {
+  return <progress data-morph-progress value={20} max={100} />;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Jump.tsx"),
+      `export function Jump() {
+  return <progress data-jump-ninety value="90" max="100" />;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Pull.tsx"),
+      `export function Pull() {
+  return <button type="button">pull down to refresh</button>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "OkSave.tsx"),
+      `export function OkSave() {
+  function handleSave() {}
+  return <button type="submit">OK</button>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "ToggleNav.tsx"),
+      `export function ToggleNav() {
+  return <button type="submit" role="switch" aria-checked={false}>Wifi</button>;
+}
+`,
+    );
+    const origHold = `export function NestedMenu() {
+  return (
+    <div role="menu">
+      <div role="menu">
+        <div role="menu">
+          <button type="button" role="menuitem">Deep</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "NestedMenu.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const hidden = fs.readFileSync(path.join(fixDir, "HiddenMenu.tsx"), "utf8");
+    const wheel = fs.readFileSync(path.join(fixDir, "CountryWheel.tsx"), "utf8");
+    const morph = fs.readFileSync(path.join(fixDir, "Morph.tsx"), "utf8");
+    const jump = fs.readFileSync(path.join(fixDir, "Jump.tsx"), "utf8");
+    const pull = fs.readFileSync(path.join(fixDir, "Pull.tsx"), "utf8");
+    const okSave = fs.readFileSync(path.join(fixDir, "OkSave.tsx"), "utf8");
+    const toggle = fs.readFileSync(path.join(fixDir, "ToggleNav.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "NestedMenu.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passMenus: passStatus.topics.menus?.state === "skipped-no-affordance",
+      passPickers: passStatus.topics.pickers?.state === "skipped-no-affordance",
+      passProgress: passStatus.topics["progress-indicators"]?.state === "skipped-no-affordance",
+      passButtons: passStatus.topics.buttons?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixMenus: fixStatus.topics.menus?.state === "applied",
+      fixPickers: fixStatus.topics.pickers?.state === "applied",
+      fixSteppers: fixStatus.topics.steppers?.state === "applied",
+      fixProgress: fixStatus.topics["progress-indicators"]?.state === "applied",
+      fixButtons: fixStatus.topics.buttons?.state === "applied",
+      hiddenDimmed: /aria-disabled=\{true\}/.test(hidden) && !/\bhidden\b/.test(hidden),
+      wheelSelect: /<select>/.test(wheel) && !/data-ios-wheel/.test(wheel),
+      morphClean: !/data-morph-progress/.test(morph),
+      jumpZero: /value="0"/.test(jump) && !/value="90"/.test(jump),
+      pullRefresh: />Refresh</.test(pull) && !/pull down to refresh/i.test(pull),
+      okSave: />Save</.test(okSave) && !/>OK</.test(okSave),
+      toggleButton: /type=["']button["']/.test(toggle) && !/type=["']submit["']/.test(toggle),
+      holdUnchanged: held === origHold,
+      holdMenus: holdStatus.topics.menus?.state === "pending",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passMenus: passStatus.topics.menus?.state,
+      passButtons: passStatus.topics.buttons?.state,
+      passPrinciples: passStatus.topics["design-principles"]?.state,
+      fixMenus: fixStatus.topics.menus?.state,
+      fixPickers: fixStatus.topics.pickers?.state,
+      fixProgress: fixStatus.topics["progress-indicators"]?.state,
+      fixButtons: fixStatus.topics.buttons?.state,
+      holdMenus: holdStatus.topics.menus?.state,
+      remaining: passReport.plan.coverage.remaining,
+      hidden,
+      wheel,
+      pull,
+      okSave,
+      toggle,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-host-widget-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

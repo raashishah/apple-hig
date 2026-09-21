@@ -18,6 +18,12 @@
 - Pull-to-refresh: specialised activity indicator. Still auto-update; do not make people pull for every refresh. Title only if it adds value (e.g. last updated) — never “pull down to refresh”.
 - macOS: spinner for background or tight spaces; do not label a spinner people just started.
 
+## Don't
+
+- Morph a circular indicator into a bar mid-task.
+- Jump progress to 90% then stall.
+- Title pull-to-refresh "pull down to refresh".
+
 ## Apply in host
 
 | Host | Prefer |

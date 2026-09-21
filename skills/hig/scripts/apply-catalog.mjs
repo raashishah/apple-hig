@@ -2,7 +2,7 @@
 /**
  * After chrome P0, account packed catalog topics whose chromeIds are clean
  * and pack Don't code spans that the host does not hit (or that we can strip).
- * Required-surface, search, writing, privacy, branding, icons, images, app-icons, inclusion, optional-widget, and chrome-backed layout/materials/lists/forms/navigation prose Don'ts apply when every Don't has a scanner.
+ * Required-surface, search, writing, privacy, branding, icons, images, app-icons, inclusion, optional-widget, chrome-backed layout/materials/lists/forms/navigation, and host-widget menus/pickers/progress/controls prose Don'ts apply when every Don't has a scanner.
  * Packs with Don't bullets account through Don't scanners, not clean chromeIds.
  * Optional widget affordances skip when the host has no matching control.
  * Does not inject a kit or rewrite the host typeface.

@@ -71,6 +71,7 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 19. Icons / images / app-icons / inclusion Don't heuristics. **Landed on this PR.** Account those topics when every Don't is checkable. Do not inject an icon kit or invent inclusive copy. Design-principles Don'ts stay pending (pack-authoring: Watch/TV/Vision coverage, house taste).
 20. Optional-widget Don't heuristics (settings, undo, loading, feedback, onboarding, drag, notifications, launching). **Landed on this PR.** Account those topics when every Don't is checkable and the host has that widget. Skip-unless affordance stays. Do not invent a missing widget. Menus/pickers/progress still have no Don't section. Design-principles Don'ts stay pending.
 21. Chrome-backed Don't heuristics (layout, materials, lists, forms, navigation). **Landed on this PR.** Account those topics when every Don't is checkable. Packs with Don't bullets account through Don't scanners, not clean chromeIds. Do not fake-account design-principles. Visual any-host Apple-ness is still unproven.
+22. Host-widget Don't heuristics (menus, pickers, progress, controls). **Landed on this PR.** Account those topics when every Don't is checkable and the host has that widget. Skip-unless affordance stays. Do not invent a missing menu, picker, field, or route. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
 ## Non-goals
 

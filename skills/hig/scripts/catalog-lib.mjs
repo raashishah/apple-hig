@@ -617,7 +617,8 @@ export function scanAffordances(files) {
     /<select\b/i.test(blob) ||
     /type=["'](date|time|datetime-local|month|week|color)["']/i.test(blob) ||
     /\b(Picker|DatePicker|Stepper)\s*\(/.test(blob) ||
-    /\b(UIPickerView|UIDatePicker|UIStepper|NSDatePicker|NSStepper)\b/.test(blob)
+    /\b(UIPickerView|UIDatePicker|UIStepper|NSDatePicker|NSStepper)\b/.test(blob) ||
+    /data-ios-wheel|data-stepper|data-picker-screen|wheel-picker/.test(blob)
   ) {
     found.push("picker");
   }

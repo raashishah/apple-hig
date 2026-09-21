@@ -1967,6 +1967,295 @@ function applyMarketingTabShell(text, file) {
   return next;
 }
 
+function isMenuFile(text) {
+  return /role=["']menu["']|role=["']menuitem|<menu\b/i.test(text);
+}
+
+function openingTags(text) {
+  const out = [];
+  const re = /<([A-Za-z][\w]*)\b([^>]*)>/g;
+  let m;
+  while ((m = re.exec(text))) out.push({ tag: m[1], attrs: m[2] });
+  return out;
+}
+
+function scanHiddenMenuItems(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isMenuFile(f.text)) continue;
+    const hidden = openingTags(f.text).some(
+      (t) =>
+        /role=["']menuitem["']/i.test(t.attrs) &&
+        (/\bhidden\b/i.test(t.attrs) ||
+          /display:\s*["']?none/.test(t.attrs) ||
+          /data-hidden-item/.test(t.attrs)),
+    );
+    if (hidden) out.push(hit(f.path, "hidden unavailable menu item"));
+  }
+  return out;
+}
+
+function applyHiddenMenuItems(text) {
+  if (!isMenuFile(text)) return text;
+  return text.replace(
+    /(<([A-Za-z][\w]*)\b)([^>]*role=["']menuitem["'][^>]*)(\s*\/?>)/gi,
+    (all, start, _tag, attrs, end) => {
+      if (!/\bhidden\b/i.test(attrs) && !/display:\s*["']?none/.test(attrs) && !/data-hidden-item/.test(attrs)) {
+        return all;
+      }
+      let next = attrs
+        .replace(/\s*\bhidden\b/gi, "")
+        .replace(/\s*data-hidden-item(?:="[^"]*")?/g, "")
+        .replace(/display:\s*["']none["']\s*,?/g, "");
+      if (!/aria-disabled=/.test(next)) next += " aria-disabled={true}";
+      return `${start}${next}${end}`;
+    },
+  );
+}
+
+function maxMenuNest(text) {
+  const stack = [];
+  let max = 0;
+  const re = /<\/?([A-Za-z][\w]*)\b([^>]*)>/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const attrs = m[2];
+    const close = m[0].startsWith("</");
+    const self = /\/\s*$/.test(attrs);
+    if (close) {
+      if (stack.length) stack.pop();
+      continue;
+    }
+    const isMenu = /role=["']menu["']/i.test(attrs);
+    const menuDepth = stack.filter(Boolean).length + (isMenu ? 1 : 0);
+    if (isMenu && menuDepth > max) max = menuDepth;
+    if (!self) stack.push(isMenu);
+  }
+  return max;
+}
+
+function scanNestedSubmenus(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isMenuFile(f.text)) continue;
+    if (maxMenuNest(f.text) >= 3) {
+      out.push(hit(f.path, "submenu nested deeper than one level"));
+    }
+  }
+  return out;
+}
+
+function scanMixMenuIcons(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isMenuFile(f.text)) continue;
+    const items = [
+      ...f.text.matchAll(
+        /<([A-Za-z][\w]*)\b[^>]*role=["']menuitem["'][^>]*>[\s\S]*?<\/\1>/gi,
+      ),
+    ];
+    if (items.length < 2) continue;
+    let withIcon = 0;
+    let without = 0;
+    for (const item of items) {
+      if (/<svg\b|<img\b|systemImage/.test(item[0])) withIcon += 1;
+      else without += 1;
+    }
+    if (withIcon && without) {
+      out.push(hit(f.path, "menu group mixes icons and no-icons"));
+    }
+  }
+  return out;
+}
+
+function scanPickerScreen(files) {
+  const out = [];
+  for (const f of files) {
+    const marker =
+      /data-picker-screen/.test(f.text) || /Picker(Screen|Page)\.(tsx|jsx|swift|vue|html)\b/i.test(f.path);
+    if (!marker) continue;
+    const hasPicker = /<select\b|\bPicker\s*\(|<input\b[^>]*type=["']date["']/.test(f.text);
+    const otherWork = /<textarea\b|<table\b|data-list-pane|<ul\b/.test(f.text);
+    if (hasPicker && !otherWork) {
+      out.push(hit(f.path, "screen whose only job is a picker"));
+    }
+  }
+  return out;
+}
+
+function scanStepperNoValue(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/data-stepper|\bUIStepper\b|\bStepper\s*\(/.test(f.text)) continue;
+    if (/<input\b|<output\b|aria-valuenow|data-stepper-value/.test(f.text)) continue;
+    out.push(hit(f.path, "stepper with no neighbouring value"));
+  }
+  return out;
+}
+
+function scanOverweightWheel(files) {
+  const out = [];
+  for (const f of files) {
+    if (/\.swift$/i.test(f.path)) continue;
+    if (!/data-ios-wheel|wheel-picker|className=["'][^"']*wheel/.test(f.text)) continue;
+    out.push(hit(f.path, "overweight wheel for a short list"));
+  }
+  return out;
+}
+
+function applyOverweightWheel(text, file) {
+  if (/\.swift$/i.test(file.path)) return text;
+  const blocks = [
+    ...blocksWithAttr(text, "data-ios-wheel"),
+    ...blocksWithAttr(text, "wheel-picker"),
+  ];
+  if (!blocks.length) return text;
+  const seen = new Set();
+  let next = text;
+  for (const b of [...blocks].sort((a, c) => c.start - a.start)) {
+    const key = `${b.start}:${b.end}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const inner = b.text.replace(/^<[^>]+>/, "").replace(/<\/[A-Za-z][\w]*>\s*$/, "");
+    const opts = [...inner.matchAll(/<(div|li|option)\b[^>]*>([\s\S]*?)<\/\1>/gi)]
+      .map((m) => m[2].replace(/<[^>]+>/g, "").trim())
+      .filter(Boolean);
+    if (!opts.length) continue;
+    const select = `<select>\n${opts.map((o) => `  <option>${o}</option>`).join("\n")}\n</select>`;
+    next = next.slice(0, b.start) + select + next.slice(b.end);
+  }
+  return next;
+}
+
+function scanMorphProgress(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-morph-progress/.test(f.text)) {
+      out.push(hit(f.path, "circular indicator morphs into a bar"));
+      continue;
+    }
+    if (
+      /role=["']progressbar["']|<progress\b/.test(f.text) &&
+      /spinner|circular|activity-indicator/i.test(f.text) &&
+      /morph|swapIndicator|circularToBar/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "circular indicator morphs into a bar"));
+    }
+  }
+  return out;
+}
+
+function applyMorphProgress(text) {
+  return text.replace(/\s*data-morph-progress(?:="[^"]*")?/g, "");
+}
+
+function scanJumpNinety(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-jump-ninety/.test(f.text)) {
+      out.push(hit(f.path, "progress jumps to 90% then stalls"));
+      continue;
+    }
+    if (
+      /<(progress)[^>]*(value=["']90["']|value=\{0\.9\}|value=\{90\})/i.test(f.text) &&
+      /stall|fake|loading/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "progress jumps to 90% then stalls"));
+    }
+  }
+  return out;
+}
+
+function applyJumpNinety(text) {
+  let next = text.replace(/\s*data-jump-ninety(?:="[^"]*")?/g, "");
+  next = next.replace(/(<(progress)\b[^>]*\bvalue=["'])90(["'])/gi, "$10$3");
+  next = next.replace(/(<(progress)\b[^>]*\bvalue=\{)0\.9(\})/gi, "$10$3");
+  next = next.replace(/(<(progress)\b[^>]*\bvalue=\{)90(\})/gi, "$10$3");
+  return next;
+}
+
+function scanPullDownRefreshTitle(files) {
+  const out = [];
+  for (const f of files) {
+    if (/pull down to refresh/i.test(f.text)) {
+      out.push(hit(f.path, "pull down to refresh title"));
+    }
+  }
+  return out;
+}
+
+function applyPullDownRefreshTitle(text) {
+  return text
+    .replace(/>\s*pull down to refresh\s*</gi, ">Refresh<")
+    .replace(/aria-label=["']pull down to refresh["']/gi, 'aria-label="Refresh"')
+    .replace(/pull down to refresh/gi, "");
+}
+
+function scanOkInsteadOfVerb(files) {
+  const out = [];
+  for (const f of files) {
+    if (/>\s*OK\s*</.test(f.text) || /aria-label=["']OK["']/i.test(f.text)) {
+      out.push(hit(f.path, "OK instead of a verb"));
+    }
+  }
+  return out;
+}
+
+function applyOkInsteadOfVerb(text) {
+  if (!/>\s*OK\s*</.test(text) && !/aria-label=["']OK["']/i.test(text)) return text;
+  if (!/handleSave|onSubmit|type=["']submit["']/.test(text)) return text;
+  return text.replace(/>\s*OK\s*</g, ">Save<").replace(/aria-label=["']OK["']/gi, 'aria-label="Save"');
+}
+
+function scanToggleNavigates(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/role=["']switch["']|type=["']checkbox["']|\bToggle\s*\(/.test(f.text)) continue;
+    const tagged = openingTags(f.text).some((t) => {
+      if (!/role=["']switch["']/i.test(t.attrs)) return false;
+      return (
+        /type=["']submit["']/i.test(t.attrs) ||
+        /href=/i.test(t.attrs) ||
+        /data-toggle-nav/.test(t.attrs) ||
+        t.tag.toLowerCase() === "a"
+      );
+    });
+    if (
+      tagged ||
+      /data-toggle-nav/.test(f.text) ||
+      /Toggle[\s\S]{0,240}(href=|router\.push|location\.href|navigate\()/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "toggle used to navigate or submit"));
+    }
+  }
+  return out;
+}
+
+function applyToggleNavigates(text) {
+  let next = text.replace(/<([A-Za-z][\w]*)\b([^>]*)>/gi, (all, tag, attrs) => {
+    if (!/role=["']switch["']/i.test(attrs)) return all;
+    if (!/type=["']submit["']/i.test(attrs)) return all;
+    return `<${tag}${attrs.replace(/type=["']submit["']/i, 'type="button"')}>`;
+  });
+  next = next.replace(/\s*data-toggle-nav(?:="[^"]*")?/g, "");
+  return next;
+}
+
+function scanMultiplePrimaries(files) {
+  const out = [];
+  for (const f of files) {
+    if (countSubmitButtons(f.text) >= 2) {
+      out.push(hit(f.path, "multiple primary actions in one region"));
+      continue;
+    }
+    const primaries = f.text.match(/class(Name)?=["'][^"']*\bprimary\b/g) || [];
+    if (primaries.length >= 2) {
+      out.push(hit(f.path, "multiple primary actions in one region"));
+    }
+  }
+  return out;
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -2111,6 +2400,30 @@ function scanHeuristic(id, files) {
       return scanEqualWeightSubmits(files);
     case "marketing-landing-tab-shell":
       return scanMarketingTabShell(files);
+    case "hide-unavailable-menu-items":
+      return scanHiddenMenuItems(files);
+    case "nested-submenus-deep":
+      return scanNestedSubmenus(files);
+    case "mix-menu-icons":
+      return scanMixMenuIcons(files);
+    case "picker-owns-the-screen":
+      return scanPickerScreen(files);
+    case "stepper-no-neighbouring-value":
+      return scanStepperNoValue(files);
+    case "overweight-wheel-short-list":
+      return scanOverweightWheel(files);
+    case "morph-circular-bar":
+      return scanMorphProgress(files);
+    case "jump-progress-ninety":
+      return scanJumpNinety(files);
+    case "pull-down-to-refresh-title":
+      return scanPullDownRefreshTitle(files);
+    case "ok-instead-of-verb":
+      return scanOkInsteadOfVerb(files);
+    case "toggle-navigates-or-submits":
+      return scanToggleNavigates(files);
+    case "multiple-primaries-one-region":
+      return scanMultiplePrimaries(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -2263,6 +2576,30 @@ function applyHeuristic(id, file) {
       return applyEqualWeightSubmits(file.text);
     case "marketing-landing-tab-shell":
       return applyMarketingTabShell(file.text, file);
+    case "hide-unavailable-menu-items":
+      return applyHiddenMenuItems(file.text);
+    case "nested-submenus-deep":
+      return file.text;
+    case "mix-menu-icons":
+      return file.text;
+    case "picker-owns-the-screen":
+      return file.text;
+    case "stepper-no-neighbouring-value":
+      return file.text;
+    case "overweight-wheel-short-list":
+      return applyOverweightWheel(file.text, file);
+    case "morph-circular-bar":
+      return applyMorphProgress(file.text);
+    case "jump-progress-ninety":
+      return applyJumpNinety(file.text);
+    case "pull-down-to-refresh-title":
+      return applyPullDownRefreshTitle(file.text);
+    case "ok-instead-of-verb":
+      return applyOkInsteadOfVerb(file.text);
+    case "toggle-navigates-or-submits":
+      return applyToggleNavigates(file.text);
+    case "multiple-primaries-one-region":
+      return applyEqualWeightSubmits(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

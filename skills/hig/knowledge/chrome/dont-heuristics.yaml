@@ -144,3 +144,27 @@ heuristics:
     match: Multiple equal-weight submits fighting each other
   - id: marketing-landing-tab-shell
     match: Turning a marketing landing into an iOS tab shell
+  - id: hide-unavailable-menu-items
+    match: Hide unavailable items instead of dimming them
+  - id: nested-submenus-deep
+    match: Nested submenus deeper than one level
+  - id: mix-menu-icons
+    match: Mix icons and no-icons in the same menu group
+  - id: picker-owns-the-screen
+    match: Push a new screen solely to show a picker
+  - id: stepper-no-neighbouring-value
+    match: A stepper with no visible neighbouring value
+  - id: overweight-wheel-short-list
+    match: Overweight wheels for a short list
+  - id: morph-circular-bar
+    match: Morph a circular indicator into a bar mid-task
+  - id: jump-progress-ninety
+    match: Jump progress to 90% then stall
+  - id: pull-down-to-refresh-title
+    match: Title pull-to-refresh "pull down to refresh"
+  - id: ok-instead-of-verb
+    match: OK when a verb
+  - id: toggle-navigates-or-submits
+    match: Toggles that navigate or submit
+  - id: multiple-primaries-one-region
+    match: Multiple primary actions in one region

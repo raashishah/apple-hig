@@ -11,6 +11,13 @@
 - Segmented controls switch mutually exclusive views in the same context. Prefer **icons** for view-mode (list/grid) with an accessible name — text segments for modes that need words.
 - Pressed state is visible. Disabled is visible and not the only error signal.
 
+## Don't
+
+- `OK` when a verb (`Save`, `Delete`) is clearer.
+- Toggles that navigate or submit.
+- Placeholder-as-only-label.
+- Multiple primary actions in one region.
+
 ## Apply in host
 
 Use the platform control. Do not restyle a checkbox into a fake iOS switch unless the host already has that component.
