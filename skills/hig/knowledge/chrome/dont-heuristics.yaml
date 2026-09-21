@@ -284,3 +284,9 @@ heuristics:
     match: nothing is printable
   - id: duplicate-page-orientation
     match: page-orientation
+  - id: programmatic-fullscreen-resize
+    match: programmatically resized
+  - id: auto-exit-fullscreen
+    match: ends automatically
+  - id: custom-window-mode-menu
+    match: custom menu of window modes

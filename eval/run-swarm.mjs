@@ -310,6 +310,7 @@ const results = [];
     surfaces.byId["web-views"]?.affordance === "webview" &&
     surfaces.byId["activity-views"]?.affordance === "activityview" &&
     surfaces.byId.printing?.affordance === "print" &&
+    surfaces.byId["going-full-screen"]?.affordance === "fullscreen" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

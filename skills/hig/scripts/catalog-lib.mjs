@@ -573,6 +573,7 @@ function affordanceMissing(need, present) {
     case "webview":
     case "activityview":
     case "print":
+    case "fullscreen":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -857,6 +858,15 @@ export function scanAffordances(files) {
     /\bNSPrintOperation\b/.test(blob)
   ) {
     found.push("print");
+  }
+  if (
+    /\bdata-fullscreen\b/.test(blob) ||
+    /\brequestFullscreen\s*\(/.test(blob) ||
+    /\bwebkitRequestFullscreen\s*\(/.test(blob) ||
+    /\btoggleFullScreen\s*\(/.test(blob) ||
+    /\bfullScreenCover\s*\(/.test(blob)
+  ) {
+    found.push("fullscreen");
   }
   return found;
 }

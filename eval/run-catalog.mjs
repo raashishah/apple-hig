@@ -64,6 +64,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["web-views"]?.affordance === "webview" &&
     surfaces.byId["activity-views"]?.affordance === "activityview" &&
     surfaces.byId.printing?.affordance === "print" &&
+    surfaces.byId["going-full-screen"]?.affordance === "fullscreen" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -438,6 +439,7 @@ const results = [];
     "web-views",
     "activity-views",
     "printing",
+    "going-full-screen",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -651,6 +653,24 @@ const results = [];
       text: '<button type="button" data-print>Print</button>',
     },
   ]);
+  const fullscreenOnly = scanAffordances([
+    {
+      path: "Stage.tsx",
+      text: '<div data-fullscreen><button type="button">Enter Full Screen</button></div>',
+    },
+  ]);
+  const vhOnly = scanAffordances([
+    {
+      path: "Hero.tsx",
+      text: '<div style={{ height: "100vh" }}>Hero</div>',
+    },
+  ]);
+  const videoOnly = scanAffordances([
+    {
+      path: "Clip.tsx",
+      text: '<video src="clip.mp4" controls></video>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -689,6 +709,7 @@ const results = [];
       !passList.includes("webview") &&
       !passList.includes("activityview") &&
       !passList.includes("print") &&
+      !passList.includes("fullscreen") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -716,6 +737,7 @@ const results = [];
       !formOnly.includes("webview") &&
       !formOnly.includes("activityview") &&
       !formOnly.includes("print") &&
+      !formOnly.includes("fullscreen") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -770,10 +792,17 @@ const results = [];
       !helpOnly.includes("webview") &&
       activityOnly.includes("activityview") &&
       !activityOnly.includes("print") &&
+      !activityOnly.includes("fullscreen") &&
       !shareWordOnly.includes("activityview") &&
       !pageOnly.includes("activityview") &&
       printOnly.includes("print") &&
       !printOnly.includes("activityview") &&
+      !printOnly.includes("fullscreen") &&
+      fullscreenOnly.includes("fullscreen") &&
+      !fullscreenOnly.includes("print") &&
+      !vhOnly.includes("fullscreen") &&
+      !videoOnly.includes("fullscreen") &&
+      !pageOnly.includes("fullscreen") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1174,6 +1203,17 @@ const results = [];
         "duplicate-page-orientation",
       ) &&
       catalog.byId.printing?.pack === "components-printing.md" &&
+      catalog.byId["going-full-screen"]?.dontCoverageComplete === true &&
+      (catalog.byId["going-full-screen"]?.dontHeuristicIds || []).includes(
+        "programmatic-fullscreen-resize",
+      ) &&
+      (catalog.byId["going-full-screen"]?.dontHeuristicIds || []).includes(
+        "auto-exit-fullscreen",
+      ) &&
+      (catalog.byId["going-full-screen"]?.dontHeuristicIds || []).includes(
+        "custom-window-mode-menu",
+      ) &&
+      catalog.byId["going-full-screen"]?.pack === "components-going-full-screen.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1283,6 +1323,7 @@ const results = [];
       "web-views",
       "activity-views",
       "printing",
+      "going-full-screen",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -5244,6 +5285,136 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-printing-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-fullscreen-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-fullscreen-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-fullscreen-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div
+      data-fullscreen
+      data-programmatic-resize
+      data-auto-exit-fullscreen
+      data-custom-window-mode-menu
+    >
+      <button type="button">Enter Full Screen</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-fullscreen>
+      <button type="button" onClick={() => { requestFullscreen(); resizeTo(1920, 1080); }}>Enter Full Screen</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passFullscreen: passStatus.topics["going-full-screen"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixFullscreen: fixStatus.topics["going-full-screen"]?.state === "applied",
+      fullscreenKept:
+        /data-fullscreen/.test(fixed) && />\s*Enter Full Screen\s*</.test(fixed),
+      markersGone:
+        !/data-programmatic-resize/.test(fixed) &&
+        !/data-auto-exit-fullscreen/.test(fixed) &&
+        !/data-custom-window-mode-menu/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdFullscreen: holdStatus.topics["going-full-screen"]?.state === "pending",
+      holdStillResize: /data-fullscreen/.test(held) && /\bresizeTo\s*\(/.test(held),
+      holdNotInvented: !/disabled/.test(held) && !/aria-disabled/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passFullscreen: passStatus.topics["going-full-screen"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixFullscreen: fixStatus.topics["going-full-screen"]?.state,
+      holdFullscreen: holdStatus.topics["going-full-screen"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-going-full-screen-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
