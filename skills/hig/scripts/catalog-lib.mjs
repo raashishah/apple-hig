@@ -603,6 +603,7 @@ function affordanceMissing(need, present) {
     case "homekit":
     case "workout":
     case "livephoto":
+    case "icloud":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1133,6 +1134,13 @@ export function scanAffordances(files) {
     /\bPHLivePhoto\b/.test(blob)
   ) {
     found.push("livephoto");
+  }
+  if (
+    /\bdata-icloud\b/.test(blob) ||
+    /\bCKContainer\b/.test(blob) ||
+    /\bNSUbiquitousKeyValueStore\b/.test(blob)
+  ) {
+    found.push("icloud");
   }
   return found;
 }

@@ -93,6 +93,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.homekit?.affordance === "homekit" &&
     surfaces.byId.workouts?.affordance === "workout" &&
     surfaces.byId["live-photos"]?.affordance === "livephoto" &&
+    surfaces.byId.icloud?.affordance === "icloud" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -496,6 +497,7 @@ const results = [];
     "homekit",
     "workouts",
     "live-photos",
+    "icloud",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1950,7 +1952,12 @@ const results = [];
       (catalog.byId.homekit?.dontHeuristicIds || []).includes("hk-cover-camera") &&
       catalog.byId.homekit?.pack === "tech-homekit.md" &&
       catalog.byId.homekit?.appliesWhen === "always" &&
-      catalog.byId.icloud?.pack === "tech-cluster-icloud-shareplay.md" &&
+      catalog.byId.icloud?.dontCoverageComplete === true &&
+      (catalog.byId.icloud?.dontHeuristicIds || []).includes("ic-ask-docs") &&
+      (catalog.byId.icloud?.dontHeuristicIds || []).includes("ic-unavailable-alert") &&
+      (catalog.byId.icloud?.dontHeuristicIds || []).includes("ic-app-resources") &&
+      catalog.byId.icloud?.pack === "tech-icloud.md" &&
+      catalog.byId.icloud?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2103,6 +2110,7 @@ const results = [];
       "homekit",
       "workouts",
       "live-photos",
+      "icloud",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -9902,6 +9910,135 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-live-photos-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-icloud-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-icloud-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-icloud-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-icloud data-ic-ask-docs data-ic-unavailable-alert data-ic-app-resources>
+      <button type="button">Documents</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-icloud>
+      The app asks which documents to keep in iCloud.
+      <button type="button">Documents</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passIcloud: passStatus.topics.icloud?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixIcloud: fixStatus.topics.icloud?.state === "applied",
+      systemKept: /\bdata-icloud\b/.test(fixed) && />\s*Documents\s*</.test(fixed),
+      markersGone:
+        !/data-ic-ask-docs/.test(fixed) &&
+        !/data-ic-unavailable-alert/.test(fixed) &&
+        !/data-ic-app-resources/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdIcloud: holdStatus.topics.icloud?.state === "pending",
+      holdStillAsk:
+        /\bdata-icloud\b/.test(held) &&
+        /The app asks which documents to keep in iCloud/.test(held) &&
+        /Documents/.test(held),
+      holdNotInvented:
+        !/CKContainer/.test(held) && !/NSUbiquitousKeyValueStore/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passIcloud: passStatus.topics.icloud?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixIcloud: fixStatus.topics.icloud?.state,
+      holdIcloud: holdStatus.topics.icloud?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-icloud-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

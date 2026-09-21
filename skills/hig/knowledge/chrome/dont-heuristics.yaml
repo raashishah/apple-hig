@@ -438,3 +438,9 @@ heuristics:
     match: Video playback button
   - id: lp-unsupported-replica
     match: unsupported environment
+  - id: ic-ask-docs
+    match: which documents to keep
+  - id: ic-unavailable-alert
+    match: iCloud is unavailable
+  - id: ic-app-resources
+    match: App resources

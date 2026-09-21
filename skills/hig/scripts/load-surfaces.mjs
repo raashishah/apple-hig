@@ -351,6 +351,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "homekit",
     "workout",
     "livephoto",
+    "icloud",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

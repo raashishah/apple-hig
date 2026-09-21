@@ -504,8 +504,6 @@ topics:
     appliesWhen: "capability:icloud,capability:shareplay,capability:airplay,capability:homekit"
     failWhen: "When this topic applies, the host UI does not follow Apple's iCloud design rule."
     passWhen: "When this topic applies, the host follows Apple's iCloud design rule on existing widgets without changing the typeface or injecting a kit."
-    surfaceId: "icloud-shareplay"
-    pack: "tech-cluster-icloud-shareplay.md"
   - id: icons
     title: "Icons"
     group: "Foundations"

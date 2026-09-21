@@ -5,7 +5,7 @@
 
 ## Live Apple pages
 
-- [iCloud](https://developer.apple.com/design/human-interface-guidelines/icloud)
+- [iCloud](https://developer.apple.com/design/human-interface-guidelines/icloud) (dedicated `icloud` surface attaches by appleUrl)
 - [SharePlay](https://developer.apple.com/design/human-interface-guidelines/shareplay)
 - [AirPlay](https://developer.apple.com/design/human-interface-guidelines/airplay)
 - [HomeKit](https://developer.apple.com/design/human-interface-guidelines/homekit) (dedicated `homekit` surface attaches by appleUrl)
