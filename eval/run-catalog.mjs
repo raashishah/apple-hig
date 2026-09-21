@@ -703,6 +703,10 @@ const results = [];
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("dark-pattern-allow-only") &&
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("preemptive-permission-on-marketing") &&
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("rewrite-or-automate-system-ui") &&
+      catalog.byId.branding?.dontCoverageComplete === true &&
+      (catalog.byId.branding?.dontHeuristicIds || []).includes("opaque-brand-bar-fills") &&
+      (catalog.byId.branding?.dontHeuristicIds || []).includes("watermarks-on-content") &&
+      (catalog.byId.branding?.dontHeuristicIds || []).includes("brand-outlined-sf-rewrite") &&
       catalog.byId.menus?.dontCoverageComplete === false &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -813,10 +817,12 @@ const results = [];
       skipStatus.topics["search-fields"]?.state === "already-compliant" &&
       skipStatus.topics.writing?.state === "already-compliant" &&
       skipStatus.topics.privacy?.state === "already-compliant" &&
+      skipStatus.topics.branding?.state === "already-compliant" &&
       skipStatus.topics.settings?.state === "skipped-no-affordance" &&
       skipStatus.topics["undo-and-redo"]?.state === "skipped-no-affordance" &&
       !skipReport.plan.waveTopicIds.includes("searching") &&
       !skipReport.plan.waveTopicIds.includes("writing") &&
+      !skipReport.plan.waveTopicIds.includes("branding") &&
       skipReport.plan.waveTopicIds.includes("inclusion") &&
       !skipReport.plan.waveTopicIds.includes("menus") &&
       skipReport.plan.coverage.remaining > 0 &&
@@ -1139,6 +1145,7 @@ const results = [];
       required.every((id) => status.topics[id]?.state === "already-compliant") &&
       status.topics.writing?.state === "already-compliant" &&
       status.topics.privacy?.state === "already-compliant" &&
+      status.topics.branding?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1216,6 +1223,7 @@ const results = [];
       !/#fff/i.test(chromeCss) &&
       status.topics.writing?.state === "already-compliant" &&
       status.topics.privacy?.state === "already-compliant" &&
+      status.topics.branding?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1287,6 +1295,7 @@ const results = [];
       status.topics.accessibility?.state === "already-compliant" &&
       status.topics.writing?.state === "already-compliant" &&
       status.topics.privacy?.state === "already-compliant" &&
+      status.topics.branding?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1409,6 +1418,7 @@ const results = [];
       hideChrome: hideReport.chrome.pass === true,
       marketChrome: marketReport.chrome.pass === true,
       passPrivacy: passStatus.topics.privacy?.state === "already-compliant",
+      passBranding: passStatus.topics.branding?.state === "already-compliant",
       passInclusion: passStatus.topics.inclusion?.state === "pending",
       remaining: passReport.plan.coverage.remaining > 0,
       allowPending: allowStatus.topics.privacy?.state === "pending",
@@ -1440,6 +1450,110 @@ const results = [];
     fs.rmSync(marketDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-privacy-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-branding-pass-"));
+  const markDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-branding-mark-"));
+  const mixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-branding-mix-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, markDir, { recursive: true });
+    fs.cpSync(src, mixDir, { recursive: true });
+    const origMix = `export function MixedBar() {
+  return (
+    <header data-nav role="toolbar">
+      <Image systemName="plus" />
+      <svg fill="none" stroke="currentColor" width="16" height="16" />
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(
+      path.join(markDir, "WatermarkedList.tsx"),
+      `export function WatermarkedList() {
+  return (
+    <div data-list-pane>
+      <img data-watermark alt="" src="/logo.svg" />
+      <ul>
+        <li>Item</li>
+      </ul>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(path.join(mixDir, "MixedBar.tsx"), origMix);
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const markReport = applyCatalog({
+      cwd: markDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const mixReport = applyCatalog({
+      cwd: mixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const markStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(markDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const mixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(mixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const marked = fs.readFileSync(path.join(markDir, "WatermarkedList.tsx"), "utf8");
+    const mixed = fs.readFileSync(path.join(mixDir, "MixedBar.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(markDir),
+      ...walkSource(mixDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      markChrome: markReport.chrome.pass === true,
+      mixChrome: mixReport.chrome.pass === true,
+      passBranding: passStatus.topics.branding?.state === "already-compliant",
+      passInclusion: passStatus.topics.inclusion?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      markApplied: markStatus.topics.branding?.state === "applied",
+      markNoWatermark: !/data-watermark/.test(marked),
+      mixPending: mixStatus.topics.branding?.state === "pending",
+      mixUnchanged: mixed === origMix,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passBranding: passStatus.topics.branding?.state,
+      markBranding: markStatus.topics.branding?.state,
+      mixBranding: mixStatus.topics.branding?.state,
+      marked,
+      remaining: passReport.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(markDir, { recursive: true, force: true });
+    fs.rmSync(mixDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-branding-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

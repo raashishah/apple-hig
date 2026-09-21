@@ -26,6 +26,7 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - Settings and undo skip-unless affordances: hosts without a settings/preferences screen or undo chrome are `skipped-no-affordance`. A form is not Settings. Cancel is not Undo. Presence without a Don't scanner stays pending. Other foundations stay pending. `requiredIds` stay 12.
 - Writing Don't heuristics: sarcastic errors that hide the fix, Title Case on long body help, rewritten Sign in/Pay/permission alerts. chrome-pass writing is already-compliant. Unfixable sarcasm and system-alert rewrites stay pending. Title Case help sentence-cases. Do not invent the next step or rewrite brand voice. Other foundations stay pending. `requiredIds` stay 12.
 - Privacy Don't heuristics: dark-pattern Allow-only, pre-emptive camera/mic/location on marketing, rewritten or automated system permission/Pay/Sign in. chrome-pass privacy is already-compliant. Hidden Don't Allow unhides. Allow-only and marketing prompts stay pending. Do not invent a decline control or permission copy. Other foundations stay pending. `requiredIds` stay 12.
+- Branding Don't heuristics: opaque brand fills on nav/tool/tab bars, watermarks on content, rewriting SF Symbols into a custom outlined set. chrome-pass branding is already-compliant. Watermarks strip. Mixed outlined/system toolbars stay pending. Do not inject a brand kit or rewrite host fonts. Other foundations stay pending. `requiredIds` stay 12.
 
 ## Unreleased
 

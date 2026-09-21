@@ -923,6 +923,107 @@ function scanRewriteOrAutomate(files) {
   return out;
 }
 
+function scanOpaqueBrandBars(files) {
+  return DETECTORS["chrome.bars.system-materials"](files);
+}
+
+function applyOpaqueBrandBars(text) {
+  let next = text.replace(
+    /((?:^|,|\n)\s*(?:header|nav|\.tab-bar|\.toolbar|\.sidebar)[^{]*)\{([^}]*)\}/gi,
+    (all, sel, body) => {
+      const stripped = body.replace(/background(?:-color)?\s*:\s*#[0-9a-fA-F]{3,8}\s*;?/gi, "");
+      return stripped === body ? all : `${sel}{${stripped}}`;
+    },
+  );
+  next = next.replace(
+    /(<(header|nav)\b[^>]*style=\{\{)([^}]*)(\}\})/gi,
+    (all, open, _tag, body, close) => {
+      const stripped = body.replace(
+        /background(?:Color)?\s*:\s*["']#[0-9a-fA-F]{3,8}["']\s*,?/gi,
+        "",
+      );
+      return stripped === body ? all : `${open}${stripped}${close}`;
+    },
+  );
+  next = next.replace(
+    /(<(header|nav)\b[^>]*style=["'])([^"']*)(["'])/gi,
+    (all, open, _tag, body, close) => {
+      const stripped = body.replace(/background(?:-color)?\s*:\s*#[0-9a-fA-F]{3,8}\s*;?/gi, "");
+      return stripped === body ? all : `${open}${stripped}${close}`;
+    },
+  );
+  next = next.replace(
+    /^[^\n]*(UINavigationBar|UITabBar|UIToolbar)[^\n]*(barTintColor|backgroundColor)[^\n]*\n?/gm,
+    "",
+  );
+  next = next.replace(
+    /((?:^|,|\n)\s*(?:header|nav|\.tab-bar|\.toolbar|\.sidebar)[^{]*)\{\s*\}/gi,
+    "",
+  );
+  return next;
+}
+
+function scanWatermarks(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /data-watermark/.test(f.text) ||
+      /class(?:Name)?=["'][^"']*\bwatermark\b/.test(f.text)
+    ) {
+      out.push(hit(f.path, "watermark on content"));
+    }
+  }
+  return out;
+}
+
+function applyWatermarks(text) {
+  let next = text.replace(
+    /<([A-Za-z][\w]*)\b([^>]*(?:data-watermark|class(?:Name)?=["'][^"']*\bwatermark\b)[^>]*)>([\s\S]*?)<\/\1>\s*/gi,
+    "",
+  );
+  next = next.replace(
+    /<([A-Za-z][\w]*)\b([^>]*(?:data-watermark|class(?:Name)?=["'][^"']*\bwatermark\b)[^>]*)\s*\/>\s*/gi,
+    "",
+  );
+  return next;
+}
+
+function toolbarRegions(text) {
+  const out = [];
+  const re =
+    /<([A-Za-z][\w]*)\b([^>]*(?:role=["']toolbar["']|data-nav|data-toolbar)[^>]*)>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(text))) out.push(m[0]);
+  for (const block of text.match(/<(header|nav)\b[\s\S]*?<\/\1>/gi) || []) {
+    if (!out.includes(block)) out.push(block);
+  }
+  return out;
+}
+
+function scanBrandOutlinedSymbols(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /replace(?:ing)? SF Symbols|outlined (?:icon )?set for brand|sfSymbolsToBrand/i.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "SF Symbols rewritten into a brand outline set"));
+    }
+    for (const region of toolbarRegions(f.text)) {
+      const system = /\b(systemName|Image\(systemName|UIImage\(systemName:)/.test(region);
+      const outlined =
+        /fill=["']none["'][^>]*(stroke|strokeWidth)|from ["']lucide-react["']|@heroicons|data-brand-icon/.test(
+          region,
+        );
+      if (system && outlined) {
+        out.push(hit(f.path, "custom outlined doodles next to system symbols"));
+      }
+    }
+  }
+  return out;
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -971,6 +1072,12 @@ function scanHeuristic(id, files) {
       return scanPreemptiveMarketing(files);
     case "rewrite-or-automate-system-ui":
       return scanRewriteOrAutomate(files);
+    case "opaque-brand-bar-fills":
+      return scanOpaqueBrandBars(files);
+    case "watermarks-on-content":
+      return scanWatermarks(files);
+    case "brand-outlined-sf-rewrite":
+      return scanBrandOutlinedSymbols(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -1026,6 +1133,12 @@ function applyHeuristic(id, file) {
     case "preemptive-permission-on-marketing":
       return file.text;
     case "rewrite-or-automate-system-ui":
+      return file.text;
+    case "opaque-brand-bar-fills":
+      return applyOpaqueBrandBars(file.text);
+    case "watermarks-on-content":
+      return applyWatermarks(file.text);
+    case "brand-outlined-sf-rewrite":
       return file.text;
     default: {
       const _exhaustive = id;

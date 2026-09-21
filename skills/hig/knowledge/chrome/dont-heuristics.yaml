@@ -48,3 +48,9 @@ heuristics:
     match: Pre-emptive camera/mic/location prompts on a marketing screen
   - id: rewrite-or-automate-system-ui
     match: Rewriting or automating system permission
+  - id: opaque-brand-bar-fills
+    match: Painting opaque brand fills onto navigation
+  - id: watermarks-on-content
+    match: Watermarks on content
+  - id: brand-outlined-sf-rewrite
+    match: Rewriting SF Symbols into a custom outlined set
