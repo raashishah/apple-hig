@@ -53,7 +53,7 @@ Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
 2. Round 1 **apply** only `requiredIds` (12). Optional surfaces may audit; do not lease-apply them until required P0 chrome is clean.
 3. After each apply round, run `node <skill>/scripts/check-chrome.mjs` on the host and consume the JSON.
 4. If `pass` is false (any P0 in `fails[]`), you may **not** print `HIG_CHROME` PASS. Fix from `knowledge/chrome/recipes.md` and re-check.
-5. Apply using pack **Recipe** / `recipes.md` snippets in the host language. No kit injection.
+5. Apply using `knowledge/chrome/recipes.md` in the host language. No kit injection.
 
 ## Shared laws
 
@@ -66,8 +66,6 @@ Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
 7. **Brand veto.** On `register: brand`, or when `brand_mutation_veto: spacing_and_touch_targets_locked` is in `DESIGN.md`, `/hig review` and `/hig adapt` must **not** change spacing or touch-target CSS. Report only. Structure chrome FAILs still report.
 8. **Marketing ≠ app chrome.** Never force bottom tab bars or NavigationSplitView onto `register: brand` landings.
 9. **Stack fidelity.** SwiftUI/UIKit stay on system containers. Web stays CSS. Detected stack from preflight wins. `native-apple` wins over incidental help/webview HTML; LaunchScreen.storyboard / leftover `.xib` do not make a SwiftUI app UIKit. Load `hig-react` only when `stack.kind` is React/Next.
-10. **Mechanical chrome.** `check-chrome.mjs` is the P0 gate. Pack prose cannot override a FAIL ID.
-11. **Apple type default.** Product + unspecified fonts → system Apple stack (`-apple-system` / SF Pro Text). Locked `DESIGN.md` fonts win.
 
 ## Default pipeline (swarm)
 

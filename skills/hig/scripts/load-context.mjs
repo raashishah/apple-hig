@@ -843,7 +843,7 @@ function loadContext(cwd = process.cwd()) {
   };
 }
 
-export { loadContext, APPLE_SYSTEM_FONT, appleTypeDefault };
+export { loadContext };
 
 const isMain =
   process.argv[1] &&

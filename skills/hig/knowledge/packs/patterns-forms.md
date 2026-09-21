@@ -37,10 +37,6 @@ Load `knowledge/chrome/grammar.yaml`. Cite in review; implement to PASS:
 
 Recipes: `knowledge/chrome/recipes.md`.
 
-## Recipe (any model)
-
-One shared column for title, Save/Cancel, and fields. Persistent labels. One primary button. Phone controls ~44px.
-
 ## Checklist
 
 - [ ] Labels present

@@ -34,4 +34,3 @@ This is not a component library. Do not add shadcn, a CSS kit, or copied widgets
 - Prefer semantic HTML over `div` soup.
 - Bind existing CSS variables. Never introduce `--hig-*` tokens that duplicate brand.
 - Glass only on overlays, with solid fallback.
-- Do not add shadcn, a CSS kit, or copied widgets.

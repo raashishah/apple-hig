@@ -59,10 +59,6 @@ Overlays: enter/exit opacity + translate with reduced-motion fallbacks. Chrome m
 
 Recipes: `knowledge/chrome/recipes.md`.
 
-## Recipe (any model)
-
-No painted opaque nav fill. No `backdrop-filter` on `header` / `nav` / content cards. Overlay glass only, with solid `@supports` fallback.
-
 ## Craft checklist
 
 - [ ] No custom opaque bar fill

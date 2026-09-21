@@ -28,10 +28,6 @@ Use the platform control. Do not restyle a checkbox into a fake iOS switch unles
 
 Recipes: `knowledge/chrome/recipes.md`.
 
-## Recipe (any model)
-
-One primary button per region. Icon view-mode. Filters as toggles/chips. Persistent field labels. Pressed state visible.
-
 ## Checklist
 
 - [ ] Primary vs destructive vs cancel are distinct

@@ -47,10 +47,6 @@ Load `knowledge/chrome/grammar.yaml`. Product register only for sidebar:
 
 Recipes: `knowledge/chrome/recipes.md`.
 
-## Recipe (any model)
-
-System bars, no `#hex` nav fill. Product md+ sidebar collapses. Phone product: 3–5 peer tabs or a compact top bar — never a marketing card wall as the shell.
-
 ## Checklist
 
 - [ ] Location clarity

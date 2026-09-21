@@ -24,7 +24,6 @@
 - personality: []
 - accent_and_palette:
 - fonts: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif
-  # Product default when unspecified. Brand register: keep the host face.
 - anti_references: []
 - materials: system-chrome-glass-functional-layer
 

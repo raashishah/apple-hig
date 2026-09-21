@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * Mechanical chrome FAIL scanner.
+ * Scan host UI source for chrome grammar FAILs.
  * Prints JSON. P0 hits → exit 1.
- * Agents must run this after apply; they may not emit HIG_CHROME PASS while P0 remains.
  */
 
 import fs from "node:fs";
@@ -57,11 +56,8 @@ const SKIP_DIRS = new Set([
 
 function skipDir(name, cwd) {
   if (SKIP_DIRS.has(name)) return true;
-  if (name === "eval") {
-    const norm = cwd.replace(/\\/g, "/");
-    return !norm.includes("/eval/fixtures/");
-  }
-  return false;
+  if (name !== "eval") return false;
+  return !cwd.replace(/\\/g, "/").includes("/eval/fixtures/");
 }
 
 function walkSource(cwd, maxFiles = 400) {
@@ -137,7 +133,7 @@ export function checkChrome(options = {}) {
       continue;
     }
     checked.push(rule.id);
-    const hits = detector(files) || [];
+    const hits = detector(files);
     for (const h of hits) {
       fails.push({
         id: rule.id,

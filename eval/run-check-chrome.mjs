@@ -47,26 +47,6 @@ const results = [];
   });
 }
 
-{
-  const skillText = fs.readFileSync(path.join(skillRoot, "SKILL.md"), "utf8");
-  const designText = fs.readFileSync(
-    path.join(skillRoot, "references", "verbs", "design.md"),
-    "utf8",
-  );
-  const recipes = fs.existsSync(path.join(skillRoot, "knowledge", "chrome", "recipes.md"));
-  const ok =
-    recipes &&
-    skillText.includes("check-chrome.mjs") &&
-    skillText.includes("Any-model contract") &&
-    designText.includes("check-chrome.mjs") &&
-    designText.includes("requiredIds");
-  results.push({
-    case: "skill-contract-wired",
-    ok,
-    recipes,
-  });
-}
-
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -52,7 +52,7 @@ Propose these as next `chrome.*` FAIL IDs if you hit them:
 
 Also deferred: reusable CSS kit extraction after more gold passes.
 
-v0.4.1 adds a **mechanical** `check-chrome.mjs` so models cannot skip chrome FAILs, plus recipes and Ive slop IDs (`fashion-glass`, `card-grid-home`, `nested-cards`). Those four split/list lifecycle IDs above are still not encoded.
+v0.4.1 adds `check-chrome.mjs`, recipes, and FAIL IDs (`fashion-glass`, `card-grid-home`, `nested-cards`). Those four split/list lifecycle IDs above are still not encoded.
 
 ## How to send feedback
 

@@ -1,7 +1,6 @@
 /**
  * Source heuristics for chrome grammar failWhen lines.
- * Conservative: a hit must look like the FAIL, not a passing aria-label.
- * Packs still own the prose; this module is what models cannot skip.
+ * Conservative: hit the FAIL, not a passing aria-label.
  */
 
 function hit(file, evidence) {

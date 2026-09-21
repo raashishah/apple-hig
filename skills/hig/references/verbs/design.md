@@ -13,7 +13,6 @@ Default `/hig` path. Whole-app Apple HIG from existing requirements, then a **pa
 - If unsupported: print `stopLine` and stop
 - Read `knowledge/canon.md`
 - Run `node <skill>/scripts/load-surfaces.mjs` and `node <skill>/scripts/load-chrome-grammar.mjs`
-- After apply: `node <skill>/scripts/check-chrome.mjs` (JSON). P0 `fails` block PASS.
 
 ## Steps
 
@@ -27,11 +26,9 @@ From context JSON + repo skim (do not invent other products’ brands):
 - `platform` (`phone` / `ipad` / `desktop` / `games` / `unknown`) and `capabilities` (tokens such as `healthkit`)
 - Infer `register`: `product` for tools/scoreboards/shells; `brand` for marketing/portfolio/landing
 
-Ask **zero** interview questions when enough signal exists. If brand hue is missing, keep a quiet system accent. If fonts are unspecified and register is product, use `appleTypeDefault.fontFamily` (Apple system stack). Do not pick a decorative display face.
+Ask **zero** interview questions when enough signal exists. If brand hue is missing, keep a quiet system accent. If preflight `appleTypeDefault.apply` is true, set `DESIGN.md` fonts and host type tokens to `appleTypeDefault.fontFamily`. Do not pick a decorative display face.
 
 If `stack.family` is `web` and kind is React/Next, load optional sibling `hig-react` for DOM/ARIA mapping only.
-
-If preflight `appleTypeDefault.apply` is true, set `DESIGN.md` fonts (and host `font-family` / type tokens) to `appleTypeDefault.fontFamily`. Do not pick a decorative web face. On `register: brand`, skip.
 
 ### 2. Write design package
 
@@ -84,7 +81,7 @@ If the Task tool is unavailable, simulate the swarm yourself: still write one au
 
 #### 3b. Synthesize
 
-Follow `references/agents/synthesizer.md`. Write `.hig/swarm/plan.yaml` with **exclusive file leases**. Drop decoration. Ive test: if a proposal is not simpler/clearer, drop it. Round 1 leases = required surfaces only.
+Follow `references/agents/synthesizer.md`. Write `.hig/swarm/plan.yaml` with **exclusive file leases**. Drop decoration. Ive test: if a proposal is not simpler/clearer, drop it.
 
 #### 3c. Apply (parallel, leased)
 
