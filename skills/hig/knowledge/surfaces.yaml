@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay | idverifier.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -476,6 +476,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/tap-to-pay-on-iphone
     gate: always
     covers: [tap-to-pay-on-iphone]
+  - id: id-verifier
+    pack: tech-id-verifier.md
+    affordance: idverifier
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/id-verifier
+    gate: always
+    covers: [id-verifier]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

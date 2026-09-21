@@ -597,6 +597,7 @@ function affordanceMissing(need, present) {
     case "nfc":
     case "ar":
     case "taptopay":
+    case "idverifier":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1080,6 +1081,14 @@ export function scanAffordances(files) {
     /\bPaymentCardReaderSession\b/.test(blob)
   ) {
     found.push("taptopay");
+  }
+  if (
+    /\bdata-id-verifier\b/.test(blob) ||
+    /\bMobileDriversLicenseDisplayRequest\b/.test(blob) ||
+    /\bMobileDriversLicenseDataRequest\b/.test(blob) ||
+    /\bMobileDriversLicenseRawDataRequest\b/.test(blob)
+  ) {
+    found.push("idverifier");
   }
   return found;
 }

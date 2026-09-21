@@ -5240,6 +5240,71 @@ function applyTtpNonpaymentLabel(text) {
   return text.replace(/\s*data-ttp-nonpayment(?:="[^"]*")?/g, "");
 }
 
+function hasIdVerifier(text) {
+  return (
+    /\bdata-id-verifier\b/.test(text) ||
+    /\bMobileDriversLicenseDisplayRequest\b/.test(text) ||
+    /\bMobileDriversLicenseDataRequest\b/.test(text) ||
+    /\bMobileDriversLicenseRawDataRequest\b/.test(text)
+  );
+}
+
+function hasIdvAppleLogoCopy(text) {
+  return /apple logo/i.test(text);
+}
+
+function hasIdvCommSymbolCopy(text) {
+  return /\bNFC\b|\bQR codes?\b/i.test(text);
+}
+
+function scanIdvAppleLogo(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-idv-apple-logo/.test(f.text)) {
+      out.push(hit(f.path, "apple logo in an id verifier button"));
+      continue;
+    }
+    if (!hasIdVerifier(f.text)) continue;
+    if (hasIdvAppleLogoCopy(f.text)) {
+      out.push(hit(f.path, "apple logo in an id verifier button"));
+    }
+  }
+  return out;
+}
+
+function applyIdvAppleLogo(text) {
+  return text.replace(/\s*data-idv-apple-logo(?:="[^"]*")?/g, "");
+}
+
+function scanIdvCommSymbol(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-idv-comm-symbol/.test(f.text)) {
+      out.push(
+        hit(
+          f.path,
+          "nfc or qr communication symbol on a verify age or verify identity button",
+        ),
+      );
+      continue;
+    }
+    if (!hasIdVerifier(f.text)) continue;
+    if (hasIdvCommSymbolCopy(f.text)) {
+      out.push(
+        hit(
+          f.path,
+          "nfc or qr communication symbol on a verify age or verify identity button",
+        ),
+      );
+    }
+  }
+  return out;
+}
+
+function applyIdvCommSymbol(text) {
+  return text.replace(/\s*data-idv-comm-symbol(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -5661,6 +5726,10 @@ function scanHeuristic(id, files) {
       return scanTtpAppleLogo(files);
     case "ttp-nonpayment-label":
       return scanTtpNonpaymentLabel(files);
+    case "idv-apple-logo":
+      return scanIdvAppleLogo(files);
+    case "idv-comm-symbol":
+      return scanIdvCommSymbol(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -6075,6 +6144,10 @@ function applyHeuristic(id, file) {
       return applyTtpAppleLogo(file.text);
     case "ttp-nonpayment-label":
       return applyTtpNonpaymentLabel(file.text);
+    case "idv-apple-logo":
+      return applyIdvAppleLogo(file.text);
+    case "idv-comm-symbol":
+      return applyIdvCommSymbol(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

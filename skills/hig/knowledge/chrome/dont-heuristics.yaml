@@ -406,3 +406,7 @@ heuristics:
     match: Apple logo
   - id: ttp-nonpayment-label
     match: Look Up
+  - id: idv-apple-logo
+    match: ID Verifier button
+  - id: idv-comm-symbol
+    match: NFC or QR
