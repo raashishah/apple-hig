@@ -688,11 +688,9 @@ topics:
     title: "Maps"
     group: "Technologies"
     appleUrl: "https://developer.apple.com/design/human-interface-guidelines/maps"
-    appliesWhen: "capability:carplay,capability:mapkit"
+    appliesWhen: "capability:mapkit"
     failWhen: "When this topic applies, the host UI does not follow Apple's Maps design rule."
     passWhen: "When this topic applies, the host follows Apple's Maps design rule on existing widgets without changing the typeface or injecting a kit."
-    surfaceId: "carplay-maps"
-    pack: "tech-cluster-carplay-maps.md"
   - id: materials
     title: "Materials"
     group: "Foundations"

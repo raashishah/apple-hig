@@ -599,6 +599,7 @@ function affordanceMissing(need, present) {
     case "taptopay":
     case "idverifier":
     case "iap":
+    case "map":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1098,6 +1099,14 @@ export function scanAffordances(files) {
     /\bProduct\.purchase\b/.test(blob)
   ) {
     found.push("iap");
+  }
+  if (
+    /\bdata-map\b/.test(blob) ||
+    /\bMKMapView\b/.test(blob) ||
+    /\bMapKit\b/.test(blob) ||
+    /\bmapkit\.Map\b/.test(blob)
+  ) {
+    found.push("map");
   }
   return found;
 }

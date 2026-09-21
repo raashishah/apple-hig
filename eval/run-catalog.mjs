@@ -89,6 +89,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["tap-to-pay-on-iphone"]?.affordance === "taptopay" &&
     surfaces.byId["id-verifier"]?.affordance === "idverifier" &&
     surfaces.byId["apple-in-app-purchase"]?.affordance === "iap" &&
+    surfaces.byId.maps?.affordance === "map" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -488,6 +489,7 @@ const results = [];
     "tap-to-pay-on-iphone",
     "id-verifier",
     "apple-in-app-purchase",
+    "maps",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -935,6 +937,30 @@ const results = [];
       text: "<p>Buy premium content.</p>",
     },
   ]);
+  const mapOnly = scanAffordances([
+    {
+      path: "Map.tsx",
+      text: '<div data-map><button type="button">Open in Maps</button></div>',
+    },
+  ]);
+  const mapWordOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Find us on the map.</p>",
+    },
+  ]);
+  const iframeMapOnly = scanAffordances([
+    {
+      path: "Embed.tsx",
+      text: '<iframe src="https://maps.google.com/" title="Map"></iframe>',
+    },
+  ]);
+  const carplayOnly = scanAffordances([
+    {
+      path: "Car.tsx",
+      text: '<div data-carplay><button type="button">CarPlay</button></div>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1239,6 +1265,14 @@ const results = [];
       !formOnly.includes("iap") &&
       !passList.includes("iap") &&
       !pageOnly.includes("iap") &&
+      mapOnly.includes("map") &&
+      !mapWordOnly.includes("map") &&
+      !iframeMapOnly.includes("map") &&
+      !carplayOnly.includes("map") &&
+      !iapOnly.includes("map") &&
+      !formOnly.includes("map") &&
+      !passList.includes("map") &&
+      !pageOnly.includes("map") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1897,6 +1931,12 @@ const results = [];
       ) &&
       catalog.byId["apple-in-app-purchase"]?.pack === "tech-in-app-purchase.md" &&
       catalog.byId["apple-in-app-purchase"]?.appliesWhen === "always" &&
+      catalog.byId.maps?.dontCoverageComplete === true &&
+      (catalog.byId.maps?.dontHeuristicIds || []).includes("map-cover-legal") &&
+      (catalog.byId.maps?.dontHeuristicIds || []).includes("map-replica-apple") &&
+      catalog.byId.maps?.pack === "tech-maps.md" &&
+      catalog.byId.maps?.appliesWhen === "always" &&
+      catalog.byId.carplay?.pack === "tech-cluster-carplay-maps.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -2030,6 +2070,7 @@ const results = [];
       "tap-to-pay-on-iphone",
       "id-verifier",
       "apple-in-app-purchase",
+      "maps",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -9311,6 +9352,133 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-iap-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-maps-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-maps-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-maps-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-map data-mapkit-cover-logo data-mapkit-replica>
+      <button type="button">Open in Maps</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-map>
+      The legal link stays covered all the time.
+      <button type="button">Open in Maps</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passMaps: passStatus.topics.maps?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixMaps: fixStatus.topics.maps?.state === "applied",
+      systemKept: /\bdata-map\b/.test(fixed) && />\s*Open in Maps\s*</.test(fixed),
+      markersGone:
+        !/data-mapkit-cover-logo/.test(fixed) && !/data-mapkit-replica/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdMaps: holdStatus.topics.maps?.state === "pending",
+      holdStillCover:
+        /\bdata-map\b/.test(held) &&
+        /The legal link stays covered all the time/.test(held) &&
+        /Open in Maps/.test(held),
+      holdNotInvented:
+        !/MKMapView/.test(held) && !/\bMapKit\b/.test(held) && !/mapkit\.Map/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passMaps: passStatus.topics.maps?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixMaps: fixStatus.topics.maps?.state,
+      holdMaps: holdStatus.topics.maps?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-maps-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -5394,6 +5394,61 @@ function applyIapRefundPolicy(text) {
   return text.replace(/\s*data-iap-refund-policy(?:="[^"]*")?/g, "");
 }
 
+function hasMap(text) {
+  return (
+    /\bdata-map\b/.test(text) ||
+    /\bMKMapView\b/.test(text) ||
+    /\bMapKit\b/.test(text) ||
+    /\bmapkit\.Map\b/.test(text)
+  );
+}
+
+function hasMapCoverCopy(text) {
+  return /legal link/i.test(text) && /cover/i.test(text);
+}
+
+function hasMapReplicaCopy(text) {
+  return /replicat/i.test(text) && /apple maps/i.test(text);
+}
+
+function scanMapCoverLegal(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-mapkit-cover-logo/.test(f.text)) {
+      out.push(hit(f.path, "maps legal link covered all the time"));
+      continue;
+    }
+    if (!hasMap(f.text)) continue;
+    if (hasMapCoverCopy(f.text)) {
+      out.push(hit(f.path, "maps legal link covered all the time"));
+    }
+  }
+  return out;
+}
+
+function applyMapCoverLegal(text) {
+  return text.replace(/\s*data-mapkit-cover-logo(?:="[^"]*")?/g, "");
+}
+
+function scanMapReplicaApple(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-mapkit-replica/.test(f.text)) {
+      out.push(hit(f.path, "indoor map that replicates apple maps"));
+      continue;
+    }
+    if (!hasMap(f.text)) continue;
+    if (hasMapReplicaCopy(f.text)) {
+      out.push(hit(f.path, "indoor map that replicates apple maps"));
+    }
+  }
+  return out;
+}
+
+function applyMapReplicaApple(text) {
+  return text.replace(/\s*data-mapkit-replica(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -5825,6 +5880,10 @@ function scanHeuristic(id, files) {
       return scanIapRefundBuried(files);
     case "iap-refund-policy":
       return scanIapRefundPolicy(files);
+    case "map-cover-legal":
+      return scanMapCoverLegal(files);
+    case "map-replica-apple":
+      return scanMapReplicaApple(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -6249,6 +6308,10 @@ function applyHeuristic(id, file) {
       return applyIapRefundBuried(file.text);
     case "iap-refund-policy":
       return applyIapRefundPolicy(file.text);
+    case "map-cover-legal":
+      return applyMapCoverLegal(file.text);
+    case "map-replica-apple":
+      return applyMapReplicaApple(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

@@ -347,6 +347,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "taptopay",
     "idverifier",
     "iap",
+    "map",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

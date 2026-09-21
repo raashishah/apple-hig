@@ -416,3 +416,7 @@ heuristics:
     match: Refund-request button
   - id: iap-refund-policy
     match: refund policies
+  - id: map-cover-legal
+    match: Maps legal link
+  - id: map-replica-apple
+    match: replicates Apple Maps
