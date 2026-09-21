@@ -3721,6 +3721,51 @@ function applyAlternativeActivityReveal(text) {
   return text.replace(/\s*data-alt-activity-reveal(?:="[^"]*")?/g, "");
 }
 
+function hasPrintAction(text) {
+  return (
+    /\bdata-print\b/.test(text) ||
+    /\bwindow\.print\s*\(/.test(text) ||
+    /\bUIPrintInteractionController\b/.test(text) ||
+    /\bNSPrintOperation\b/.test(text)
+  );
+}
+
+function scanPrintWhenNothingPrintable(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-print-nothing/.test(f.text)) {
+      out.push(hit(f.path, "Print action shown when nothing is printable"));
+      continue;
+    }
+    if (!hasPrintAction(f.text)) continue;
+    if (
+      /\bdata-nothing-printable\b/.test(f.text) &&
+      !/\b(disabled|aria-disabled=["']true["'])/.test(f.text)
+    ) {
+      out.push(hit(f.path, "Print action shown when nothing is printable"));
+    }
+  }
+  return out;
+}
+
+function applyPrintWhenNothingPrintable(text) {
+  return text.replace(/\s*data-print-nothing(?:="[^"]*")?/g, "");
+}
+
+function scanDuplicatePageOrientation(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-duplicate-page-orientation/.test(f.text)) {
+      out.push(hit(f.path, "duplicate system page-orientation options"));
+    }
+  }
+  return out;
+}
+
+function applyDuplicatePageOrientation(text) {
+  return text.replace(/\s*data-duplicate-page-orientation(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4016,6 +4061,10 @@ function scanHeuristic(id, files) {
       return scanDuplicateActivityActions(files);
     case "alternative-activity-reveal":
       return scanAlternativeActivityReveal(files);
+    case "print-when-nothing-printable":
+      return scanPrintWhenNothingPrintable(files);
+    case "duplicate-page-orientation":
+      return scanDuplicatePageOrientation(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4304,6 +4353,10 @@ function applyHeuristic(id, file) {
       return applyDuplicateActivityActions(file.text);
     case "alternative-activity-reveal":
       return applyAlternativeActivityReveal(file.text);
+    case "print-when-nothing-printable":
+      return applyPrintWhenNothingPrintable(file.text);
+    case "duplicate-page-orientation":
+      return applyDuplicatePageOrientation(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

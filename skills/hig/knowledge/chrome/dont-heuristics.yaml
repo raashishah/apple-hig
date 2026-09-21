@@ -280,3 +280,7 @@ heuristics:
     match: duplicate versions of common actions
   - id: alternative-activity-reveal
     match: instead of share
+  - id: print-when-nothing-printable
+    match: nothing is printable
+  - id: duplicate-page-orientation
+    match: page-orientation

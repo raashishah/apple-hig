@@ -572,6 +572,7 @@ function affordanceMissing(need, present) {
     case "help":
     case "webview":
     case "activityview":
+    case "print":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -848,6 +849,14 @@ export function scanAffordances(files) {
     /\.shareSheet\s*\(/.test(blob)
   ) {
     found.push("activityview");
+  }
+  if (
+    /\bdata-print\b/.test(blob) ||
+    /\bwindow\.print\s*\(/.test(blob) ||
+    /\bUIPrintInteractionController\b/.test(blob) ||
+    /\bNSPrintOperation\b/.test(blob)
+  ) {
+    found.push("print");
   }
   return found;
 }

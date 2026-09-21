@@ -309,6 +309,7 @@ const results = [];
     surfaces.byId["offering-help"]?.affordance === "help" &&
     surfaces.byId["web-views"]?.affordance === "webview" &&
     surfaces.byId["activity-views"]?.affordance === "activityview" &&
+    surfaces.byId.printing?.affordance === "print" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;
