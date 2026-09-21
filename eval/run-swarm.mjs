@@ -306,6 +306,7 @@ const results = [];
     surfaces.byId["disclosure-controls"]?.affordance === "disclosure" &&
     surfaces.byId.boxes?.affordance === "box" &&
     surfaces.byId["edit-menus"]?.affordance === "editmenu" &&
+    surfaces.byId["offering-help"]?.affordance === "help" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

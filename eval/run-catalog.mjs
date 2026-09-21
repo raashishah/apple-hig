@@ -60,6 +60,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["disclosure-controls"]?.affordance === "disclosure" &&
     surfaces.byId.boxes?.affordance === "box" &&
     surfaces.byId["edit-menus"]?.affordance === "editmenu" &&
+    surfaces.byId["offering-help"]?.affordance === "help" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -430,6 +431,7 @@ const results = [];
     "disclosure-controls",
     "boxes",
     "edit-menus",
+    "offering-help",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -595,6 +597,24 @@ const results = [];
       text: '<div role="menu"><button type="button" role="menuitem">Share</button></div>',
     },
   ]);
+  const helpOnly = scanAffordances([
+    {
+      path: "Tip.tsx",
+      text: "<div data-help>Swipe the canvas to add a stop.</div>",
+    },
+  ]);
+  const titledButton = scanAffordances([
+    {
+      path: "Save.tsx",
+      text: '<button type="button" title="Save">Save</button>',
+    },
+  ]);
+  const onboardingOnly = scanAffordances([
+    {
+      path: "FirstRun.tsx",
+      text: "<div data-onboarding><p>Welcome</p></div>",
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -629,6 +649,7 @@ const results = [];
       !passList.includes("disclosure") &&
       !passList.includes("box") &&
       !passList.includes("editmenu") &&
+      !passList.includes("help") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -652,6 +673,7 @@ const results = [];
       !formOnly.includes("disclosure") &&
       !formOnly.includes("box") &&
       !formOnly.includes("editmenu") &&
+      !formOnly.includes("help") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -696,6 +718,11 @@ const results = [];
       !editMenuOnly.includes("menu") &&
       commandMenuOnly.includes("menu") &&
       !commandMenuOnly.includes("editmenu") &&
+      helpOnly.includes("help") &&
+      !helpOnly.includes("onboarding") &&
+      !titledButton.includes("help") &&
+      onboardingOnly.includes("onboarding") &&
+      !onboardingOnly.includes("help") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1061,6 +1088,17 @@ const results = [];
         "redundant-edit-controls",
       ) &&
       catalog.byId["edit-menus"]?.pack === "components-edit-menus.md" &&
+      catalog.byId["offering-help"]?.dontCoverageComplete === true &&
+      (catalog.byId["offering-help"]?.dontHeuristicIds || []).includes(
+        "wrong-platform-help",
+      ) &&
+      (catalog.byId["offering-help"]?.dontHeuristicIds || []).includes(
+        "standard-component-help",
+      ) &&
+      (catalog.byId["offering-help"]?.dontHeuristicIds || []).includes(
+        "promotional-tip",
+      ) &&
+      catalog.byId["offering-help"]?.pack === "components-offering-help.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1166,6 +1204,7 @@ const results = [];
       "disclosure-controls",
       "boxes",
       "edit-menus",
+      "offering-help",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -4622,6 +4661,134 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-edit-menus-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-offering-help-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-offering-help-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-offering-help-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div
+      data-help
+      data-wrong-platform-help
+      data-standard-component-help
+      data-promotional-tip
+    >
+      Swipe the canvas to add a stop.
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-help>Click the button on iPhone</div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passHelp: passStatus.topics["offering-help"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixHelp: fixStatus.topics["offering-help"]?.state === "applied",
+      helpKept: /data-help/.test(fixed),
+      markersGone:
+        !/data-wrong-platform-help/.test(fixed) &&
+        !/data-standard-component-help/.test(fixed) &&
+        !/data-promotional-tip/.test(fixed),
+      taskCopyKept: /Swipe the canvas to add a stop/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdHelp: holdStatus.topics["offering-help"]?.state === "pending",
+      holdStillClick: /Click the button on iPhone/.test(held),
+      holdNotInvented: !/tap the button/.test(held) && !/on iPad/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passHelp: passStatus.topics["offering-help"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixHelp: fixStatus.topics["offering-help"]?.state,
+      holdHelp: holdStatus.topics["offering-help"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-offering-help-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

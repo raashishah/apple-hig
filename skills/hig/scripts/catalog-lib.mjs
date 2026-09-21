@@ -569,6 +569,7 @@ function affordanceMissing(need, present) {
     case "disclosure":
     case "box":
     case "editmenu":
+    case "help":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -817,6 +818,17 @@ export function scanAffordances(files) {
     /\.editMenu\s*\(/.test(blob)
   ) {
     found.push("editmenu");
+  }
+  if (
+    /\bdata-help\b/.test(blob) ||
+    /\bdata-tip\b/.test(blob) ||
+    /\bdata-tooltip\b/.test(blob) ||
+    /role=["']tooltip["']/i.test(blob) ||
+    /\bTipView\s*\(/.test(blob) ||
+    /\bpopoverTip\s*\(/.test(blob) ||
+    /\.help\s*\(/.test(blob)
+  ) {
+    found.push("help");
   }
   return found;
 }

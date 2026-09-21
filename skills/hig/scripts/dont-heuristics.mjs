@@ -3555,6 +3555,73 @@ function applyRedundantEditControls(text) {
   return text.replace(/\s*data-redundant-edit-controls(?:="[^"]*")?/g, "");
 }
 
+function hasHelpWidget(text) {
+  return (
+    /\bdata-help\b/.test(text) ||
+    /\bdata-tip\b/.test(text) ||
+    /\bdata-tooltip\b/.test(text) ||
+    /role=["']tooltip["']/i.test(text) ||
+    /\bTipView\s*\(/.test(text) ||
+    /\bpopoverTip\s*\(/.test(text) ||
+    /\.help\s*\(/.test(text)
+  );
+}
+
+function scanWrongPlatformHelp(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wrong-platform-help/.test(f.text)) {
+      out.push(hit(f.path, "help copy that tells people to click on iPhone"));
+      continue;
+    }
+    if (!hasHelpWidget(f.text)) continue;
+    if (
+      /click[\s\S]{0,80}(iphone|ios\b)/i.test(f.text) ||
+      /tap[\s\S]{0,80}(\bmac\b|macos)/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "help copy that tells people to click on iPhone"));
+    }
+  }
+  return out;
+}
+
+function applyWrongPlatformHelp(text) {
+  return text.replace(/\s*data-wrong-platform-help(?:="[^"]*")?/g, "");
+}
+
+function scanStandardComponentHelp(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-standard-component-help/.test(f.text)) {
+      out.push(hit(f.path, "help content that explains how standard components work"));
+    }
+  }
+  return out;
+}
+
+function applyStandardComponentHelp(text) {
+  return text.replace(/\s*data-standard-component-help(?:="[^"]*")?/g, "");
+}
+
+function scanPromotionalTip(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-promotional-tip/.test(f.text)) {
+      out.push(hit(f.path, "promotional content in a tip"));
+      continue;
+    }
+    if (!hasHelpWidget(f.text)) continue;
+    if (/\b(upgrade now|subscribe now|buy now|limited offer)\b/i.test(f.text)) {
+      out.push(hit(f.path, "promotional content in a tip"));
+    }
+  }
+  return out;
+}
+
+function applyPromotionalTip(text) {
+  return text.replace(/\s*data-promotional-tip(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -3836,6 +3903,12 @@ function scanHeuristic(id, files) {
       return scanInapplicableEditCommands(files);
     case "redundant-edit-controls":
       return scanRedundantEditControls(files);
+    case "wrong-platform-help":
+      return scanWrongPlatformHelp(files);
+    case "standard-component-help":
+      return scanStandardComponentHelp(files);
+    case "promotional-tip":
+      return scanPromotionalTip(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4110,6 +4183,12 @@ function applyHeuristic(id, file) {
       return applyInapplicableEditCommands(file.text);
     case "redundant-edit-controls":
       return applyRedundantEditControls(file.text);
+    case "wrong-platform-help":
+      return applyWrongPlatformHelp(file.text);
+    case "standard-component-help":
+      return applyStandardComponentHelp(file.text);
+    case "promotional-tip":
+      return applyPromotionalTip(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

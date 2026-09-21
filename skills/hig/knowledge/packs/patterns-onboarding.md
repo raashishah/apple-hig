@@ -2,7 +2,7 @@
 
 **Apple:** [Onboarding](https://developer.apple.com/design/human-interface-guidelines/onboarding)
 
-**Also:** [Offering help](https://developer.apple.com/design/human-interface-guidelines/offering-help) (live-link — contextual help, not a second pack).
+**Also:** Contextual tips live in `components-offering-help.md`. Do not treat this first-run pack as offering-help.
 
 Own surface: first-run, empty-state coaching, permission primers. Distinct files from Settings and from Launching.
 
@@ -16,7 +16,7 @@ Own surface: first-run, empty-state coaching, permission primers. Distinct files
 - Request sign-in, tracking, notifications, and other permissions **at the moment of need**, not as a stack before first value. Notification copy lives in `patterns-notifications.md`.
 - Do not replay the tour every launch. Show again only from Help / Settings.
 - Empty states can onboard: one action that creates the first object beats a tutorial.
-- Live-link offering-help for searchable Help / tips. Do not pack Watch workouts or ratings.
+- Contextual tips belong to offering-help, not this first-run pack. Do not pack Watch workouts or ratings.
 
 ## Apply in host
 
