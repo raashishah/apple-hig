@@ -582,9 +582,11 @@ const results = [];
     ok:
       required.every((id) => catalog.byId[id]?.dontCoverageComplete === true) &&
       (catalog.byId.typography?.dontHeuristicIds || []).includes("hero-type-in-lists") &&
+      (catalog.byId.color?.dontHeuristicIds || []).includes("rainbow-nav-accents") &&
+      (catalog.byId.motion?.dontHeuristicIds || []).includes("bounce-on-appear") &&
       (catalog.byId.accessibility?.dontHeuristicIds || []).includes("placeholder-only-label") &&
-      catalog.byId.writing?.dontCoverageComplete !== true &&
-      catalog.byId.menus?.dontCoverageComplete !== true &&
+      catalog.byId.writing?.dontCoverageComplete === false &&
+      catalog.byId.menus?.dontCoverageComplete === false &&
       loadSurfaces(skillRoot).requiredIds.length === 12,
     typeIds: catalog.byId.typography?.dontHeuristicIds,
     writingCovered: catalog.byId.writing?.dontCoverageComplete,
@@ -598,7 +600,15 @@ const results = [];
   try {
     const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
     fs.cpSync(src, dir, { recursive: true });
-    const orig = fs.readFileSync(path.join(src, "CohesiveForm.tsx"), "utf8");
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
     const report = applyCatalog({ cwd: dir, skillRoot, register: "product", write: true });
     const status = parseCatalogStatus(
       fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"),
@@ -607,15 +617,16 @@ const results = [];
       .map((f) => f.text)
       .join("\n");
     const required = ["typography", "color", "motion", "accessibility"];
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(dir, name), "utf8") === origPass[name],
+    );
     ok =
       report.chrome.pass === true &&
-      required.every((id) =>
-        ["applied", "already-compliant"].includes(status.topics[id]?.state),
-      ) &&
+      required.every((id) => status.topics[id]?.state === "already-compliant") &&
       status.topics.writing?.state === "pending" &&
       status.topics.menus?.state === "pending" &&
       report.plan.coverage.remaining > 0 &&
-      orig.includes("Display name") &&
+      destUnchanged &&
       !/SF Pro|-apple-system|shadcn/i.test(hostText);
     detail = {
       remaining: report.plan.coverage.remaining,
@@ -646,7 +657,7 @@ const results = [];
       `export function LoudList() {
   return (
     <div data-list-pane>
-      <h1 style={{ fontSize: 48, textTransform: "uppercase" }}>INVENTORY HERO</h1>
+      <h1 style={{ fontSize: 120, textTransform: "uppercase" }}>INVENTORY HERO</h1>
       <ul><li>Item</li></ul>
     </div>
   );
@@ -680,12 +691,15 @@ const results = [];
       status.topics.color?.state === "applied" &&
       /aria-label="Email address"/.test(field) &&
       /placeholder="Email address"/.test(field) &&
-      !/fontSize:\s*48/.test(list) &&
+      !/fontSize:\s*120/.test(list) &&
       !/textTransform:\s*"uppercase"/.test(list) &&
       /fontSize:\s*17/.test(list) &&
       /prefers-reduced-motion/.test(motion) &&
+      !/\bbounce\b/i.test(motion) &&
       !/background:\s*#000/.test(chromeCss) &&
+      !/#fff/i.test(chromeCss) &&
       status.topics.writing?.state === "pending" &&
+      status.topics.menus?.state === "pending" &&
       report.plan.coverage.remaining > 0 &&
       !/SF Pro|-apple-system|shadcn/i.test(hostText);
     detail = {
@@ -719,9 +733,9 @@ const results = [];
       `export function RainbowNav() {
   return (
     <nav>
-      <a style={{ color: "#e11d48" }}>One</a>
+      <a style={{ color: "rgb(225, 29, 72)" }}>One</a>
       <a style={{ color: "#22c55e" }}>Two</a>
-      <a style={{ color: "#3b82f6" }}>Three</a>
+      <a style={{ color: "rgb(59, 130, 246)" }}>Three</a>
       <a style={{ color: "#f59e0b" }}>Four</a>
     </nav>
   );
@@ -738,11 +752,13 @@ const results = [];
 `,
     );
     const origFonts = fs.readFileSync(path.join(dir, "many-fonts.css"), "utf8");
+    const origRainbow = fs.readFileSync(path.join(dir, "rainbow-nav.tsx"), "utf8");
     const report = applyCatalog({ cwd: dir, skillRoot, register: "product", write: true });
     const status = parseCatalogStatus(
       fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"),
     );
     const fonts = fs.readFileSync(path.join(dir, "many-fonts.css"), "utf8");
+    const rainbow = fs.readFileSync(path.join(dir, "rainbow-nav.tsx"), "utf8");
     const hostText = walkSource(dir)
       .map((f) => f.text)
       .join("\n");
@@ -751,7 +767,11 @@ const results = [];
       status.topics.color?.state === "pending" &&
       status.topics.typography?.state === "pending" &&
       status.topics.accessibility?.state === "already-compliant" &&
+      status.topics.writing?.state === "pending" &&
+      status.topics.menus?.state === "pending" &&
+      report.plan.coverage.remaining > 0 &&
       fonts === origFonts &&
+      rainbow === origRainbow &&
       /Recoleta/.test(fonts) &&
       !/SF Pro|-apple-system|shadcn/i.test(hostText);
     detail = {

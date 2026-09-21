@@ -150,13 +150,11 @@ export function applyCatalog(options = {}) {
     const packNext = accountPackDont(topics, catalog, afterBlob, dontApply.mutatedTokens);
     topics = packNext.topics;
     accounted = accounted.concat(packNext.accounted);
-    const failIds = chrome.after.fails.map((f) => f.id);
     const proseNext = accountRequiredProseDont({
       topics,
       catalog,
       surfaces,
       files,
-      chromeFailIds: failIds,
     });
     topics = proseNext.topics;
     accounted = accounted.concat(proseNext.accounted);

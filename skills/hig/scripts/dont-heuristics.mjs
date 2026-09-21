@@ -87,7 +87,7 @@ export function matchHeuristic(bullet, heuristics) {
   for (const h of heuristics || []) {
     const m = normalizePhrase(h.match);
     if (!m) continue;
-    if (n === m || n.includes(m) || m.includes(n)) {
+    if (n === m || n.includes(m)) {
       if (m.length >= bestLen) {
         best = h;
         bestLen = m.length;
@@ -144,7 +144,7 @@ function isHeroType(text) {
   return (
     /font-size\s*:\s*(?:3[2-9]|[4-9]\d|\d{3})px/i.test(text) ||
     /font-size\s*:\s*(?:1\.75|1\.[8-9]|[2-9](?:\.\d+)?)rem/i.test(text) ||
-    /fontSize\s*:\s*["']?(?:3[2-9]|[4-9]\d)/.test(text) ||
+    /fontSize\s*:\s*["']?(?:3[2-9]|[4-9]\d|\d{3})/.test(text) ||
     /text-(4xl|5xl|6xl|7xl|8xl|9xl)/.test(text) ||
     /\bhero[- ]?type\b|\bclass(?:Name)?=["'][^"']*\bhero\b/.test(text)
   );
@@ -174,7 +174,7 @@ function applyHeroType(text) {
     let region = pane.text
       .replace(/font-size\s*:\s*(?:3[2-9]|[4-9]\d|\d{3})px/gi, "font-size: 17px")
       .replace(/font-size\s*:\s*(?:1\.75|1\.[8-9]|[2-9](?:\.\d+)?)rem/gi, "font-size: 1.0625rem")
-      .replace(/fontSize\s*:\s*["']?(?:3[2-9]|[4-9]\d)["']?/g, "fontSize: 17")
+      .replace(/fontSize\s*:\s*["']?(?:3[2-9]|[4-9]\d|\d{3})["']?/g, "fontSize: 17")
       .replace(/\btext-(4xl|5xl|6xl|7xl|8xl|9xl)\b/g, "text-base")
       .replace(/\shero-type\b/g, "")
       .replace(/(\bclass(?:Name)?=["'][^"']*)\bhero\b/g, "$1");
@@ -229,13 +229,10 @@ function scanFontFamilies(files) {
   return [];
 }
 
-function hexToHueBucket(hex) {
-  let h = hex.replace("#", "");
-  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
-  if (h.length < 6) return null;
-  const r = parseInt(h.slice(0, 2), 16) / 255;
-  const g = parseInt(h.slice(2, 4), 16) / 255;
-  const b = parseInt(h.slice(4, 6), 16) / 255;
+function rgbToHueBucket(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const d = max - min;
@@ -253,6 +250,17 @@ function hexToHueBucket(hex) {
   return Math.floor(hue / 30);
 }
 
+function hexToHueBucket(hex) {
+  let h = hex.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length < 6) return null;
+  return rgbToHueBucket(
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  );
+}
+
 function scanRainbow(files) {
   const out = [];
   for (const f of files) {
@@ -262,26 +270,54 @@ function scanRainbow(files) {
         const bucket = hexToHueBucket(m[1]);
         if (bucket != null) buckets.add(bucket);
       }
+      for (const m of region.matchAll(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/gi)) {
+        const bucket = rgbToHueBucket(Number(m[1]), Number(m[2]), Number(m[3]));
+        if (bucket != null) buckets.add(bucket);
+      }
       if (buckets.size >= 4) out.push(hit(f.path, "four or more saturated hues in nav"));
     }
   }
   return out;
 }
 
+function isMutedColorValue(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  return s < 0.25 && l > 0.35 && l < 0.78;
+}
+
 function isMutedDecl(s) {
-  return (
-    /color\s*:\s*#([89a-f][0-9a-f]{2}|[89a-f]{3})\b/i.test(s) ||
-    /opacity\s*:\s*0\.[0-4]/.test(s) ||
-    /text-gray-(400|500|300)/.test(s)
-  );
+  if (/opacity\s*:\s*0\.[0-4]/.test(s) || /text-gray-(400|500|300)/.test(s)) return true;
+  for (const m of s.matchAll(/color\s*[:=]\s*["']?#([0-9a-f]{3,8})\b/gi)) {
+    let h = m[1];
+    if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+    if (h.length < 6) continue;
+    if (isMutedColorValue(parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16))) {
+      return true;
+    }
+  }
+  for (const m of s.matchAll(/color\s*[:=]\s*["']?rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/gi)) {
+    if (isMutedColorValue(Number(m[1]), Number(m[2]), Number(m[3]))) return true;
+  }
+  return false;
 }
 
 function scanMutedLabels(files) {
   const out = [];
   for (const f of files) {
-    const labels = [...f.text.matchAll(/<label\b([^>]*)>([\s\S]*?)<\/label>/gi)];
-    if (!labels.length) continue;
-    if (labels.every((m) => isMutedDecl(`${m[1]} ${m[2]}`))) {
+    const html = [...f.text.matchAll(/<label\b([^>]*)>([\s\S]*?)<\/label>/gi)].map(
+      (m) => `${m[1]} ${m[2]}`,
+    );
+    const css = [...f.text.matchAll(/\blabel\b[^{]{0,40}\{([^}]*)\}/gi)].map((m) => m[1]);
+    const parts = [...html, ...css];
+    if (!parts.length) continue;
+    if (parts.every((p) => isMutedDecl(p))) {
       out.push(hit(f.path, "every label uses muted color"));
     }
   }
@@ -292,28 +328,40 @@ function applyMutedLabels(text) {
   return text.replace(/<label\b([^>]*)>([\s\S]*?)<\/label>/gi, (all, attrs, inner) => {
     if (!isMutedDecl(`${attrs} ${inner}`)) return all;
     const nextAttrs = attrs
-      .replace(/color\s*:\s*#[0-9a-fA-F]{3,8}\s*;?/gi, "")
+      .replace(/color\s*[:=]\s*["']?#[0-9a-fA-F]{3,8}["']?\s*;?/gi, "")
+      .replace(/color\s*[:=]\s*["']?rgb\([^)]*\)["']?\s*,?/gi, "")
       .replace(/opacity\s*:\s*0\.[0-4]\s*;?/g, "")
       .replace(/\btext-gray-(300|400|500)\b/g, "");
     const nextInner = inner
-      .replace(/color\s*:\s*#[0-9a-fA-F]{3,8}\s*;?/gi, "")
+      .replace(/color\s*[:=]\s*["']?#[0-9a-fA-F]{3,8}["']?\s*;?/gi, "")
       .replace(/opacity\s*:\s*0\.[0-4]\s*;?/g, "");
     return `<label${nextAttrs}>${nextInner}</label>`;
   });
 }
 
-function scanGlass(files, chromeFailIds) {
-  if ((chromeFailIds || []).includes("chrome.materials.fashion-glass")) {
-    return [hit("", "chrome.materials.fashion-glass")];
-  }
+function scanGlass(files) {
   return DETECTORS["chrome.materials.fashion-glass"](files);
 }
 
 function applyGlass(text) {
-  return text
-    .replace(/\s*data-fashion-glass(?:="[^"]*")?/g, "")
-    .replace(/backdrop-filter\s*:[^;}]+;?/gi, "")
-    .replace(/backdropFilter\s*:\s*["'][^"']*["']\s*,?/g, "");
+  let next = text.replace(/\s*data-fashion-glass(?:="[^"]*")?/g, "");
+  next = next.replace(
+    /(<(header|nav)\b[^>]*style=\{\{)([^}]*)(\}\})/gi,
+    (all, open, _tag, body, close) => {
+      const stripped = body
+        .replace(/backdropFilter\s*:\s*["'][^"']*["']\s*,?/g, "")
+        .replace(/backdrop-filter\s*:\s*["'][^"']*["']\s*,?/g, "");
+      return stripped === body ? all : `${open}${stripped}${close}`;
+    },
+  );
+  next = next.replace(
+    /((?:^|,|\n)\s*(?:header|nav|\.card|main|\.content)[^{]*)\{([^}]*)\}/gi,
+    (all, sel, body) => {
+      const stripped = body.replace(/backdrop-filter\s*:[^;}]+;?/gi, "");
+      return stripped === body ? all : `${sel}{${stripped}}`;
+    },
+  );
+  return next;
 }
 
 function scanBlackWhiteChrome(files) {
@@ -435,13 +483,20 @@ function applyLockedOut(text) {
   });
 }
 
+function isLargeScale(text) {
+  for (const m of text.matchAll(/scale(?:3d)?\(\s*(-?[\d.]+)/gi)) {
+    const n = Math.abs(Number(m[1]));
+    if (Number.isFinite(n) && (n >= 1.08 || (n > 0 && n <= 0.92))) return true;
+  }
+  return false;
+}
+
 function hasParallaxZoom(text) {
   return (
-    /transform\s*:\s*scale\(/i.test(text) ||
-    /scale\([1-9]\d?(?:\.\d+)?\)/.test(text) ||
+    isLargeScale(text) ||
     /translate3d\s*\(/i.test(text) ||
     /\bparallax\b/i.test(text) ||
-    /zoom\s*:\s*[1-9]/i.test(text)
+    /zoom\s*:\s*(?:1\.\d*[1-9]|[2-9])/i.test(text)
   );
 }
 
@@ -514,7 +569,7 @@ function applyTinyCritical(text) {
     .replace(/text-\[(?:[0-9]|10)px\]/g, "text-[13px]");
 }
 
-function scanHeuristic(id, files, chromeFailIds) {
+function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
       return scanHeroType(files);
@@ -527,7 +582,7 @@ function scanHeuristic(id, files, chromeFailIds) {
     case "muted-only-labels":
       return scanMutedLabels(files);
     case "glass-tints-on-chrome":
-      return scanGlass(files, chromeFailIds);
+      return scanGlass(files);
     case "hard-black-white-chrome":
       return scanBlackWhiteChrome(files);
     case "color-only-error-or-selected":
@@ -593,6 +648,7 @@ function applyHeuristic(id, file) {
 function applyWanted(files, ids) {
   const mutated = new Set();
   for (const id of ids) {
+    if (scanHeuristic(id, files).length === 0) continue;
     for (const file of files) {
       const next = applyHeuristic(id, file);
       if (next === file.text) continue;
@@ -601,19 +657,14 @@ function applyWanted(files, ids) {
     }
   }
   const css = files.find((f) => /\.css$/i.test(f.path));
-  if (
-    ids.includes("motion-without-reduce") &&
-    scanReduceMotion(files).length &&
-    css &&
-    !/prefers-reduced-motion/i.test(css.text)
-  ) {
+  if (scanReduceMotion(files).length && css && !/prefers-reduced-motion/i.test(css.text)) {
     css.text = `${css.text.trimEnd()}\n${REDUCE_CSS}`;
     mutated.add("motion-without-reduce");
   }
   return mutated;
 }
 
-export function accountRequiredProseDont({ topics, catalog, surfaces, files, chromeFailIds }) {
+export function accountRequiredProseDont({ topics, catalog, surfaces, files }) {
   const required = new Set(surfaces.requiredIds || []);
   const wanted = [];
   const seen = new Set();
@@ -637,7 +688,7 @@ export function accountRequiredProseDont({ topics, catalog, surfaces, files, chr
       const topic = catalog.byId[id];
       if (topic?.surfaceId && required.has(topic.surfaceId) && topic.dontCoverageComplete) {
         const ids = topic.dontHeuristicIds || [];
-        const hits = ids.flatMap((hid) => scanHeuristic(hid, files, chromeFailIds));
+        const hits = ids.flatMap((hid) => scanHeuristic(hid, files));
         if (hits.length === 0) {
           const didMutate = ids.some((hid) => mutated.has(hid));
           next = {
@@ -651,8 +702,4 @@ export function accountRequiredProseDont({ topics, catalog, surfaces, files, chr
     nextTopics[id] = next;
   }
   return { topics: nextTopics, accounted };
-}
-
-export function scanDontHeuristic(id, files, chromeFailIds) {
-  return scanHeuristic(id, files, chromeFailIds);
 }

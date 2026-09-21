@@ -14,8 +14,6 @@ heuristics:
     match: Low-contrast muted text as the only label style
   - id: glass-tints-on-chrome
     match: Glass tints replacing solid semantic fills on primary chrome
-    chromeIds:
-      - chrome.materials.fashion-glass
   - id: hard-black-white-chrome
     match: Hard-coded #000 / #fff chrome that ignores Dark Mode
   - id: color-only-error-or-selected
