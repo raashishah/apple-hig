@@ -575,6 +575,7 @@ function affordanceMissing(need, present) {
     case "print":
     case "fullscreen":
     case "filebrowser":
+    case "focus":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -879,6 +880,16 @@ export function scanAffordances(files) {
     /\bNSSavePanel\b/.test(blob)
   ) {
     found.push("filebrowser");
+  }
+  if (
+    /\bdata-focus-system\b/.test(blob) ||
+    /\bdata-focus-ring\b/.test(blob) ||
+    /\bUIFocusHaloEffect\b/.test(blob) ||
+    /\bfocusGroupIdentifier\b/.test(blob) ||
+    /\bNSFocusRingType\b/.test(blob) ||
+    /\bpreferredFocusEnvironments\b/.test(blob)
+  ) {
+    found.push("focus");
   }
   return found;
 }

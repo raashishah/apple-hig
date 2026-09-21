@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -350,6 +350,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/file-management
     gate: always
     covers: [file-management]
+  - id: focus-and-selection
+    pack: inputs-focus-and-selection.md
+    affordance: focus
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/focus-and-selection
+    gate: always
+    covers: [focus-and-selection]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

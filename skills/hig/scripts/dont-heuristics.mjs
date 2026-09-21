@@ -3882,6 +3882,50 @@ function applyExplicitSaveRequired(text) {
   return text.replace(/\s*data-explicit-save-required(?:="[^"]*")?/g, "");
 }
 
+function hasFocusSystem(text) {
+  return (
+    /\bdata-focus-system\b/.test(text) ||
+    /\bdata-focus-ring\b/.test(text) ||
+    /\bUIFocusHaloEffect\b/.test(text) ||
+    /\bfocusGroupIdentifier\b/.test(text) ||
+    /\bNSFocusRingType\b/.test(text) ||
+    /\bpreferredFocusEnvironments\b/.test(text)
+  );
+}
+
+function scanStealFocus(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-steal-focus/.test(f.text)) {
+      out.push(hit(f.path, "focus changed without people's interaction"));
+      continue;
+    }
+    if (!hasFocusSystem(f.text)) continue;
+    if (/\.focus\s*\(/.test(f.text)) {
+      out.push(hit(f.path, "focus changed without people's interaction"));
+    }
+  }
+  return out;
+}
+
+function applyStealFocus(text) {
+  return text.replace(/\s*data-steal-focus(?:="[^"]*")?/g, "");
+}
+
+function scanCustomFocusEffect(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-custom-focus-effect/.test(f.text)) {
+      out.push(hit(f.path, "custom focus effects that replace the system effect"));
+    }
+  }
+  return out;
+}
+
+function applyCustomFocusEffect(text) {
+  return text.replace(/\s*data-custom-focus-effect(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4193,6 +4237,10 @@ function scanHeuristic(id, files) {
       return scanExtensionsShownByDefault(files);
     case "explicit-save-required":
       return scanExplicitSaveRequired(files);
+    case "steal-focus":
+      return scanStealFocus(files);
+    case "custom-focus-effect":
+      return scanCustomFocusEffect(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4497,6 +4545,10 @@ function applyHeuristic(id, file) {
       return applyExtensionsShownByDefault(file.text);
     case "explicit-save-required":
       return applyExplicitSaveRequired(file.text);
+    case "steal-focus":
+      return applyStealFocus(file.text);
+    case "custom-focus-effect":
+      return applyCustomFocusEffect(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

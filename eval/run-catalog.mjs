@@ -66,6 +66,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.printing?.affordance === "print" &&
     surfaces.byId["going-full-screen"]?.affordance === "fullscreen" &&
     surfaces.byId["file-management"]?.affordance === "filebrowser" &&
+    surfaces.byId["focus-and-selection"]?.affordance === "focus" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -442,6 +443,7 @@ const results = [];
     "printing",
     "going-full-screen",
     "file-management",
+    "focus-and-selection",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -685,6 +687,30 @@ const results = [];
       text: '<input type="file" />',
     },
   ]);
+  const focusOnly = scanAffordances([
+    {
+      path: "Stage.tsx",
+      text: '<div data-focus-system><button type="button">Item</button></div>',
+    },
+  ]);
+  const cssFocusOnly = scanAffordances([
+    {
+      path: "focus.css",
+      text: "button:focus { outline: 2px solid blue; }",
+    },
+  ]);
+  const tabindexOnly = scanAffordances([
+    {
+      path: "Tab.tsx",
+      text: '<button type="button" tabindex="0">Go</button>',
+    },
+  ]);
+  const autofocusOnly = scanAffordances([
+    {
+      path: "Auto.tsx",
+      text: '<input autofocus />',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -725,6 +751,7 @@ const results = [];
       !passList.includes("print") &&
       !passList.includes("fullscreen") &&
       !passList.includes("filebrowser") &&
+      !passList.includes("focus") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -754,6 +781,7 @@ const results = [];
       !formOnly.includes("print") &&
       !formOnly.includes("fullscreen") &&
       !formOnly.includes("filebrowser") &&
+      !formOnly.includes("focus") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -823,6 +851,12 @@ const results = [];
       !fileBrowserOnly.includes("list") &&
       !fileInputOnly.includes("filebrowser") &&
       !pageOnly.includes("filebrowser") &&
+      focusOnly.includes("focus") &&
+      !cssFocusOnly.includes("focus") &&
+      !tabindexOnly.includes("focus") &&
+      !autofocusOnly.includes("focus") &&
+      !formOnly.includes("focus") &&
+      !pageOnly.includes("focus") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1245,6 +1279,14 @@ const results = [];
         "explicit-save-required",
       ) &&
       catalog.byId["file-management"]?.pack === "patterns-file-management.md" &&
+      catalog.byId["focus-and-selection"]?.dontCoverageComplete === true &&
+      (catalog.byId["focus-and-selection"]?.dontHeuristicIds || []).includes(
+        "steal-focus",
+      ) &&
+      (catalog.byId["focus-and-selection"]?.dontHeuristicIds || []).includes(
+        "custom-focus-effect",
+      ) &&
+      catalog.byId["focus-and-selection"]?.pack === "inputs-focus-and-selection.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1356,6 +1398,7 @@ const results = [];
       "printing",
       "going-full-screen",
       "file-management",
+      "focus-and-selection",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -5577,6 +5620,130 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-file-management-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-focus-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-focus-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-focus-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-focus-system data-steal-focus data-custom-focus-effect>
+      <button type="button">Item</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-focus-system>
+      <button type="button" ref={(el) => el && el.focus()}>Item</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passFocus: passStatus.topics["focus-and-selection"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixFocus: fixStatus.topics["focus-and-selection"]?.state === "applied",
+      systemKept:
+        /data-focus-system/.test(fixed) && />\s*Item\s*</.test(fixed),
+      markersGone:
+        !/data-steal-focus/.test(fixed) &&
+        !/data-custom-focus-effect/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdFocus: holdStatus.topics["focus-and-selection"]?.state === "pending",
+      holdStillFocus: /data-focus-system/.test(held) && /\.focus\s*\(/.test(held),
+      holdNotInvented: !/blur\(/.test(held) && !/autoFocus/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passFocus: passStatus.topics["focus-and-selection"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixFocus: fixStatus.topics["focus-and-selection"]?.state,
+      holdFocus: holdStatus.topics["focus-and-selection"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-focus-and-selection-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -296,3 +296,7 @@ heuristics:
     match: extensions shown by default
   - id: explicit-save-required
     match: explicit action to save
+  - id: steal-focus
+    match: without people's interaction
+  - id: custom-focus-effect
+    match: custom focus effects
