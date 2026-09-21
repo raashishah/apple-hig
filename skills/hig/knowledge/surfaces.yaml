@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -428,6 +428,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/snippets
     gate: always
     covers: [snippets]
+  - id: generative-ai
+    pack: tech-generative-ai.md
+    affordance: genai
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/generative-ai
+    gate: always
+    covers: [generative-ai]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

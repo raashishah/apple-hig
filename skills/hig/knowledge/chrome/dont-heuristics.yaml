@@ -370,3 +370,7 @@ heuristics:
     match: Spoken dialogue text
   - id: snippet-too-tall
     match: taller than 400
+  - id: ai-as-human
+    match: presented as human-authored
+  - id: genai-no-revert
+    match: no way to dismiss, revert, or retry

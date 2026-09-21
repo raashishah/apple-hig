@@ -79,6 +79,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["home-screen-quick-actions"]?.affordance === "quickaction" &&
     surfaces.byId["live-viewing-apps"]?.affordance === "liveviewing" &&
     surfaces.byId.snippets?.affordance === "snippet" &&
+    surfaces.byId["generative-ai"]?.affordance === "genai" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -468,6 +469,7 @@ const results = [];
     "home-screen-quick-actions",
     "live-viewing-apps",
     "snippets",
+    "generative-ai",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -819,6 +821,18 @@ const results = [];
       text: "struct OpenApp: AppShortcut {}",
     },
   ]);
+  const genaiOnly = scanAffordances([
+    {
+      path: "Draft.tsx",
+      text: '<div data-generative><button type="button">Draft</button></div>',
+    },
+  ]);
+  const aiCopyOnly = scanAffordances([
+    {
+      path: "Marketing.tsx",
+      text: "<p>Our AI writes drafts for you.</p>",
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -1015,6 +1029,12 @@ const results = [];
       !formOnly.includes("snippet") &&
       !passList.includes("snippet") &&
       !pageOnly.includes("snippet") &&
+      genaiOnly.includes("genai") &&
+      !textareaOnly.includes("genai") &&
+      !aiCopyOnly.includes("genai") &&
+      !formOnly.includes("genai") &&
+      !passList.includes("genai") &&
+      !pageOnly.includes("genai") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1577,6 +1597,15 @@ const results = [];
         "snippet-too-tall",
       ) &&
       catalog.byId.snippets?.pack === "system-snippets.md" &&
+      catalog.byId["generative-ai"]?.dontCoverageComplete === true &&
+      (catalog.byId["generative-ai"]?.dontHeuristicIds || []).includes(
+        "ai-as-human",
+      ) &&
+      (catalog.byId["generative-ai"]?.dontHeuristicIds || []).includes(
+        "genai-no-revert",
+      ) &&
+      catalog.byId["generative-ai"]?.pack === "tech-generative-ai.md" &&
+      catalog.byId["generative-ai"]?.appliesWhen === "always" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1700,6 +1729,7 @@ const results = [];
       "home-screen-quick-actions",
       "live-viewing-apps",
       "snippets",
+      "generative-ai",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -7660,6 +7690,140 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-snippets-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-genai-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-genai-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-genai-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-generative data-ai-as-human data-genai-no-revert>
+      <button type="button">Draft</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-generative>
+      As a human editor I rewrote this paragraph.
+      <button type="button">Draft</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passGenai:
+        passStatus.topics["generative-ai"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixGenai: fixStatus.topics["generative-ai"]?.state === "applied",
+      systemKept:
+        /data-generative/.test(fixed) && />\s*Draft\s*</.test(fixed),
+      markersGone:
+        !/data-ai-as-human/.test(fixed) &&
+        !/data-genai-no-revert/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdGenai: holdStatus.topics["generative-ai"]?.state === "pending",
+      holdStillHuman:
+        /data-generative/.test(held) &&
+        /As a human editor/.test(held) &&
+        /Draft/.test(held),
+      holdNotInvented:
+        !/AI-generated/.test(held) &&
+        !/generated by AI/i.test(held) &&
+        !/LanguageModelSession/.test(held) &&
+        !/Undo/.test(held) &&
+        !/Retry/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passGenai: passStatus.topics["generative-ai"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixGenai: fixStatus.topics["generative-ai"]?.state,
+      holdGenai: holdStatus.topics["generative-ai"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-generative-ai-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

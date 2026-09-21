@@ -589,6 +589,7 @@ function affordanceMissing(need, present) {
     case "quickaction":
     case "liveviewing":
     case "snippet":
+    case "genai":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1003,6 +1004,16 @@ export function scanAffordances(files) {
     /\bInteractiveSnippetIntent\b/.test(blob)
   ) {
     found.push("snippet");
+  }
+  if (
+    /\bdata-generative\b/.test(blob) ||
+    /\bdata-genai\b/.test(blob) ||
+    /\bLanguageModelSession\b/.test(blob) ||
+    /\bSystemLanguageModel\b/.test(blob) ||
+    /\bImagePlaygroundView\b/.test(blob) ||
+    /\bFoundationModels\b/.test(blob)
+  ) {
+    found.push("genai");
   }
   return found;
 }
