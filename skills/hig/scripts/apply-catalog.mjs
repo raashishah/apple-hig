@@ -2,8 +2,8 @@
 /**
  * After chrome P0, account packed catalog topics whose chromeIds are clean
  * and pack Don't code spans that the host does not hit (or that we can strip).
- * Required-surface, search, writing, privacy, branding, icons, images, app-icons, inclusion, optional-widget, chrome-backed layout/materials/lists/forms/navigation, host-widget menus/pickers/progress/controls, and system-chrome widgets/Live Activities/status bars/Control Center prose Don'ts apply when every Don't has a scanner.
- * Packs with Don't bullets account through Don't scanners, not clean chromeIds.
+ * Required-surface, search, writing, privacy, branding, icons, images, app-icons, inclusion, optional-widget, chrome-backed layout/materials/lists/forms/navigation, host-widget menus/pickers/progress/controls, system-chrome widgets/Live Activities/status bars/Control Center, and RTL prose Don'ts apply when every Don't has a scanner.
+ * Packs with Don't bullets account through Don't scanners, not clean chromeIds. Token apply skips packs whose Don't coverage is complete.
  * Optional widget affordances skip when the host has no matching control.
  * Does not inject a kit or rewrite the host typeface.
  * Usage: node apply-catalog.mjs [--cwd host] [--write]
@@ -76,7 +76,9 @@ function pendingDontTokens(topics, catalog) {
   const seen = new Set();
   for (const [id, row] of Object.entries(topics)) {
     if (row.state !== "pending") continue;
-    for (const tok of catalog.byId[id]?.dontTokens || []) {
+    const topic = catalog.byId[id];
+    if (topic?.dontCoverageComplete) continue;
+    for (const tok of topic?.dontTokens || []) {
       if (seen.has(tok)) continue;
       seen.add(tok);
       tokens.push(tok);

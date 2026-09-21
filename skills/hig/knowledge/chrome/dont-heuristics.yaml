@@ -192,3 +192,11 @@ heuristics:
     match: A Control Center toggle with only one symbol for on and off
   - id: locked-control-unredacted
     match: Show personal title/value on a locked-device control
+  - id: scalex-whole-window
+    match: scaleX(-1) on the whole window
+  - id: physical-margin-padding
+    match: Hard-coded margin-left / padding-right
+  - id: back-chevron-always-left
+    match: back chevron always points left
+  - id: dir-auto-on-locale-root
+    match: dir=auto on html or the locale root

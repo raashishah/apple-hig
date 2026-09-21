@@ -73,6 +73,7 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 21. Chrome-backed Don't heuristics (layout, materials, lists, forms, navigation). **Landed on this PR.** Account those topics when every Don't is checkable. Packs with Don't bullets account through Don't scanners, not clean chromeIds. Do not fake-account design-principles. Visual any-host Apple-ness is still unproven.
 22. Host-widget Don't heuristics (menus, pickers, progress, controls). **Landed on this PR.** Account those topics when every Don't is checkable and the host has that widget. Skip-unless affordance stays. Do not invent a missing menu, picker, field, or route. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 23. System-chrome Don't heuristics (widgets, Live Activities, status bars, Control Center). **Landed on this PR.** Account those topics when every Don't is checkable and the host has that capability. Capability skip stays. Do not invent a widget kit. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+24. RTL Don't heuristics (right-to-left). **Landed on this PR.** Account that topic when every Don't is checkable. Whole-window `scaleX(-1)`, physical `margin-left`/`padding-right`, `dir="auto"` on the locale root, and `chevron.left` back controls rewrite to logical. Unicode `←` back chevrons stay pending. Do not invent a mirrored design file. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
 ## Non-goals
 

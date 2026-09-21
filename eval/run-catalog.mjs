@@ -755,6 +755,16 @@ const results = [];
       (catalog.byId.controls?.dontHeuristicIds || []).includes(
         "settings-row-as-control-center",
       ) &&
+      catalog.byId["right-to-left"]?.dontCoverageComplete === true &&
+      (catalog.byId["right-to-left"]?.dontHeuristicIds || []).includes(
+        "scalex-whole-window",
+      ) &&
+      (catalog.byId["right-to-left"]?.dontHeuristicIds || []).includes(
+        "back-chevron-always-left",
+      ) &&
+      (catalog.byId["right-to-left"]?.dontHeuristicIds || []).includes(
+        "dir-auto-on-locale-root",
+      ) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
       (catalog.byId.searching?.dontHeuristicIds || []).includes("hide-only-path-behind-search") &&
@@ -2619,6 +2629,142 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-system-chrome-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rtl-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rtl-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rtl-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "rtl-mirror.css"),
+      "html { transform: scaleX(-1); margin-left: 12px; padding-right: 8px; }\n",
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "root.html"),
+      `<html dir="auto" lang="en"><body>App</body></html>\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Back.tsx"),
+      `export function Back() {
+  return <button type="button" aria-label="Back" className="chevron-left">Prev</button>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Back.swift"),
+      `struct BackButton: View {
+  var body: some View {
+    Button("Back") { Image(systemName: "chevron.left") }
+  }
+}
+`,
+    );
+    const origHold = `export function Back() {
+  return <button type="button" aria-label="Back">←</button>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "Back.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const css = fs.readFileSync(path.join(fixDir, "rtl-mirror.css"), "utf8");
+    const root = fs.readFileSync(path.join(fixDir, "root.html"), "utf8");
+    const back = fs.readFileSync(path.join(fixDir, "Back.tsx"), "utf8");
+    const backSwift = fs.readFileSync(path.join(fixDir, "Back.swift"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "Back.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passRtl: passStatus.topics["right-to-left"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixRtl: fixStatus.topics["right-to-left"]?.state === "applied",
+      scaleGone: !/scaleX\(\s*-1\s*\)/.test(css),
+      marginLogical: /margin-inline-start\s*:/.test(css) && !/margin-left\s*:/.test(css),
+      paddingLogical: /padding-inline-end\s*:/.test(css) && !/padding-right\s*:/.test(css),
+      dirLtr: /dir="ltr"/.test(root) && !/dir=["']auto["']/.test(root),
+      chevronStart: /chevron-start/.test(back) && !/chevron-left/.test(back),
+      chevronBackward: /chevron\.backward/.test(backSwift) && !/chevron\.left/.test(backSwift),
+      holdUnchanged: held === origHold,
+      holdRtl: holdStatus.topics["right-to-left"]?.state === "pending",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passRtl: passStatus.topics["right-to-left"]?.state,
+      fixRtl: fixStatus.topics["right-to-left"]?.state,
+      holdRtl: holdStatus.topics["right-to-left"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      css,
+      root,
+      back,
+      backSwift,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-rtl-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
