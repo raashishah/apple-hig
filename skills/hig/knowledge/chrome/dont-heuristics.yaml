@@ -428,3 +428,7 @@ heuristics:
     match: Duplicate home settings
   - id: hk-cover-camera
     match: Camera images blocked
+  - id: wk-distract
+    match: Distracting chrome
+  - id: wk-brief-session
+    match: Extremely brief

@@ -601,6 +601,7 @@ function affordanceMissing(need, present) {
     case "iap":
     case "map":
     case "homekit":
+    case "workout":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1116,6 +1117,14 @@ export function scanAffordances(files) {
     /\bHMHome\b/.test(blob)
   ) {
     found.push("homekit");
+  }
+  if (
+    /\bdata-workout\b/.test(blob) ||
+    /\bHKWorkoutSession\b/.test(blob) ||
+    /\bHKWorkout\b/.test(blob) ||
+    /\bWorkoutKit\b/.test(blob)
+  ) {
+    found.push("workout");
   }
   return found;
 }

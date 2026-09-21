@@ -5557,6 +5557,67 @@ function applyHkCoverCamera(text) {
   return text.replace(/\s*data-hk-cover-camera(?:="[^"]*")?/g, "");
 }
 
+function hasWorkout(text) {
+  return (
+    /\bdata-workout\b/.test(text) ||
+    /\bHKWorkoutSession\b/.test(text) ||
+    /\bHKWorkout\b/.test(text) ||
+    /\bWorkoutKit\b/.test(text)
+  );
+}
+
+function hasWkDistractCopy(text) {
+  return (
+    (/distract/i.test(text) && /workout/i.test(text)) ||
+    (/list of workouts/i.test(text) && /active/i.test(text))
+  );
+}
+
+function hasWkBriefCopy(text) {
+  return (
+    /extremely brief/i.test(text) ||
+    (/few seconds/i.test(text) && /session/i.test(text))
+  );
+}
+
+function scanWkDistract(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wk-distract/.test(f.text)) {
+      out.push(hit(f.path, "distracting chrome during an active workout"));
+      continue;
+    }
+    if (!hasWorkout(f.text)) continue;
+    if (hasWkDistractCopy(f.text)) {
+      out.push(hit(f.path, "distracting chrome during an active workout"));
+    }
+  }
+  return out;
+}
+
+function applyWkDistract(text) {
+  return text.replace(/\s*data-wk-distract(?:="[^"]*")?/g, "");
+}
+
+function scanWkBriefSession(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wk-brief-session/.test(f.text)) {
+      out.push(hit(f.path, "extremely brief workout sessions recorded"));
+      continue;
+    }
+    if (!hasWorkout(f.text)) continue;
+    if (hasWkBriefCopy(f.text)) {
+      out.push(hit(f.path, "extremely brief workout sessions recorded"));
+    }
+  }
+  return out;
+}
+
+function applyWkBriefSession(text) {
+  return text.replace(/\s*data-wk-brief-session(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -6000,6 +6061,10 @@ function scanHeuristic(id, files) {
       return scanHkDupSettings(files);
     case "hk-cover-camera":
       return scanHkCoverCamera(files);
+    case "wk-distract":
+      return scanWkDistract(files);
+    case "wk-brief-session":
+      return scanWkBriefSession(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -6436,6 +6501,10 @@ function applyHeuristic(id, file) {
       return applyHkDupSettings(file.text);
     case "hk-cover-camera":
       return applyHkCoverCamera(file.text);
+    case "wk-distract":
+      return applyWkDistract(file.text);
+    case "wk-brief-session":
+      return applyWkBriefSession(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
