@@ -3676,6 +3676,51 @@ function applySafariReplicaWebView(text) {
   return text.replace(/\s*data-safari-replica(?:="[^"]*")?/g, "");
 }
 
+function hasActivityView(text) {
+  return (
+    /\bdata-activity-view\b/.test(text) ||
+    /\bdata-share-sheet\b/.test(text) ||
+    /\bUIActivityViewController\b/.test(text) ||
+    /\bShareLink\s*\(/.test(text) ||
+    /\.shareSheet\s*\(/.test(text)
+  );
+}
+
+function scanDuplicateActivityActions(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-duplicate-activity-action/.test(f.text)) {
+      out.push(hit(f.path, "duplicate versions of common actions"));
+      continue;
+    }
+    if (!hasActivityView(f.text)) continue;
+    const prints = (f.text.match(/>Print</g) || []).length;
+    const copies = (f.text.match(/>Copy</g) || []).length;
+    if (prints >= 2 || copies >= 2) {
+      out.push(hit(f.path, "duplicate versions of common actions"));
+    }
+  }
+  return out;
+}
+
+function applyDuplicateActivityActions(text) {
+  return text.replace(/\s*data-duplicate-activity-action(?:="[^"]*")?/g, "");
+}
+
+function scanAlternativeActivityReveal(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-alt-activity-reveal/.test(f.text)) {
+      out.push(hit(f.path, "alternative control that presents the activity view"));
+    }
+  }
+  return out;
+}
+
+function applyAlternativeActivityReveal(text) {
+  return text.replace(/\s*data-alt-activity-reveal(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -3967,6 +4012,10 @@ function scanHeuristic(id, files) {
       return scanMissingWebViewBackForward(files);
     case "safari-replica-web-view":
       return scanSafariReplicaWebView(files);
+    case "duplicate-activity-actions":
+      return scanDuplicateActivityActions(files);
+    case "alternative-activity-reveal":
+      return scanAlternativeActivityReveal(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4251,6 +4300,10 @@ function applyHeuristic(id, file) {
       return applyMissingWebViewBackForward(file.text);
     case "safari-replica-web-view":
       return applySafariReplicaWebView(file.text);
+    case "duplicate-activity-actions":
+      return applyDuplicateActivityActions(file.text);
+    case "alternative-activity-reveal":
+      return applyAlternativeActivityReveal(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

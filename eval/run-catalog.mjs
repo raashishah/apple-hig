@@ -62,6 +62,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["edit-menus"]?.affordance === "editmenu" &&
     surfaces.byId["offering-help"]?.affordance === "help" &&
     surfaces.byId["web-views"]?.affordance === "webview" &&
+    surfaces.byId["activity-views"]?.affordance === "activityview" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -434,6 +435,7 @@ const results = [];
     "edit-menus",
     "offering-help",
     "web-views",
+    "activity-views",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -629,6 +631,18 @@ const results = [];
       text: "<html><body><p>Hello</p></body></html>",
     },
   ]);
+  const activityOnly = scanAffordances([
+    {
+      path: "Share.tsx",
+      text: '<div data-activity-view><button type="button">Print</button></div>',
+    },
+  ]);
+  const shareWordOnly = scanAffordances([
+    {
+      path: "Nav.tsx",
+      text: '<a href="/share">Share</a>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -665,6 +679,7 @@ const results = [];
       !passList.includes("editmenu") &&
       !passList.includes("help") &&
       !passList.includes("webview") &&
+      !passList.includes("activityview") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -690,6 +705,7 @@ const results = [];
       !formOnly.includes("editmenu") &&
       !formOnly.includes("help") &&
       !formOnly.includes("webview") &&
+      !formOnly.includes("activityview") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -742,6 +758,9 @@ const results = [];
       iframeOnly.includes("webview") &&
       !pageOnly.includes("webview") &&
       !helpOnly.includes("webview") &&
+      activityOnly.includes("activityview") &&
+      !shareWordOnly.includes("activityview") &&
+      !pageOnly.includes("activityview") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1126,6 +1145,14 @@ const results = [];
         "safari-replica-web-view",
       ) &&
       catalog.byId["web-views"]?.pack === "components-web-views.md" &&
+      catalog.byId["activity-views"]?.dontCoverageComplete === true &&
+      (catalog.byId["activity-views"]?.dontHeuristicIds || []).includes(
+        "duplicate-activity-actions",
+      ) &&
+      (catalog.byId["activity-views"]?.dontHeuristicIds || []).includes(
+        "alternative-activity-reveal",
+      ) &&
+      catalog.byId["activity-views"]?.pack === "components-activity-views.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1233,6 +1260,7 @@ const results = [];
       "edit-menus",
       "offering-help",
       "web-views",
+      "activity-views",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -4946,6 +4974,135 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-web-views-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-activity-views-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-activity-views-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-activity-views-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div
+      data-activity-view
+      data-duplicate-activity-action
+      data-alt-activity-reveal
+    >
+      <button type="button">Share</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-activity-view>
+      <button type="button">Print</button>
+      <button type="button">Print</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passActivity: passStatus.topics["activity-views"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixActivity: fixStatus.topics["activity-views"]?.state === "applied",
+      activityKept: /data-activity-view/.test(fixed),
+      markersGone:
+        !/data-duplicate-activity-action/.test(fixed) &&
+        !/data-alt-activity-reveal/.test(fixed),
+      shareKept: />Share</.test(fixed),
+      holdUnchanged: held === origHold,
+      holdActivity: holdStatus.topics["activity-views"]?.state === "pending",
+      holdStillPrint: (held.match(/>Print</g) || []).length >= 2,
+      holdNotInvented: !/Print Transaction/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passActivity: passStatus.topics["activity-views"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixActivity: fixStatus.topics["activity-views"]?.state,
+      holdActivity: holdStatus.topics["activity-views"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-activity-views-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

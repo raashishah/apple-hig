@@ -571,6 +571,7 @@ function affordanceMissing(need, present) {
     case "editmenu":
     case "help":
     case "webview":
+    case "activityview":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -838,6 +839,15 @@ export function scanAffordances(files) {
     /\bWebView\s*\(/.test(blob)
   ) {
     found.push("webview");
+  }
+  if (
+    /\bdata-activity-view\b/.test(blob) ||
+    /\bdata-share-sheet\b/.test(blob) ||
+    /\bUIActivityViewController\b/.test(blob) ||
+    /\bShareLink\s*\(/.test(blob) ||
+    /\.shareSheet\s*\(/.test(blob)
+  ) {
+    found.push("activityview");
   }
   return found;
 }

@@ -320,6 +320,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "editmenu",
     "help",
     "webview",
+    "activityview",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

@@ -276,3 +276,7 @@ heuristics:
     match: forward and back
   - id: safari-replica-web-view
     match: replicates safari
+  - id: duplicate-activity-actions
+    match: duplicate versions of common actions
+  - id: alternative-activity-reveal
+    match: instead of share
