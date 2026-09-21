@@ -311,6 +311,7 @@ const results = [];
     surfaces.byId["activity-views"]?.affordance === "activityview" &&
     surfaces.byId.printing?.affordance === "print" &&
     surfaces.byId["going-full-screen"]?.affordance === "fullscreen" &&
+    surfaces.byId["file-management"]?.affordance === "filebrowser" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

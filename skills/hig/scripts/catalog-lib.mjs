@@ -574,6 +574,7 @@ function affordanceMissing(need, present) {
     case "activityview":
     case "print":
     case "fullscreen":
+    case "filebrowser":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -867,6 +868,17 @@ export function scanAffordances(files) {
     /\bfullScreenCover\s*\(/.test(blob)
   ) {
     found.push("fullscreen");
+  }
+  if (
+    /\bdata-file-browser\b/.test(blob) ||
+    /\bdata-document-browser\b/.test(blob) ||
+    /\bUIDocumentBrowserViewController\b/.test(blob) ||
+    /\bUIDocumentPickerViewController\b/.test(blob) ||
+    /\bDocumentGroup\s*\(/.test(blob) ||
+    /\bNSOpenPanel\b/.test(blob) ||
+    /\bNSSavePanel\b/.test(blob)
+  ) {
+    found.push("filebrowser");
   }
   return found;
 }

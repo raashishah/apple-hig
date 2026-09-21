@@ -290,3 +290,9 @@ heuristics:
     match: ends automatically
   - id: custom-window-mode-menu
     match: custom menu of window modes
+  - id: custom-file-toolbar
+    match: custom top toolbar
+  - id: extensions-shown-by-default
+    match: extensions shown by default
+  - id: explicit-save-required
+    match: explicit action to save

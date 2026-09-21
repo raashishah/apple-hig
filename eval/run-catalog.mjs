@@ -65,6 +65,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["activity-views"]?.affordance === "activityview" &&
     surfaces.byId.printing?.affordance === "print" &&
     surfaces.byId["going-full-screen"]?.affordance === "fullscreen" &&
+    surfaces.byId["file-management"]?.affordance === "filebrowser" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -440,6 +441,7 @@ const results = [];
     "activity-views",
     "printing",
     "going-full-screen",
+    "file-management",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -671,6 +673,18 @@ const results = [];
       text: '<video src="clip.mp4" controls></video>',
     },
   ]);
+  const fileBrowserOnly = scanAffordances([
+    {
+      path: "Docs.tsx",
+      text: '<div data-file-browser><button type="button">Open</button></div>',
+    },
+  ]);
+  const fileInputOnly = scanAffordances([
+    {
+      path: "Upload.tsx",
+      text: '<input type="file" />',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -710,6 +724,7 @@ const results = [];
       !passList.includes("activityview") &&
       !passList.includes("print") &&
       !passList.includes("fullscreen") &&
+      !passList.includes("filebrowser") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -738,6 +753,7 @@ const results = [];
       !formOnly.includes("activityview") &&
       !formOnly.includes("print") &&
       !formOnly.includes("fullscreen") &&
+      !formOnly.includes("filebrowser") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -803,6 +819,10 @@ const results = [];
       !vhOnly.includes("fullscreen") &&
       !videoOnly.includes("fullscreen") &&
       !pageOnly.includes("fullscreen") &&
+      fileBrowserOnly.includes("filebrowser") &&
+      !fileBrowserOnly.includes("list") &&
+      !fileInputOnly.includes("filebrowser") &&
+      !pageOnly.includes("filebrowser") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1214,6 +1234,17 @@ const results = [];
         "custom-window-mode-menu",
       ) &&
       catalog.byId["going-full-screen"]?.pack === "components-going-full-screen.md" &&
+      catalog.byId["file-management"]?.dontCoverageComplete === true &&
+      (catalog.byId["file-management"]?.dontHeuristicIds || []).includes(
+        "custom-file-toolbar",
+      ) &&
+      (catalog.byId["file-management"]?.dontHeuristicIds || []).includes(
+        "extensions-shown-by-default",
+      ) &&
+      (catalog.byId["file-management"]?.dontHeuristicIds || []).includes(
+        "explicit-save-required",
+      ) &&
+      catalog.byId["file-management"]?.pack === "patterns-file-management.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1324,6 +1355,7 @@ const results = [];
       "activity-views",
       "printing",
       "going-full-screen",
+      "file-management",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -5415,6 +5447,136 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-going-full-screen-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-files-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-files-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-files-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div
+      data-file-browser
+      data-custom-file-toolbar
+      data-show-extensions-by-default
+      data-explicit-save-required
+    >
+      <button type="button">Open</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-file-browser data-no-autosave>
+      <button type="button">Save</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passFilesTopic: passStatus.topics["file-management"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixFiles: fixStatus.topics["file-management"]?.state === "applied",
+      browserKept:
+        /data-file-browser/.test(fixed) && />\s*Open\s*</.test(fixed),
+      markersGone:
+        !/data-custom-file-toolbar/.test(fixed) &&
+        !/data-show-extensions-by-default/.test(fixed) &&
+        !/data-explicit-save-required/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdFiles: holdStatus.topics["file-management"]?.state === "pending",
+      holdStillSave: />\s*Save\s*</.test(held) && /data-no-autosave/.test(held),
+      holdNotInvented: !/autosave/i.test(held.replace("data-no-autosave", "")),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passFilesTopic: passStatus.topics["file-management"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixFiles: fixStatus.topics["file-management"]?.state,
+      holdFiles: holdStatus.topics["file-management"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-file-management-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
