@@ -53,6 +53,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.popovers?.affordance === "popover" &&
     surfaces.byId.collections?.affordance === "collection" &&
     surfaces.byId["page-controls"]?.affordance === "pagecontrol" &&
+    surfaces.byId.labels?.affordance === "label" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -415,6 +416,7 @@ const results = [];
     "popovers",
     "collections",
     "page-controls",
+    "labels",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -517,6 +519,12 @@ const results = [];
   const numberedPages = scanAffordances([
     { path: "Pages.tsx", text: '<nav><a href="?p=1">1</a><a href="?p=2">2</a></nav>' },
   ]);
+  const ariaOnly = scanAffordances([
+    { path: "Icon.tsx", text: '<button type="button" aria-label="Save" />' },
+  ]);
+  const staticLabel = scanAffordances([
+    { path: "Caption.tsx", text: "<p data-label>Inbox</p>" },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -544,6 +552,7 @@ const results = [];
       !passList.includes("popover") &&
       !passList.includes("collection") &&
       !passList.includes("pagecontrol") &&
+      !passList.includes("label") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -560,6 +569,7 @@ const results = [];
       !formOnly.includes("settings") &&
       !formOnly.includes("undo") &&
       !formOnly.includes("slider") &&
+      !formOnly.includes("label") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -579,6 +589,8 @@ const results = [];
       pageControlOnly.includes("pagecontrol") &&
       !pageControlOnly.includes("progress") &&
       !numberedPages.includes("pagecontrol") &&
+      !ariaOnly.includes("label") &&
+      staticLabel.includes("label") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -879,6 +891,13 @@ const results = [];
         "colored-page-indicators",
       ) &&
       catalog.byId["page-controls"]?.pack === "components-page-controls.md" &&
+      catalog.byId.labels?.dontCoverageComplete === true &&
+      (catalog.byId.labels?.dontHeuristicIds || []).includes("editable-label") &&
+      (catalog.byId.labels?.dontHeuristicIds || []).includes("long-label-as-text-view") &&
+      (catalog.byId.labels?.dontHeuristicIds || []).includes(
+        "unselectable-useful-label",
+      ) &&
+      catalog.byId.labels?.pack === "components-labels.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -976,6 +995,7 @@ const results = [];
       "popovers",
       "collections",
       "page-controls",
+      "labels",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -3511,6 +3531,139 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-page-controls-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-labels-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-labels-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-labels-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <p
+      data-label
+      data-editable-label
+      data-long-label
+      data-unselectable-label
+    >
+      Inbox
+    </p>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <p data-label contenteditable="true">
+      Name
+    </p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const formKept = /<label>/.test(
+      fs.readFileSync(path.join(passDir, "CohesiveForm.tsx"), "utf8"),
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passLabels: passStatus.topics.labels?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      formKept,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixLabels: fixStatus.topics.labels?.state === "applied",
+      labelKept: /data-label/.test(fixed),
+      markersGone:
+        !/data-editable-label/.test(fixed) &&
+        !/data-long-label/.test(fixed) &&
+        !/data-unselectable-label/.test(fixed),
+      notTextField: !/<input\b/i.test(fixed) && !/<textarea\b/i.test(fixed),
+      holdUnchanged: held === origHold,
+      holdLabels: holdStatus.topics.labels?.state === "pending",
+      holdNotField: !/<input\b/i.test(held) && !/<textarea\b/i.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passLabels: passStatus.topics.labels?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixLabels: fixStatus.topics.labels?.state,
+      holdLabels: holdStatus.topics.labels?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-labels-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -269,6 +269,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/page-controls
     gate: always
     covers: [page-controls]
+  - id: labels
+    pack: components-labels.md
+    affordance: label
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/labels
+    gate: always
+    covers: [labels]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

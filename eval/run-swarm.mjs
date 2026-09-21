@@ -299,6 +299,7 @@ const results = [];
     surfaces.byId.popovers?.affordance === "popover" &&
     surfaces.byId.collections?.affordance === "collection" &&
     surfaces.byId["page-controls"]?.affordance === "pagecontrol" &&
+    surfaces.byId.labels?.affordance === "label" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

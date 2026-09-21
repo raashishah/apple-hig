@@ -562,6 +562,7 @@ function affordanceMissing(need, present) {
     case "popover":
     case "collection":
     case "pagecontrol":
+    case "label":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -756,6 +757,13 @@ export function scanAffordances(files) {
     /\.tabViewStyle\(\s*\.page/.test(blob)
   ) {
     found.push("pagecontrol");
+  }
+  if (
+    /\bdata-label\b/.test(blob) ||
+    /\bUILabel\b/.test(blob) ||
+    /\bLabel\s*\(/.test(blob)
+  ) {
+    found.push("label");
   }
   return found;
 }

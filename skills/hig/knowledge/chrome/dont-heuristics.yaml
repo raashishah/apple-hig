@@ -226,3 +226,9 @@ heuristics:
     match: more than two different
   - id: colored-page-indicators
     match: colored page-control indicator
+  - id: editable-label
+    match: text people need to edit
+  - id: long-label-as-text-view
+    match: large amount of text
+  - id: unselectable-useful-label
+    match: useful label text people can t copy
