@@ -73,6 +73,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["ratings-and-reviews"]?.affordance === "reviewprompt" &&
     surfaces.byId.windows?.affordance === "appwindow" &&
     surfaces.byId["playing-video"]?.affordance === "videoplayer" &&
+    surfaces.byId["playing-haptics"]?.affordance === "haptic" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -456,6 +457,7 @@ const results = [];
     "ratings-and-reviews",
     "windows",
     "playing-video",
+    "playing-haptics",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1473,6 +1475,17 @@ const results = [];
         "video-loading-splash",
       ) &&
       catalog.byId["playing-video"]?.pack === "patterns-playing-video.md" &&
+      catalog.byId["playing-haptics"]?.dontCoverageComplete === true &&
+      (catalog.byId["playing-haptics"]?.dontHeuristicIds || []).includes(
+        "haptic-wrong-meaning",
+      ) &&
+      (catalog.byId["playing-haptics"]?.dontHeuristicIds || []).includes(
+        "overused-haptics",
+      ) &&
+      (catalog.byId["playing-haptics"]?.dontHeuristicIds || []).includes(
+        "haptic-not-optional",
+      ) &&
+      catalog.byId["playing-haptics"]?.pack === "patterns-playing-haptics.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1590,6 +1603,7 @@ const results = [];
       "ratings-and-reviews",
       "windows",
       "playing-video",
+      "playing-haptics",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -6746,6 +6760,138 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-playing-video-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-playing-haptics-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-playing-haptics-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-playing-haptics-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-haptic data-haptic-wrong-meaning data-haptic-overuse data-haptic-required>
+      <button type="button">Tap</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-haptic>
+      <button type="button" onClick={() => navigator.vibrate(10)}>Tap</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passHaptic: passStatus.topics["playing-haptics"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixHaptic: fixStatus.topics["playing-haptics"]?.state === "applied",
+      systemKept:
+        /data-haptic/.test(fixed) && />\s*Tap\s*</.test(fixed),
+      markersGone:
+        !/data-haptic-wrong-meaning/.test(fixed) &&
+        !/data-haptic-overuse/.test(fixed) &&
+        !/data-haptic-required/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdHaptic: holdStatus.topics["playing-haptics"]?.state === "pending",
+      holdStillVibrate:
+        /data-haptic/.test(held) &&
+        /navigator\.vibrate\s*\(\s*10\s*\)/.test(held) &&
+        />\s*Tap\s*</.test(held),
+      holdNotInvented:
+        !/CHHapticEngine/.test(held) &&
+        !/mute/i.test(held) &&
+        !/Haptics off/i.test(held) &&
+        !/UIFeedbackGenerator/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passHaptic: passStatus.topics["playing-haptics"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixHaptic: fixStatus.topics["playing-haptics"]?.state,
+      holdHaptic: holdStatus.topics["playing-haptics"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-playing-haptics-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

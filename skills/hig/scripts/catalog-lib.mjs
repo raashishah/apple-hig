@@ -583,6 +583,7 @@ function affordanceMissing(need, present) {
     case "reviewprompt":
     case "appwindow":
     case "videoplayer":
+    case "haptic":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -945,6 +946,18 @@ export function scanAffordances(files) {
     /<video\b/i.test(blob)
   ) {
     found.push("videoplayer");
+  }
+  if (
+    /\bdata-haptic\b/.test(blob) ||
+    /\bUIFeedbackGenerator\b/.test(blob) ||
+    /\bUIImpactFeedbackGenerator\b/.test(blob) ||
+    /\bUINotificationFeedbackGenerator\b/.test(blob) ||
+    /\bUISelectionFeedbackGenerator\b/.test(blob) ||
+    /\bCHHapticEngine\b/.test(blob) ||
+    /\bnavigator\.vibrate\s*\(/.test(blob) ||
+    /\bsensoryFeedback\b/.test(blob)
+  ) {
+    found.push("haptic");
   }
   return found;
 }

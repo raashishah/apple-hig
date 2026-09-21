@@ -340,3 +340,9 @@ heuristics:
     match: resume playback
   - id: video-loading-splash
     match: loading or splash screen before video
+  - id: haptic-wrong-meaning
+    match: mean something else
+  - id: overused-haptics
+    match: Overused haptics
+  - id: haptic-not-optional
+    match: no way to turn them off
