@@ -4,9 +4,11 @@
  */
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkChrome } from "../skills/hig/scripts/check-chrome.mjs";
+import { applyChrome, MECHANICAL_CHROME_IDS } from "../skills/hig/scripts/apply-chrome.mjs";
+import { checkChrome, walkSource } from "../skills/hig/scripts/check-chrome.mjs";
 import { loadContext } from "../skills/hig/scripts/load-context.mjs";
 import { loadChromeGrammar } from "../skills/hig/scripts/load-chrome-grammar.mjs";
 
@@ -80,6 +82,87 @@ const results = [];
     webFound: [...webIds],
     nativeFound: [...nativeIds],
   });
+}
+
+function copyFixture(src) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-chrome-"));
+  fs.cpSync(src, dir, { recursive: true });
+  return dir;
+}
+
+function kitOrFont(text) {
+  return /SF Pro|San Francisco|-apple-system|shadcn|@radix-ui/i.test(text);
+}
+
+{
+  const webSrc = path.join(__dirname, "fixtures", "chrome-antipatterns-web");
+  const swiftSrc = path.join(__dirname, "fixtures", "chrome-antipatterns-swift");
+  const webDir = copyFixture(webSrc);
+  const swiftDir = copyFixture(swiftSrc);
+  try {
+    const web = applyChrome({ cwd: webDir, skillRoot, register: "product", write: true });
+    const native = applyChrome({ cwd: swiftDir, skillRoot, register: "product", write: true });
+    const webCtx = loadContext(webDir);
+    const nativeCtx = loadContext(swiftDir);
+    const webText = walkSource(webDir)
+      .map((f) => f.text)
+      .join("\n");
+    const nativeText = walkSource(swiftDir)
+      .map((f) => f.text)
+      .join("\n");
+    const origWeb = fs.readFileSync(path.join(webSrc, "index.html"), "utf8");
+    const origSwift = fs.readFileSync(path.join(swiftSrc, "Sources", "App", "ViewMode.swift"), "utf8");
+    const origUnchanged =
+      />\s*List\s*</.test(origWeb) && /Text\(\s*"List"\s*\)/.test(origSwift);
+    const mechanicalGone = (report) =>
+      MECHANICAL_CHROME_IDS.every((id) => !report.after.fails.some((f) => f.id === id));
+    const kindsDiffer =
+      webCtx.stack.supported &&
+      nativeCtx.stack.supported &&
+      webCtx.stack.kind !== nativeCtx.stack.kind;
+    results.push({
+      case: "mechanical-apply-clears-dual-stack-p0",
+      ok:
+        web.before.pass === false &&
+        native.before.pass === false &&
+        web.after.pass === true &&
+        native.after.pass === true &&
+        web.applied.length > 0 &&
+        native.applied.length > 0 &&
+        mechanicalGone(web) &&
+        mechanicalGone(native) &&
+        kindsDiffer &&
+        !kitOrFont(webText) &&
+        !kitOrFont(nativeText) &&
+        origUnchanged,
+      webKind: webCtx.stack.kind,
+      nativeKind: nativeCtx.stack.kind,
+      webApplied: web.applied,
+      nativeApplied: native.applied,
+      origUnchanged,
+    });
+  } finally {
+    fs.rmSync(webDir, { recursive: true, force: true });
+    fs.rmSync(swiftDir, { recursive: true, force: true });
+  }
+}
+
+{
+  const src = path.join(__dirname, "fixtures", "chrome-pass");
+  const dir = copyFixture(src);
+  try {
+    const report = applyChrome({ cwd: dir, skillRoot, register: "product", write: true });
+    results.push({
+      case: "mechanical-apply-noop-on-pass",
+      ok:
+        report.before.pass === true &&
+        report.after.pass === true &&
+        report.applied.length === 0,
+      applied: report.applied,
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 const failed = results.filter((r) => !r.ok);

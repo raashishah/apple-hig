@@ -45,6 +45,8 @@ const results = [];
     skillText.includes("Chrome grammar") &&
     designText.includes("load-chrome-grammar") &&
     designText.includes("check-chrome.mjs") &&
+    designText.includes("apply-chrome") &&
+    skillText.includes("apply-chrome") &&
     designText.includes("plan-catalog") &&
     designText.includes("parallel");
   results.push({

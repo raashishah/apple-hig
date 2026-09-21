@@ -2,6 +2,8 @@
 
 Load with `grammar.yaml`. For each `structure:<id>` FAIL, apply the host snippet. Do not invent a kit. Do not paraphrase the FAIL away.
 
+`scripts/apply-chrome.mjs` applies the dual-stack P0 recipes it owns (`chrome.view-mode.icons`, `chrome.bars.system-materials`). Use this file for every other ID.
+
 ## chrome.view-mode.icons
 
 Replace visible `List` / `Grid` text with icon-only segments. Keep the accessible name.

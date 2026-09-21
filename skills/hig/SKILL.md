@@ -52,8 +52,8 @@ Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
 1. Do not rewrite host fonts or invent a face. Colors and typeface stay with the product.
 2. Wave 0 **apply** only `requiredIds` (12) from `knowledge/surfaces.yaml` (the apply SSOT) until `check-chrome.mjs` is P0-clean. Optional/gated surfaces may audit.
 3. After each apply round, run `node <skill>/scripts/check-chrome.mjs` on the host and consume the JSON.
-4. If `pass` is false (any P0 in `fails[]`), you may **not** print `HIG_CHROME` PASS. Fix from `knowledge/chrome/recipes.md` and re-check.
-5. Apply using `knowledge/chrome/recipes.md` in the host language. No kit injection.
+4. If `pass` is false (any P0 in `fails[]`), you may **not** print `HIG_CHROME` PASS. Run `node <skill>/scripts/apply-chrome.mjs --cwd <host> --write`, then re-check. Remaining P0s: fix from `knowledge/chrome/recipes.md` and re-check.
+5. Apply using `scripts/apply-chrome.mjs` for the mechanical dual-stack P0s it owns, then `knowledge/chrome/recipes.md` in the host language. No kit injection. Do not rewrite host fonts.
 6. When chrome P0 is clean, run `node <skill>/scripts/plan-catalog.mjs --chromePass true --write` and apply remaining `waveSurfaceIds` (applicable catalog topics that have a pack/`surfaceId`). Skip unmatched Watch/TV/Vision. Topics with no pack are `skipped-no-pack`, not injected. Pattern surfaces with an `affordance` (`list` / `form` / `overlay` / `chrome`) are `skipped-no-affordance` when the host has no matching widget — do not invent one. Collection/card grids count as `list`. A 12-surface lease is not catalog done.
 7. Catalog done when chrome P0 is clean and `remaining` is 0 (every catalog row is terminal). Chrome retries use a 3-round cap; catalog waves continue until accounted or the user stops. Persist `.hig/catalog-status.yaml`. Print `HIG_CATALOG` from the plan JSON (loaded/applicable/remaining are data, not a frozen pass integer).
 
@@ -92,7 +92,7 @@ Compose from `knowledge/packs/`:
 - `foundations-layout`, `foundations-spacing`, `foundations-materials`, `foundations-color`, `foundations-typography`, `foundations-motion`, `foundations-accessibility`
 - `patterns-navigation`, `patterns-lists-detail`, `patterns-forms`, `patterns-sheets`, `patterns-controls`
 
-Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Recipes: `knowledge/chrome/recipes.md`. Rubric: `knowledge/chrome/review-rubric.md`. Scanner: `scripts/check-chrome.mjs`.
+Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Recipes: `knowledge/chrome/recipes.md`. Rubric: `knowledge/chrome/review-rubric.md`. Scanner: `scripts/check-chrome.mjs`. Mechanical dual-stack P0s: `scripts/apply-chrome.mjs`.
 
 Deep Apple URLs remain in `knowledge/registry.yaml` for rare leaves. That file is not the apply catalog.
 

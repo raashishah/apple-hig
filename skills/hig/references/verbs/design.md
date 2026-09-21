@@ -54,7 +54,7 @@ unless the user explicitly asked to restyle spacing.
 
 1. Run `node <skill>/scripts/load-chrome-grammar.mjs` and read `knowledge/chrome/grammar.yaml`.
 2. Read `knowledge/chrome/review-rubric.md` archetype → gates table and `knowledge/chrome/recipes.md`.
-3. For each screen, bind applicable rule IDs (list-browser, form-page, app-shell). Implement so those rules would **PASS**. Soft pack prose is not enough. Use recipes, then `check-chrome.mjs`.
+3. For each screen, bind applicable rule IDs (list-browser, form-page, app-shell). Implement so those rules would **PASS**. Soft pack prose is not enough. Run `apply-chrome.mjs`, then remaining recipes, then `check-chrome.mjs`.
 
 ### 3. Swarm (same run, parallel)
 
@@ -91,7 +91,7 @@ Launch apply Tasks (`references/agents/apply-worker.md`) only for surfaces with 
 
 **Wave 0 apply leases = `requiredIds` only.** Optional `gate: always` surfaces may audit; do not apply them until `check-chrome.mjs` reports `pass: true` for required chrome.
 
-Parent agent applies any leftover files that could not be leased. Then run `node <skill>/scripts/check-chrome.mjs`. If P0 remains, next chrome round re-applies only failed surfaces using `recipes.md`.
+Parent agent applies any leftover files that could not be leased. Then run `node <skill>/scripts/check-chrome.mjs`. If P0 remains, run `node <skill>/scripts/apply-chrome.mjs --cwd <host> --write` and re-check. Remaining P0s: next chrome round re-applies only failed surfaces using `recipes.md`.
 
 #### 3c-2. Catalog waves (after chrome P0)
 
