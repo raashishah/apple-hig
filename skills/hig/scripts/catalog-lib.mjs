@@ -303,6 +303,7 @@ export function deriveTopicRule(topic, { surfaces, grammar, packCache, heuristic
     passWhen = `${passWhen} Host typeface stays. Do not inject a kit.`;
   }
   const derived = { ...topic, failWhen, passWhen };
+  if (surface?.gate) derived.appliesWhen = surface.gate;
   if (surface?.id) derived.surfaceId = surface.id;
   if (surface?.pack) derived.pack = surface.pack;
   if (chromeIds.length) derived.chromeIds = [...new Set(chromeIds)];
