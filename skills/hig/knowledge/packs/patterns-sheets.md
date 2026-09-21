@@ -25,6 +25,12 @@
 - Custom opaque fills on page chrome, or decorative glass on content cards.
 - Nested modal stacks without a strong reason.
 
+## Chrome gates
+
+- `chrome.materials.fashion-glass`
+
+Recipes: `knowledge/chrome/recipes.md`.
+
 ## Interaction states
 
 Overlay: enter / idle / exit. Actions: default / pressed / disabled.

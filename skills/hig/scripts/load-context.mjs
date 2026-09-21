@@ -15,6 +15,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+const APPLE_SYSTEM_FONT =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif';
+
 const DESIGN_NAMES = ["DESIGN.md", "Design.md", "design.md"];
 const AGENTS_NAMES = ["AGENTS.md", "Agents.md", "agents.md"];
 const FALLBACK_DIRS = [".agents/context", "docs"];
@@ -397,6 +400,30 @@ function brandMutationLocked(designText) {
   );
 }
 
+function designFontsSpecified(designText) {
+  if (!designText) return false;
+  const m = designText.match(/^[ \t]*-?[ \t]*fonts:\s*(.+)$/im);
+  if (!m) return false;
+  const v = m[1].trim();
+  if (!v || v === "[]" || v === "|" || /^unspecified$/i.test(v)) return false;
+  if (/\[TODO\]/i.test(v)) return false;
+  return v.length >= 3;
+}
+
+function appleTypeDefault(register, designText) {
+  if (register === "brand") {
+    return { apply: false, reason: "brand_register", fontFamily: null };
+  }
+  if (designFontsSpecified(designText)) {
+    return { apply: false, reason: "design_fonts_locked", fontFamily: null };
+  }
+  return {
+    apply: true,
+    reason: "product_unspecified_fonts",
+    fontFamily: APPLE_SYSTEM_FONT,
+  };
+}
+
 function snapshotBrandCss(cwd) {
   const candidates = [
     "src/styles.css",
@@ -736,6 +763,7 @@ function loadContext(cwd = process.cwd()) {
   const register = readRegister(design, cwd);
   const brandSnapshot = snapshotBrandCss(cwd);
   const brandVeto = brandMutationLocked(design) || register === "brand";
+  const typeDefault = appleTypeDefault(register, design);
 
   const higDir = path.join(cwd, ".hig");
   const progressPath = path.join(higDir, "progress.yaml");
@@ -772,6 +800,7 @@ function loadContext(cwd = process.cwd()) {
     `register=${register}`,
     `design=${designStatus}`,
     `brand_veto=${brandVeto ? "on" : "off"}`,
+    `type_default=${typeDefault.apply ? "apple" : "locked"}`,
     `mutation=${mutation}`,
     `review_adapt_mutation=${reviewAdaptMutation}`,
   ].join(" ");
@@ -796,6 +825,7 @@ function loadContext(cwd = process.cwd()) {
     brandSnapshot,
     brandVeto,
     brandMutationLocked: brandMutationLocked(design),
+    appleTypeDefault: typeDefault,
     requirementPaths: findRequirementPaths(cwd),
     routesHint: listRoutesHint(cwd),
     hasProgress,
@@ -813,7 +843,7 @@ function loadContext(cwd = process.cwd()) {
   };
 }
 
-export { loadContext };
+export { loadContext, APPLE_SYSTEM_FONT, appleTypeDefault };
 
 const isMain =
   process.argv[1] &&

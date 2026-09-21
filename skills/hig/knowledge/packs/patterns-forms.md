@@ -35,6 +35,12 @@ Load `knowledge/chrome/grammar.yaml`. Cite in review; implement to PASS:
 
 - `chrome.form.column-cohesion` — title, actions, and fields share one column width
 
+Recipes: `knowledge/chrome/recipes.md`.
+
+## Recipe (any model)
+
+One shared column for title, Save/Cancel, and fields. Persistent labels. One primary button. Phone controls ~44px.
+
 ## Checklist
 
 - [ ] Labels present

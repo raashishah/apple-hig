@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1 — 2026-09-21
+
+Any-model Apple chrome: mechanical FAIL gate + recipes. Jev is not a runtime dependency.
+
+- `scripts/check-chrome.mjs` scans host UI source; P0 hits block `HIG_CHROME` PASS
+- Recipes SSOT: `knowledge/chrome/recipes.md` (apply workers must use these, not paraphrase)
+- New FAIL IDs: `chrome.materials.fashion-glass`, `chrome.layout.card-grid-home`, `chrome.ive.nested-cards`
+- Round 1 apply = 12 required surfaces; optional packs wait until core P0 is clean
+- Product + unspecified fonts → Apple system type stack (`type_default=apple`)
+- `chrome.list-browser.filter-density` is a required grammar class
+- Eval: `eval/run-check-chrome.mjs` plus pass/fail fixtures
+
 ## Unreleased
 
 - Live HIG URL hygiene: Toolbars (not `/navigation` or `/navigation-bars`), Gestures, Entering data; ban `/app-intents`

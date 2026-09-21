@@ -25,13 +25,15 @@ Encoded check: `node <skill>/scripts/load-context.mjs` → `reviewAdaptMutation`
 ## Steps
 
 1. Load `knowledge/chrome/grammar.yaml` + `knowledge/chrome/review-rubric.md` (via `load-chrome-grammar.mjs`)
-2. Load relevant pattern packs (Chrome gates = IDs only)
-3. Inspect UI at **768** and **375** (web default). Native: compact and regular width. Use host stack from preflight — do not assume React.
-4. Optional Task with `references/agents/gold-qa-reviewer.md`
-5. Match chrome `failWhen` lines. Emit `structure:<rule.id>` for each hit
-6. Report P0 / P1 / P2 tagged `brand` or `structure`
-7. Do **not** auto-fix unless user asks **and** veto allows
-8. Brand veto never suppresses structure chrome FAILs — report only, no spacing edits
+2. Run `node <skill>/scripts/check-chrome.mjs` and treat each P0 `fails[].id` as `structure:<id>`
+3. Load relevant pattern packs (Chrome gates = IDs only). Recipes: `knowledge/chrome/recipes.md`
+4. Inspect UI at **768** and **375** (web default). Native: compact and regular width. Use host stack from preflight — do not assume React.
+5. Optional Task with `references/agents/gold-qa-reviewer.md`
+6. Match chrome `failWhen` lines. Emit `structure:<rule.id>` for each hit (include checker hits)
+7. Report P0 / P1 / P2 tagged `brand` or `structure`
+8. Do **not** auto-fix unless user asks **and** veto allows
+9. Brand veto never suppresses structure chrome FAILs — report only, no spacing edits
+10. Verdict **FAIL** if checker `pass` is false, even when screenshots are missing. Do not invent PASS.
 
 ## Output shape
 

@@ -15,9 +15,12 @@ const defaultSkillRoot = path.resolve(__dirname, "..");
 const REQUIRED_CLASSES = [
   "chrome.view-mode.icons",
   "chrome.list-browser.toolbar-budget",
+  "chrome.list-browser.filter-density",
   "chrome.form.column-cohesion",
   "chrome.sidebar.collapsible",
   "chrome.bars.system-materials",
+  "chrome.materials.fashion-glass",
+  "chrome.layout.card-grid-home",
 ];
 
 function parseSimpleYaml(text) {

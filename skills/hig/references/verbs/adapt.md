@@ -25,8 +25,9 @@ If `reviewAdaptMutation=blocked` OR `register=brand` OR `brandMutationLocked=tru
 2. Identify packs (navigation, lists/detail, forms, sheets, materials, controls) for the **host stack** from preflight (SwiftUI/UIKit/web — not a React kit)
 3. Diff surface vs pack checklists **and** chrome `failWhen` lines
 4. Apply smallest structural fixes (chrome hierarchy, list/detail ownership, chrome grammar PASSes)
-5. Preserve brand tokens and copy
-6. Re-check with `/hig review` on the same surface (report-only; expect `structure:chrome.*` clear)
+5. Preserve brand tokens and copy (unless `appleTypeDefault.apply` and this surface owns type tokens)
+6. Run `node <skill>/scripts/check-chrome.mjs`. P0 hits mean not done.
+7. Re-check with `/hig review` on the same surface (report-only; expect `structure:chrome.*` clear)
 
 ## Rules
 

@@ -423,6 +423,34 @@ const results = [];
   });
 }
 
+{
+  const j = run("fixtures/sparse");
+  const ok =
+    j.appleTypeDefault?.apply === true &&
+    typeof j.appleTypeDefault?.fontFamily === "string" &&
+    /apple-system/.test(j.appleTypeDefault.fontFamily) &&
+    /type_default=apple/.test(j.HIG_PREFLIGHT);
+  results.push({
+    case: "sparse-apple-type-default",
+    ok,
+    preflight: j.HIG_PREFLIGHT,
+    appleTypeDefault: j.appleTypeDefault,
+  });
+}
+
+{
+  const j = run("fixtures/brand-veto");
+  const ok =
+    j.appleTypeDefault?.apply === false &&
+    /type_default=locked/.test(j.HIG_PREFLIGHT);
+  results.push({
+    case: "brand-veto-locks-type-default",
+    ok,
+    preflight: j.HIG_PREFLIGHT,
+    appleTypeDefault: j.appleTypeDefault,
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

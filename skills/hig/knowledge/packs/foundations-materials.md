@@ -55,6 +55,13 @@ Overlays: enter/exit opacity + translate with reduced-motion fallbacks. Chrome m
 ## Chrome gates
 
 - `chrome.bars.system-materials`
+- `chrome.materials.fashion-glass`
+
+Recipes: `knowledge/chrome/recipes.md`.
+
+## Recipe (any model)
+
+No painted opaque nav fill. No `backdrop-filter` on `header` / `nav` / content cards. Overlay glass only, with solid `@supports` fallback.
 
 ## Craft checklist
 

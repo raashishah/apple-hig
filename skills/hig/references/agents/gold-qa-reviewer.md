@@ -11,7 +11,7 @@ At each requested viewport (default 768 and 375), judge whether the screen feels
 - Hierarchy: one clear primary focus
 - Chrome: system bars/sheets/controls; no custom opaque bar fill; do not FAIL missing opaque nav
 - Split list columns: browser density, not landing pages
-- **Chrome grammar** (`knowledge/chrome/grammar.yaml`): cite `structure:<rule.id>` when `failWhen` matches (view-mode icons, toolbar budget, filter density, form column cohesion, sidebar collapse, system bar materials)
+- **Chrome grammar** (`knowledge/chrome/grammar.yaml` + `scripts/check-chrome.mjs`): cite `structure:<rule.id>` when `failWhen` matches or the scanner reports it (view-mode icons, toolbar budget, filter density, form column cohesion, sidebar collapse, system bar materials, fashion-glass, card-grid home, nested cards). Missing screenshots do not imply PASS if the scanner FAILs.
 - Hit targets and spacing rhythm
 - Brand tokens respected (accent/font from DESIGN.md)
 - No AI-slop tells that fight HIG (generic card grids, glass everywhere, purple gradients)

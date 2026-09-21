@@ -3,7 +3,7 @@
 Source of truth: [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/).  
 This file does **not** invent a house style. It restates Apple’s principles so `/hig` can apply them in whatever stack the host project already uses.
 
-Brand (hue, typeface, voice) stays in the host `DESIGN.md`. Structure, density, materials, motion, and controls come from Apple.
+Brand (hue, typeface, voice) stays in the host `DESIGN.md` when that file locks them. Structure, density, materials, motion, and controls come from Apple. If register is product and fonts are unspecified, use the Apple system type stack (`-apple-system` / SF Pro Text) so an undesigned host still reads as Apple chrome — not a random display face.
 
 ## Aesthetic (Jony Ive)
 
@@ -52,11 +52,11 @@ Never copy another patient app’s brand (no Pink Depot rose, no personal-site f
 2. **Apple docs, not patient apps.** Cite Apple HIG URLs. Chrome FAIL IDs live in `knowledge/chrome/grammar.yaml`.
 3. **Materials.** Standard system bars, sheets, and controls. No custom opaque fills that fight glass. Respect Reduce Transparency / Increase Contrast. Do not teach `UIDesignRequiresCompatibility` as a design.
 4. **List columns are browsers.** Compact toolbar, dense rows. Detail owns the large title and primary page chrome.
-5. **Chrome grammar.** Solved FAILs have stable IDs. Review cites `structure:<id>`. Soft prose is not a substitute.
+5. **Chrome grammar.** Solved FAILs have stable IDs. Review cites `structure:<id>`. Soft prose is not a substitute. `scripts/check-chrome.mjs` is the mechanical P0 gate.
 6. **Kit lock.** Use the host’s components and tokens. Do not add a parallel CSS/React system.
 7. **Brand veto.** `register: brand` or `brand_mutation_veto: spacing_and_touch_targets_locked` → review/adapt do not change spacing or touch-target metrics. Structure FAILs still report.
 8. **Marketing ≠ app chrome.** Never force tab bars or split views onto `register: brand` landings.
 
 ## Done test
 
-The UI feels Apple-native when an outside reviewer can say: hierarchy is obvious, chrome is quiet, controls are familiar, motion is restrained, and nothing extra remains. Until then, `/hig` keeps swarming.
+The UI feels Apple-native when an outside reviewer can say: hierarchy is obvious, chrome is quiet, controls are familiar, motion is restrained, and nothing extra remains — **and** `check-chrome.mjs` reports no P0. Until then, `/hig` keeps swarming.

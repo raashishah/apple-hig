@@ -45,6 +45,16 @@ Before mutating project files:
 HIG_PREFLIGHT: <value from JSON>
 ```
 
+## Any-model contract (non-optional)
+
+Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
+
+1. If `appleTypeDefault.apply` is true, write that `fontFamily` into `DESIGN.md` and the host type tokens. Do not invent a display face. Brand register leaves fonts alone.
+2. Round 1 **apply** only `requiredIds` (12). Optional surfaces may audit; do not lease-apply them until required P0 chrome is clean.
+3. After each apply round, run `node <skill>/scripts/check-chrome.mjs` on the host and consume the JSON.
+4. If `pass` is false (any P0 in `fails[]`), you may **not** print `HIG_CHROME` PASS. Fix from `knowledge/chrome/recipes.md` and re-check.
+5. Apply using pack **Recipe** / `recipes.md` snippets in the host language. No kit injection.
+
 ## Shared laws
 
 1. **Brand vs structure.** Colors, fonts, voice = `DESIGN.md` only. Packs = structure, density, materials, interaction.
@@ -56,6 +66,8 @@ HIG_PREFLIGHT: <value from JSON>
 7. **Brand veto.** On `register: brand`, or when `brand_mutation_veto: spacing_and_touch_targets_locked` is in `DESIGN.md`, `/hig review` and `/hig adapt` must **not** change spacing or touch-target CSS. Report only. Structure chrome FAILs still report.
 8. **Marketing ≠ app chrome.** Never force bottom tab bars or NavigationSplitView onto `register: brand` landings.
 9. **Stack fidelity.** SwiftUI/UIKit stay on system containers. Web stays CSS. Detected stack from preflight wins. `native-apple` wins over incidental help/webview HTML; LaunchScreen.storyboard / leftover `.xib` do not make a SwiftUI app UIKit. Load `hig-react` only when `stack.kind` is React/Next.
+10. **Mechanical chrome.** `check-chrome.mjs` is the P0 gate. Pack prose cannot override a FAIL ID.
+11. **Apple type default.** Product + unspecified fonts → system Apple stack (`-apple-system` / SF Pro Text). Locked `DESIGN.md` fonts win.
 
 ## Default pipeline (swarm)
 
@@ -80,6 +92,6 @@ Compose from `knowledge/packs/`:
 - `foundations-layout`, `foundations-spacing`, `foundations-materials`, `foundations-color`, `foundations-typography`, `foundations-motion`, `foundations-accessibility`
 - `patterns-navigation`, `patterns-lists-detail`, `patterns-forms`, `patterns-sheets`, `patterns-controls`
 
-Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Rubric: `knowledge/chrome/review-rubric.md`.
+Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Recipes: `knowledge/chrome/recipes.md`. Rubric: `knowledge/chrome/review-rubric.md`. Scanner: `scripts/check-chrome.mjs`.
 
 Deep Apple URLs remain in `knowledge/registry.yaml` for rare leaves.

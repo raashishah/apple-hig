@@ -1,6 +1,6 @@
 # Apple HIG (`/hig`)
 
-> Early feedback release (**v0.4.0**). Works. Not finished — [send feedback](docs/PROOF.md#how-to-send-feedback).
+> Early feedback release (**v0.4.1**). Works. Not finished — [send feedback](docs/PROOF.md#how-to-send-feedback).
 
 A Cursor **skill repo** that applies [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) **1:1** to whatever project you run `/hig` in — SwiftUI, UIKit, web/CSS, React/Next, or similar. It fans out surface agents and applies rules **in place** until the UI feels Apple-native. Your brand colors and fonts stay in the project; `/hig` teaches **structure** (navigation, lists, forms, sheets, materials), not a parallel component library.
 
@@ -47,6 +47,11 @@ Chrome grammar ([`skills/hig/knowledge/chrome/grammar.yaml`](skills/hig/knowledg
 | `chrome.form.column-cohesion` | Title, actions, and fields share one column width |
 | `chrome.sidebar.collapsible` | Product md+ sidebar can collapse |
 | `chrome.bars.system-materials` | No custom opaque bar fills fighting system materials / Liquid Glass |
+| `chrome.materials.fashion-glass` | Blur/glass only on overlays, never nav or content cards |
+| `chrome.layout.card-grid-home` | Product home is a workspace, not a marketing card grid |
+| `chrome.ive.nested-cards` | Lists/forms are not wrapped in extra card panels |
+
+Models cannot skip this: after apply, `/hig` runs `node skills/hig/scripts/check-chrome.mjs` on the host. P0 hits block PASS. Recipes: [`skills/hig/knowledge/chrome/recipes.md`](skills/hig/knowledge/chrome/recipes.md). Product apps with no font lock get an Apple system type stack (`-apple-system` / SF Pro Text).
 
 Principles (materials arbitration, list-as-browser, brand veto): [`skills/hig/knowledge/canon.md`](skills/hig/knowledge/canon.md). Optional React mapping (no kit): [`skills/hig-react/SKILL.md`](skills/hig-react/SKILL.md).
 

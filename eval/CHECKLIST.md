@@ -24,13 +24,16 @@ From repo root:
 node eval/run-dry.mjs
 node eval/run-chrome-grammar.mjs
 node eval/run-swarm.mjs
+node eval/run-check-chrome.mjs
 ```
 
 - [x] Sparse fixture: preflight passes; mutation open
 - [x] Unsupported fixture: `mutation=unsupported` with one-line stop
 - [x] Brand veto: `register: brand` → `review_adapt_mutation=blocked`
-- [x] Grammar loads; four required chrome rule IDs present
-- [x] `fixtures/chrome-antipatterns` covers view-mode, toolbar budget, filter density, form column, sidebar
+- [x] Grammar loads; required chrome rule IDs present (including filter-density + fashion-glass + card-grid-home)
+- [x] `fixtures/chrome-antipatterns` covers view-mode, toolbar budget, filter density, form column, sidebar, opaque bars, fashion glass, card-grid home, nested cards
+- [x] `check-chrome.mjs` detects those antipatterns and stays quiet on `fixtures/chrome-pass`
+- [x] Product + no DESIGN fonts → `type_default=apple`; brand register locks type
 - [x] Packs + SKILL/review/design wire chrome grammar IDs
 - [x] All chrome rules are `mutationClass: structure` (brand veto does not hide them)
 

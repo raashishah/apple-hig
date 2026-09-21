@@ -13,6 +13,7 @@ Default `/hig` path. Whole-app Apple HIG from existing requirements, then a **pa
 - If unsupported: print `stopLine` and stop
 - Read `knowledge/canon.md`
 - Run `node <skill>/scripts/load-surfaces.mjs` and `node <skill>/scripts/load-chrome-grammar.mjs`
+- After apply: `node <skill>/scripts/check-chrome.mjs` (JSON). P0 `fails` block PASS.
 
 ## Steps
 
@@ -26,9 +27,11 @@ From context JSON + repo skim (do not invent other products’ brands):
 - `platform` (`phone` / `ipad` / `desktop` / `games` / `unknown`) and `capabilities` (tokens such as `healthkit`)
 - Infer `register`: `product` for tools/scoreboards/shells; `brand` for marketing/portfolio/landing
 
-Ask **zero** interview questions when enough signal exists. If brand tokens are missing, pick calm defaults from existing assets or a neutral system stack and record them in `DESIGN.md`.
+Ask **zero** interview questions when enough signal exists. If brand hue is missing, keep a quiet system accent. If fonts are unspecified and register is product, use `appleTypeDefault.fontFamily` (Apple system stack). Do not pick a decorative display face.
 
 If `stack.family` is `web` and kind is React/Next, load optional sibling `hig-react` for DOM/ARIA mapping only.
+
+If preflight `appleTypeDefault.apply` is true, set `DESIGN.md` fonts (and host `font-family` / type tokens) to `appleTypeDefault.fontFamily`. Do not pick a decorative web face. On `register: brand`, skip.
 
 ### 2. Write design package
 
@@ -51,8 +54,8 @@ unless the user explicitly asked to restyle spacing.
 ### 2.5 Chrome grammar (non-optional for product chrome)
 
 1. Run `node <skill>/scripts/load-chrome-grammar.mjs` and read `knowledge/chrome/grammar.yaml`.
-2. Read `knowledge/chrome/review-rubric.md` archetype → gates table.
-3. For each screen, bind applicable rule IDs (list-browser, form-page, app-shell). Implement so those rules would **PASS**. Soft pack prose is not enough.
+2. Read `knowledge/chrome/review-rubric.md` archetype → gates table and `knowledge/chrome/recipes.md`.
+3. For each screen, bind applicable rule IDs (list-browser, form-page, app-shell). Implement so those rules would **PASS**. Soft pack prose is not enough. Use recipes, then `check-chrome.mjs`.
 
 ### 3. Swarm (same run, parallel)
 
@@ -81,13 +84,15 @@ If the Task tool is unavailable, simulate the swarm yourself: still write one au
 
 #### 3b. Synthesize
 
-Follow `references/agents/synthesizer.md`. Write `.hig/swarm/plan.yaml` with **exclusive file leases**. Drop decoration. Ive test: if a proposal is not simpler/clearer, drop it.
+Follow `references/agents/synthesizer.md`. Write `.hig/swarm/plan.yaml` with **exclusive file leases**. Drop decoration. Ive test: if a proposal is not simpler/clearer, drop it. Round 1 leases = required surfaces only.
 
 #### 3c. Apply (parallel, leased)
 
 Launch apply Tasks (`references/agents/apply-worker.md`) only for surfaces with files. They edit **leased paths only**, in the host language (SwiftUI/UIKit/CSS/existing components). No React kit injection.
 
-Parent agent applies any leftover files that could not be leased.
+**Round 1 apply leases = `requiredIds` only.** Optional `gate: always` surfaces may audit; do not apply them until `check-chrome.mjs` reports `pass: true` for required chrome.
+
+Parent agent applies any leftover files that could not be leased. Then run `node <skill>/scripts/check-chrome.mjs`. If P0 remains, next round re-applies only failed surfaces using `recipes.md`.
 
 #### 3d. Gold QA
 
@@ -96,7 +101,7 @@ Follow `references/verbs/review.md` (report). Use `references/agents/gold-qa-rev
 - Web: **768** and **375**
 - Native: compact and regular width
 
-If P0 `structure:chrome.*` remains and mutation is open, start the next round (re-audit failed surfaces only).
+If P0 `structure:chrome.*` remains (review **or** `check-chrome.mjs`) and mutation is open, start the next round (re-audit failed surfaces only).
 
 ### 4. Evidence
 
@@ -112,6 +117,7 @@ If P0 `structure:chrome.*` remains and mutation is open, start the next round (r
 - Do not force app chrome onto brand landings.
 - Do not copy Warehouse / personal-site tokens into this project.
 - Do not add a parallel component library.
+- Do not emit `HIG_CHROME` PASS while `check-chrome.mjs` reports P0 fails.
 
 ## Done shape
 

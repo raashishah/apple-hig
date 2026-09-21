@@ -36,6 +36,14 @@ Load `knowledge/chrome/grammar.yaml`. Cite these IDs in review; implement to PAS
 - `chrome.view-mode.icons`
 - `chrome.list-browser.toolbar-budget`
 - `chrome.list-browser.filter-density`
+- `chrome.layout.card-grid-home`
+- `chrome.ive.nested-cards`
+
+Recipes: `knowledge/chrome/recipes.md`.
+
+## Recipe (any model)
+
+View-mode: icon-only segments + `aria-label`. List pane: one toolbar band; rows dominate. Filters: icon/chip, not a sentence checkbox. Product home: list/split/tabs — not a card grid. Do not wrap the list in a card.
 
 ## Checklist
 

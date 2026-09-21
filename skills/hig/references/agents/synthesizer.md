@@ -36,3 +36,4 @@ ive:
 - Drop decorative proposals. Keep Apple-cited structural ones.
 - Brand tokens are not leased for rewrite unless `DESIGN.md` this run changed them.
 - On `register: brand`, do not lease spacing/touch-target CSS for mutation.
+- Round 1: lease **required** surfaces only. Optional `gate: always` audits wait until chrome P0 is clean.

@@ -44,6 +44,7 @@ const results = [];
     skillText.includes("swarm") &&
     skillText.includes("Chrome grammar") &&
     designText.includes("load-chrome-grammar") &&
+    designText.includes("check-chrome.mjs") &&
     designText.includes("parallel");
   results.push({
     case: "orchestrator-wired",

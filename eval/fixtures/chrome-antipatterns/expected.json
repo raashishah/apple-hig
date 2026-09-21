@@ -4,5 +4,8 @@
   "chrome.list-browser.filter-density",
   "chrome.form.column-cohesion",
   "chrome.sidebar.collapsible",
-  "chrome.bars.system-materials"
+  "chrome.bars.system-materials",
+  "chrome.materials.fashion-glass",
+  "chrome.layout.card-grid-home",
+  "chrome.ive.nested-cards"
 ]

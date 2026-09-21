@@ -103,6 +103,8 @@ const results = [];
     "patterns-navigation.md",
     "foundations-layout.md",
     "foundations-materials.md",
+    "foundations-spacing.md",
+    "patterns-sheets.md",
   ];
   const packHits = {};
   for (const pack of packs) {
@@ -127,8 +129,10 @@ const results = [];
     extraManifest.length === 0 &&
     Object.values(packHits).every(Boolean) &&
     skillText.includes("Chrome grammar") &&
+    skillText.includes("check-chrome.mjs") &&
     reviewText.includes("structure:chrome") &&
-    designText.includes("load-chrome-grammar");
+    designText.includes("load-chrome-grammar") &&
+    designText.includes("check-chrome.mjs");
 
   results.push({
     case: "chrome-antipattern-coverage",
@@ -140,7 +144,7 @@ const results = [];
     missingManifest,
     extraManifest,
     packHits,
-    skillWired: skillText.includes("Chrome grammar"),
+    skillWired: skillText.includes("Chrome grammar") && skillText.includes("check-chrome.mjs"),
     reviewWired: reviewText.includes("structure:chrome"),
     designWired: designText.includes("load-chrome-grammar"),
   });
