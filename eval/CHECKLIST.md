@@ -41,6 +41,7 @@ node eval/run-catalog.mjs
 - [x] `catalog.yaml` tracks the live Apple article index; lists apply on Vue; complications skip on web; `requiredIds` stay 12
 - [x] Goal loop: wave 0 is `requiredIds`; after chrome P0 remaining packed catalog topics apply; done when `remaining` is 0; brand app-shell catalog rows are `n/a-register`
 - [x] Host-pattern affordance: list/form/overlay/chrome skip when the widget is absent; collection/card grids still count as list
+- [x] Optional widget affordance: menu/picker/progress/search/notification/loading/feedback/onboarding/drag skip when absent; search field keeps searching pending; Search nav link is not search; `<select>` is picker not menu; writing/settings/undo stay pending; remaining is not a frozen integer; `requiredIds` stay 12
 - [x] Same chrome P0 FAIL on a web host and a Swift host; grammar `failWhen` / `passWhen` do not name frameworks
 - [x] Packed catalog topics derive `failWhen` from grammar + pack Do/Don't at load; unpackaged rows stay stubs; no SF Pro / framework names
 - [x] Mechanical apply clears the two dual-stack P0s on tmp copies of the web and Swift antipattern hosts; chrome-pass stays clean; no SF Pro/kit; committed fixtures stay dirty
@@ -48,7 +49,7 @@ node eval/run-catalog.mjs
 - [x] Mechanical apply clears filter-density and sidebar on a tmp copy of `chrome-antipatterns`; after.fails is empty; committed fixtures stay dirty
 - [x] Catalog apply accounts chrome-backed packed topics on tmp chrome-pass (already-compliant) and tmp chrome-antipatterns (applied after chrome fix); pack-only rows stay pending; remaining is not a frozen integer
 - [x] Pack Chrome gates join catalog chromeIds (buttons/text-fields); pack Don't code spans apply on a tmp host (`scaleX(-1)` / `margin-left`); tab-views stays a title stub; no SF Pro/kit
-- [x] Required-surface prose Don'ts (type/color/motion/a11y) scan/apply/account on tmp chrome-pass and tmp antipattern files; a topic accounts only when every Don't has a scanner; writing/menus stay pending; no SF Pro/kit; remaining is not a frozen integer
+- [x] Required-surface prose Don'ts (type/color/motion/a11y) scan/apply/account on tmp chrome-pass and tmp antipattern files; a topic accounts only when every Don't has a scanner; writing stays pending; missing optional widgets are skipped-no-affordance; no SF Pro/kit; remaining is not a frozen integer
 
 ## Swarm / stack (0.4)
 

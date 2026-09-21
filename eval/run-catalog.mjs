@@ -37,7 +37,19 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["lists-split"]?.affordance === "list" &&
     surfaces.byId.sheets?.affordance === "overlay" &&
     surfaces.byId.forms?.affordance === "form" &&
+    surfaces.byId.menus?.affordance === "menu" &&
+    surfaces.byId.pickers?.affordance === "picker" &&
+    surfaces.byId.progress?.affordance === "progress" &&
+    surfaces.byId.search?.affordance === "search" &&
+    surfaces.byId.notifications?.affordance === "notification" &&
+    surfaces.byId.loading?.affordance === "loading" &&
+    surfaces.byId.feedback?.affordance === "feedback" &&
+    surfaces.byId.onboarding?.affordance === "onboarding" &&
+    surfaces.byId["drag-and-drop"]?.affordance === "drag" &&
     !surfaces.byId.layout?.affordance &&
+    !surfaces.byId.writing?.affordance &&
+    !surfaces.byId.settings?.affordance &&
+    !surfaces.byId.undo?.affordance &&
     surfaces.requiredIds.length === 12
   );
 }
@@ -375,6 +387,23 @@ const results = [];
     preflight: { ...base, affordances: [] },
     chromePass: false,
   });
+  const searched = planGoalLoop({
+    catalog,
+    surfaces,
+    preflight: { ...base, affordances: ["search"] },
+    chromePass: true,
+  });
+  const optionalSkip = [
+    "menus",
+    "pickers",
+    "steppers",
+    "progress-indicators",
+    "managing-notifications",
+    "loading",
+    "feedback",
+    "onboarding",
+    "drag-and-drop",
+  ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
     ok:
@@ -382,13 +411,24 @@ const results = [];
       empty.topics.sheets?.state === "skipped-no-affordance" &&
       empty.topics["entering-data"]?.state === "skipped-no-affordance" &&
       empty.topics["tab-bars"]?.state === "skipped-no-affordance" &&
+      optionalSkip.every((id) => empty.topics[id]?.state === "skipped-no-affordance") &&
+      empty.topics.searching?.state === "skipped-no-affordance" &&
+      empty.topics["search-fields"]?.state === "skipped-no-affordance" &&
       empty.topics.layout?.state === "pending" &&
+      empty.topics.writing?.state === "pending" &&
       listed.topics["lists-and-tables"]?.state === "pending" &&
       listed.topics.sheets?.state === "skipped-no-affordance" &&
+      listed.topics.menus?.state === "skipped-no-affordance" &&
+      searched.topics.searching?.state === "pending" &&
+      searched.topics["search-fields"]?.state === "pending" &&
+      searched.topics.menus?.state === "skipped-no-affordance" &&
+      searched.topics["lists-and-tables"]?.state === "skipped-no-affordance" &&
       wave0Empty.waveSurfaceIds.join(",") === surfaces.requiredIds.join(",") &&
       wave0Empty.phase === "chrome",
     emptyLists: empty.topics["lists-and-tables"]?.state,
     listedLists: listed.topics["lists-and-tables"]?.state,
+    emptyMenus: empty.topics.menus?.state,
+    searchedSearch: searched.topics.searching?.state,
     layout: empty.topics.layout?.state,
   });
 }
@@ -403,17 +443,56 @@ const results = [];
   const cardGrid = scanAffordances(
     walkSource(path.join(pluginRoot, "eval", "fixtures", "chrome-antipatterns")),
   );
+  const navLink = scanAffordances([
+    { path: "SystemNav.tsx", text: '<a href="/search">Search</a>' },
+  ]);
+  const nativeSelect = scanAffordances([
+    { path: "Picker.tsx", text: "<select name=\"country\"><option>US</option></select>" },
+  ]);
+  const cssMenu = scanAffordances([
+    { path: "motion-bounce.css", text: ".menu { animation: bounce 400ms; }\n" },
+  ]);
+  const progressOnly = scanAffordances([
+    { path: "Load.tsx", text: '<progress value="0.4" max="1" />' },
+  ]);
+  const loadingOnly = scanAffordances([
+    { path: "Skeleton.tsx", text: '<div data-skeleton aria-busy="true" />' },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
       webCss.includes("chrome") &&
       !webCss.includes("list") &&
+      !webCss.includes("search") &&
+      !webCss.includes("menu") &&
       passList.includes("list") &&
+      passList.includes("search") &&
+      passList.includes("form") &&
+      passList.includes("chrome") &&
+      !passList.includes("menu") &&
+      !passList.includes("picker") &&
+      !passList.includes("progress") &&
+      !passList.includes("overlay") &&
+      !passList.includes("notification") &&
+      !passList.includes("loading") &&
+      !passList.includes("feedback") &&
+      !passList.includes("onboarding") &&
+      !passList.includes("drag") &&
       cardGrid.includes("list") &&
+      !navLink.includes("search") &&
+      nativeSelect.includes("picker") &&
+      !nativeSelect.includes("menu") &&
+      !cssMenu.includes("menu") &&
+      progressOnly.includes("progress") &&
+      !progressOnly.includes("loading") &&
+      loadingOnly.includes("loading") &&
+      !loadingOnly.includes("progress") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
     cardGrid,
+    navLink,
+    nativeSelect,
   });
 }
 
@@ -596,6 +675,109 @@ const results = [];
 {
   let ok = false;
   let detail = {};
+  const skipDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-optional-skip-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-optional-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, skipDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(holdDir, "CommandMenu.tsx"),
+      `export function CommandMenu() {
+  return (
+    <div role="menu">
+      <button type="button" role="menuitem">Share</button>
+    </div>
+  );
+}
+`,
+    );
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const skipReport = applyCatalog({
+      cwd: skipDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const skipStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(skipDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const optionalSkip = [
+      "menus",
+      "pickers",
+      "steppers",
+      "progress-indicators",
+      "managing-notifications",
+      "loading",
+      "feedback",
+      "onboarding",
+      "drag-and-drop",
+    ];
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
+    );
+    const skipText = walkSource(skipDir)
+      .map((f) => f.text)
+      .join("\n");
+    const holdText = walkSource(holdDir)
+      .map((f) => f.text)
+      .join("\n");
+    ok =
+      loadSurfaces(skillRoot).requiredIds.length === 12 &&
+      skipReport.chrome.pass === true &&
+      holdReport.chrome.pass === true &&
+      optionalSkip.every((id) => skipStatus.topics[id]?.state === "skipped-no-affordance") &&
+      skipStatus.topics.searching?.state === "pending" &&
+      skipStatus.topics["search-fields"]?.state === "pending" &&
+      skipStatus.topics.writing?.state === "pending" &&
+      skipStatus.topics.settings?.state === "pending" &&
+      skipStatus.topics["undo-and-redo"]?.state === "pending" &&
+      skipReport.plan.waveTopicIds.includes("searching") &&
+      skipReport.plan.waveTopicIds.includes("writing") &&
+      !skipReport.plan.waveTopicIds.includes("menus") &&
+      skipReport.plan.coverage.remaining > 0 &&
+      holdStatus.topics.menus?.state === "pending" &&
+      holdStatus.topics.pickers?.state === "skipped-no-affordance" &&
+      holdStatus.topics.searching?.state === "pending" &&
+      destUnchanged &&
+      !/SF Pro|-apple-system|shadcn/i.test(skipText) &&
+      !/SF Pro|-apple-system|shadcn/i.test(holdText);
+    detail = {
+      skipRemaining: skipReport.plan.coverage.remaining,
+      holdRemaining: holdReport.plan.coverage.remaining,
+      skipMenus: skipStatus.topics.menus?.state,
+      holdMenus: holdStatus.topics.menus?.state,
+      searching: skipStatus.topics.searching?.state,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(skipDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-optional-widget-affordance", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-catalog-prose-pass-"));
   try {
     const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
@@ -624,7 +806,8 @@ const results = [];
       report.chrome.pass === true &&
       required.every((id) => status.topics[id]?.state === "already-compliant") &&
       status.topics.writing?.state === "pending" &&
-      status.topics.menus?.state === "pending" &&
+      status.topics.menus?.state === "skipped-no-affordance" &&
+      status.topics.searching?.state === "pending" &&
       report.plan.coverage.remaining > 0 &&
       destUnchanged &&
       !/SF Pro|-apple-system|shadcn/i.test(hostText);
@@ -699,7 +882,8 @@ const results = [];
       !/background:\s*#000/.test(chromeCss) &&
       !/#fff/i.test(chromeCss) &&
       status.topics.writing?.state === "pending" &&
-      status.topics.menus?.state === "pending" &&
+      status.topics.menus?.state === "skipped-no-affordance" &&
+      status.topics.searching?.state === "pending" &&
       report.plan.coverage.remaining > 0 &&
       !/SF Pro|-apple-system|shadcn/i.test(hostText);
     detail = {
@@ -768,7 +952,8 @@ const results = [];
       status.topics.typography?.state === "pending" &&
       status.topics.accessibility?.state === "already-compliant" &&
       status.topics.writing?.state === "pending" &&
-      status.topics.menus?.state === "pending" &&
+      status.topics.menus?.state === "skipped-no-affordance" &&
+      status.topics.searching?.state === "pending" &&
       report.plan.coverage.remaining > 0 &&
       fonts === origFonts &&
       rainbow === origRainbow &&

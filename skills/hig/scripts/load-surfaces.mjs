@@ -290,7 +290,21 @@ export function loadSurfaces(skillRoot, options = {}) {
     throw new Error(`surfaces.yaml missing required ids: ${missing.join(", ")}`);
   }
   const requiredSet = new Set(parsed.requiredIds);
-  const allowedAffordance = new Set(["list", "form", "overlay", "chrome"]);
+  const allowedAffordance = new Set([
+    "list",
+    "form",
+    "overlay",
+    "chrome",
+    "menu",
+    "picker",
+    "progress",
+    "search",
+    "notification",
+    "loading",
+    "feedback",
+    "onboarding",
+    "drag",
+  ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {
       throw new Error(`capability-gated ${s.id} must not sit on requiredIds`);

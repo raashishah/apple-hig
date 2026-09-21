@@ -290,8 +290,12 @@ const results = [];
     surfaces.byId["lists-split"]?.affordance === "list" &&
     surfaces.byId.sheets?.affordance === "overlay" &&
     surfaces.byId.forms?.affordance === "form" &&
+    surfaces.byId.menus?.affordance === "menu" &&
+    surfaces.byId.search?.affordance === "search" &&
     !surfaces.byId.layout?.affordance &&
-    !surfaces.byId.typography?.affordance;
+    !surfaces.byId.typography?.affordance &&
+    !surfaces.byId.writing?.affordance &&
+    !surfaces.byId.settings?.affordance;
   results.push({
     case: "pattern-affordances-not-foundations",
     ok,

@@ -2,9 +2,11 @@ version: 1
 # Parallel swarm surfaces for /hig. Each id maps to one agent + pack + Apple URL.
 # Orchestrator fans these out after preflight. Agents apply HIG in the host stack
 # (SwiftUI / UIKit / CSS / other) — they do not inject a React component kit.
-# affordance (optional): host widget class for catalog-phase skip
-# (list | form | overlay | chrome). Foundations omit it and still apply.
-# list includes collection/card grids so a card-grid home still gets lists.
+# affordance (optional): host widget class for catalog-phase skip.
+# Required patterns: list | form | overlay | chrome.
+# Optional widgets: menu | picker | progress | search | notification |
+# loading | feedback | onboarding | drag.
+# Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
   - id: layout
@@ -149,6 +151,7 @@ surfaces:
     covers: [icon-composer]
   - id: search
     pack: patterns-search.md
+    affordance: search
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/searching
     also:
       - https://developer.apple.com/design/human-interface-guidelines/search-fields
@@ -161,11 +164,13 @@ surfaces:
     covers: [preferences]
   - id: feedback
     pack: patterns-feedback.md
+    affordance: feedback
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/feedback
     gate: always
     covers: [toasts, haptics]
   - id: loading
     pack: patterns-loading.md
+    affordance: loading
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/loading
     gate: always
     covers: [skeletons]
@@ -176,16 +181,19 @@ surfaces:
     covers: [shake-undo]
   - id: drag-and-drop
     pack: patterns-drag-and-drop.md
+    affordance: drag
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/drag-and-drop
     gate: always
     covers: [drop-contract]
   - id: onboarding
     pack: patterns-onboarding.md
+    affordance: onboarding
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/onboarding
     gate: always
     covers: [first-launch]
   - id: notifications
     pack: patterns-notifications.md
+    affordance: notification
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/managing-notifications
     gate: always
     covers: [permission-timing]
@@ -201,11 +209,13 @@ surfaces:
     covers: [toolbar-actions]
   - id: menus
     pack: components-menus.md
+    affordance: menu
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/menus
     gate: always
     covers: [context-menus]
   - id: pickers
     pack: components-pickers.md
+    affordance: picker
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/pickers
     also:
       - https://developer.apple.com/design/human-interface-guidelines/steppers
@@ -213,6 +223,7 @@ surfaces:
     covers: [pickers, steppers]
   - id: progress
     pack: components-progress.md
+    affordance: progress
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/progress-indicators
     gate: always
     covers: [progress]

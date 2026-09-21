@@ -539,6 +539,15 @@ function affordanceMissing(need, present) {
     case "form":
     case "overlay":
     case "chrome":
+    case "menu":
+    case "picker":
+    case "progress":
+    case "search":
+    case "notification":
+    case "loading":
+    case "feedback":
+    case "onboarding":
+    case "drag":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -587,6 +596,87 @@ export function scanAffordances(files) {
     /\b(UINavigationBar|UITabBar|UIToolbar)\b/.test(blob)
   ) {
     found.push("chrome");
+  }
+  if (
+    /role=["']menu["']/i.test(blob) ||
+    /role=["']menuitem/i.test(blob) ||
+    /<menu\b/i.test(blob) ||
+    /\bMenu\s*\(/.test(blob) ||
+    /\bcontextMenu\s*\(/.test(blob) ||
+    /aria-haspopup=["']menu["']/i.test(blob) ||
+    /\b(UIMenu|NSMenu|UIContextMenuInteraction)\b/.test(blob)
+  ) {
+    found.push("menu");
+  }
+  if (
+    /<select\b/i.test(blob) ||
+    /type=["'](date|time|datetime-local|month|week|color)["']/i.test(blob) ||
+    /\b(Picker|DatePicker|Stepper)\s*\(/.test(blob) ||
+    /\b(UIPickerView|UIDatePicker|UIStepper|NSDatePicker|NSStepper)\b/.test(blob)
+  ) {
+    found.push("picker");
+  }
+  if (
+    /<progress\b/i.test(blob) ||
+    /role=["']progressbar["']/i.test(blob) ||
+    /\bProgressView\s*\(/.test(blob) ||
+    /\b(UIProgressView|UIActivityIndicatorView|NSProgressIndicator)\b/.test(blob)
+  ) {
+    found.push("progress");
+  }
+  if (
+    /type=["']search["']/i.test(blob) ||
+    /role=["']search["']/i.test(blob) ||
+    /\.searchable\b/.test(blob) ||
+    /\b(UISearchBar|UISearchController|NSSearchField)\b/.test(blob)
+  ) {
+    found.push("search");
+  }
+  if (
+    /Notification\.requestPermission/.test(blob) ||
+    /Notification\.permission/.test(blob) ||
+    /new\s+Notification\s*\(/.test(blob) ||
+    /\bUNUserNotificationCenter\b/.test(blob) ||
+    /\bUNNotificationRequest\b/.test(blob)
+  ) {
+    found.push("notification");
+  }
+  if (
+    /aria-busy=/.test(blob) ||
+    /redacted\s*\(/.test(blob) ||
+    /\.refreshable\b/.test(blob) ||
+    /\bUIRefreshControl\b/.test(blob) ||
+    /data-skeleton/.test(blob) ||
+    /\bskeleton\b/i.test(blob)
+  ) {
+    found.push("loading");
+  }
+  if (
+    /role=["']status["']/i.test(blob) ||
+    /data-toast/.test(blob) ||
+    /\.sensoryFeedback\b/.test(blob) ||
+    /\bUINotificationFeedbackGenerator\b/.test(blob) ||
+    /\bconfetti\b/i.test(blob)
+  ) {
+    found.push("feedback");
+  }
+  if (
+    /data-onboarding/.test(blob) ||
+    /\bOnboarding(View|Screen|Flow)?\b/.test(blob) ||
+    /\b(coach-?mark|feature-?tour|first-?run)\b/i.test(blob) ||
+    /\bisOnboarding\b/.test(blob)
+  ) {
+    found.push("onboarding");
+  }
+  if (
+    /\bdraggable\b/i.test(blob) ||
+    /\bdropDestination\b/.test(blob) ||
+    /\bon(Drop|Drag)\s*\(/.test(blob) ||
+    /\b(UIDragInteraction|UIDropInteraction|NSDragging)/.test(blob) ||
+    /aria-grabbed/.test(blob) ||
+    /data-drop/.test(blob)
+  ) {
+    found.push("drag");
   }
   return found;
 }
