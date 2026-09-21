@@ -351,6 +351,10 @@ function applyBlackWhiteChrome(text) {
       return stripped === body ? all : `${open}${stripped}${close}`;
     },
   );
+  next = next.replace(
+    /((?:^|,|\n)\s*(?:header|nav|\.tab-bar|\.toolbar|\.sidebar)[^{]*)\{\s*\}/gi,
+    "",
+  );
   return next;
 }
 
