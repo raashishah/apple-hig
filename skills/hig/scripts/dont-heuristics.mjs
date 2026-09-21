@@ -2241,6 +2241,246 @@ function applyToggleNavigates(text) {
   return next;
 }
 
+function stripAttrBlocks(text, attr) {
+  let next = text;
+  for (const b of [...blocksWithAttr(text, attr)].sort((a, c) => c.start - a.start)) {
+    next = next.slice(0, b.start) + next.slice(b.end);
+  }
+  next = next.replace(new RegExp(`\\s*${attr}(?:="[^"]*")?`, "g"), "");
+  return next;
+}
+
+function scanFakeInAppWidget(files) {
+  const out = [];
+  for (const f of files) {
+    if (/\bstruct\s+\w+\s*:\s*Widget\b/.test(f.text) && /import\s+WidgetKit/.test(f.text)) {
+      continue;
+    }
+    if (
+      /data-fake-widget/.test(f.text) ||
+      /class(?:Name)?=["'][^"']*\bfake-widget\b/.test(f.text) ||
+      /fake Home Screen widget/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "fake Home Screen widget in-app"));
+    }
+  }
+  return out;
+}
+
+function applyFakeInAppWidget(text, file) {
+  if (/\bstruct\s+\w+\s*:\s*Widget\b/.test(text) && /import\s+WidgetKit/.test(text)) {
+    return text;
+  }
+  let next = stripAttrBlocks(text, "data-fake-widget");
+  next = next.replace(
+    /<([A-Za-z][\w]*)\b([^>]*\bclass(?:Name)?=["'][^"']*\bfake-widget\b[^>]*)>([\s\S]*?)<\/\1>\s*/gi,
+    "",
+  );
+  return next;
+}
+
+function scanStretchSmallWidget(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-widget-stretch/.test(f.text) || /stretch a small widget/i.test(f.text)) {
+      out.push(hit(f.path, "small widget stretched to large"));
+    }
+  }
+  return out;
+}
+
+function applyStretchSmallWidget(text) {
+  return text.replace(/\s*data-widget-stretch(?:="[^"]*")?/g, "");
+}
+
+function scanAppIconAsWidget(files) {
+  const out = [];
+  for (const f of files) {
+    const widget = /\bstruct\s+\w+\s*:\s*Widget\b/.test(f.text) || /data-widget-app-icon/.test(f.text);
+    if (!widget) continue;
+    if (/Image\(["']AppIcon["']\)|data-widget-app-icon/.test(f.text)) {
+      out.push(hit(f.path, "app icon used as the widget"));
+    }
+  }
+  return out;
+}
+
+function scanPointAtIsland(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /data-dynamic-island-pointer/.test(f.text) ||
+      /look up at the Dynamic Island/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "in-app pointer at Dynamic Island"));
+    }
+  }
+  return out;
+}
+
+function applyPointAtIsland(text) {
+  return stripAttrBlocks(text, "data-dynamic-island-pointer").replace(
+    /\s*look up at the Dynamic Island\.?/gi,
+    "",
+  );
+}
+
+function isLiveActivityFile(file) {
+  return (
+    /import\s+ActivityKit/.test(file.text) ||
+    /\bActivityAttributes\b/.test(file.text) ||
+    /data-live-activity/.test(file.text)
+  );
+}
+
+function scanLiveActivityAppIcon(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isLiveActivityFile(f)) continue;
+    if (/Image\(["']AppIcon["']\)|data-live-activity-icon/.test(f.text)) {
+      out.push(hit(f.path, "full app icon on a Live Activity"));
+    }
+  }
+  return out;
+}
+
+function applyLiveActivityAppIcon(text, file) {
+  if (!isLiveActivityFile(file)) return text;
+  let next = stripAttrBlocks(text, "data-live-activity-icon");
+  next = next.replace(/\s*Image\(["']AppIcon["']\)/g, "");
+  return next;
+}
+
+function scanLiveActivityAds(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isLiveActivityFile(f) && !/data-live-activity-ad/.test(f.text)) continue;
+    if (
+      /data-live-activity-ad/.test(f.text) ||
+      (isLiveActivityFile(f) && /\b(sponsored|advertisement|buy now)\b/i.test(f.text))
+    ) {
+      out.push(hit(f.path, "ads in a Live Activity"));
+    }
+  }
+  return out;
+}
+
+function applyLiveActivityAds(text) {
+  return stripAttrBlocks(text, "data-live-activity-ad");
+}
+
+function scanStatusBarHidden(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-status-bar-hidden/.test(f.text)) {
+      out.push(hit(f.path, "status bar permanently hidden"));
+      continue;
+    }
+    if (
+      /prefersStatusBarHidden[\s\S]{0,80}\{\s*true\s*\}/.test(f.text) &&
+      !/\b(isVideo|isFullscreen|AVPlayer|immersive)\b/.test(f.text)
+    ) {
+      out.push(hit(f.path, "status bar permanently hidden"));
+    }
+  }
+  return out;
+}
+
+function applyStatusBarHidden(text) {
+  let next = text.replace(/\s*data-status-bar-hidden(?:="[^"]*")?/g, "");
+  next = next.replace(
+    /(prefersStatusBarHidden[\s\S]{0,80}\{\s*)true(\s*\})/,
+    "$1false$2",
+  );
+  return next;
+}
+
+function scanFakeStatusClock(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /data-fake-status-bar/.test(f.text) ||
+      /class(?:Name)?=["'][^"']*\bfake-status-clock\b/.test(f.text)
+    ) {
+      out.push(hit(f.path, "fake clock covering the status bar"));
+    }
+  }
+  return out;
+}
+
+function applyFakeStatusClock(text) {
+  let next = stripAttrBlocks(text, "data-fake-status-bar");
+  next = next.replace(
+    /<([A-Za-z][\w]*)\b([^>]*\bclass(?:Name)?=["'][^"']*\bfake-status-clock\b[^>]*)>([\s\S]*?)<\/\1>\s*/gi,
+    "",
+  );
+  return next;
+}
+
+function scanOpaqueStatusStrip(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-status-bar-fill/.test(f.text)) {
+      out.push(hit(f.path, "opaque strip on the status bar"));
+    }
+  }
+  return out;
+}
+
+function applyOpaqueStatusStrip(text) {
+  return text.replace(
+    /<(header|div|nav|section)\b([^>]*data-status-bar-fill[^>]*)>/gi,
+    (all, tag, attrs) => {
+      const next = attrs
+        .replace(/\s*data-status-bar-fill(?:="[^"]*")?/g, "")
+        .replace(/background(?:Color)?\s*:\s*["']?#[0-9a-fA-F]{3,8}["']?\s*,?/gi, "")
+        .replace(/background(?:-color)?\s*:\s*#[0-9a-fA-F]{3,8}\s*;?/gi, "");
+      return `<${tag}${next}>`;
+    },
+  );
+}
+
+function scanSettingsAsControlCenter(files) {
+  const out = [];
+  for (const f of files) {
+    if (/\bControlWidget(?:Toggle|Button)?\b/.test(f.text)) continue;
+    if (/data-control-center/.test(f.text) || /Control Center settings row/i.test(f.text)) {
+      out.push(hit(f.path, "settings row styled as Control Center"));
+    }
+  }
+  return out;
+}
+
+function applySettingsAsControlCenter(text) {
+  if (/\bControlWidget(?:Toggle|Button)?\b/.test(text)) return text;
+  return text.replace(/\s*data-control-center(?:="[^"]*")?/g, "");
+}
+
+function scanControlToggleOneSymbol(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/\bControlWidgetToggle\b/.test(f.text)) continue;
+    const images = [...f.text.matchAll(/systemImage:\s*["']([^"']+)["']/g)].map((m) => m[1]);
+    if (images.length === 1) {
+      out.push(hit(f.path, "Control Center toggle has one symbol"));
+    }
+  }
+  return out;
+}
+
+function scanLockedControlUnredacted(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/\bControlWidget/.test(f.text) && !/data-control-locked/.test(f.text)) continue;
+    const locked = /isLocked|data-control-locked/.test(f.text);
+    const redacted = /privacySensitive|\.redacted\(|data-redact/.test(f.text);
+    if (locked && !redacted) {
+      out.push(hit(f.path, "locked control shows personal title/value"));
+    }
+  }
+  return out;
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -2424,6 +2664,30 @@ function scanHeuristic(id, files) {
       return scanToggleNavigates(files);
     case "multiple-primaries-one-region":
       return scanMultiplePrimaries(files);
+    case "fake-in-app-widget":
+      return scanFakeInAppWidget(files);
+    case "stretch-small-widget-large":
+      return scanStretchSmallWidget(files);
+    case "app-icon-as-widget":
+      return scanAppIconAsWidget(files);
+    case "point-at-dynamic-island":
+      return scanPointAtIsland(files);
+    case "live-activity-full-app-icon":
+      return scanLiveActivityAppIcon(files);
+    case "live-activity-ads":
+      return scanLiveActivityAds(files);
+    case "status-bar-always-hidden":
+      return scanStatusBarHidden(files);
+    case "fake-status-clock":
+      return scanFakeStatusClock(files);
+    case "opaque-status-strip":
+      return scanOpaqueStatusStrip(files);
+    case "settings-row-as-control-center":
+      return scanSettingsAsControlCenter(files);
+    case "control-toggle-one-symbol":
+      return scanControlToggleOneSymbol(files);
+    case "locked-control-unredacted":
+      return scanLockedControlUnredacted(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -2600,6 +2864,30 @@ function applyHeuristic(id, file) {
       return applyToggleNavigates(file.text);
     case "multiple-primaries-one-region":
       return applyEqualWeightSubmits(file.text);
+    case "fake-in-app-widget":
+      return applyFakeInAppWidget(file.text, file);
+    case "stretch-small-widget-large":
+      return applyStretchSmallWidget(file.text);
+    case "app-icon-as-widget":
+      return file.text;
+    case "point-at-dynamic-island":
+      return applyPointAtIsland(file.text);
+    case "live-activity-full-app-icon":
+      return applyLiveActivityAppIcon(file.text, file);
+    case "live-activity-ads":
+      return applyLiveActivityAds(file.text);
+    case "status-bar-always-hidden":
+      return applyStatusBarHidden(file.text);
+    case "fake-status-clock":
+      return applyFakeStatusClock(file.text);
+    case "opaque-status-strip":
+      return applyOpaqueStatusStrip(file.text);
+    case "settings-row-as-control-center":
+      return applySettingsAsControlCenter(file.text);
+    case "control-toggle-one-symbol":
+      return file.text;
+    case "locked-control-unredacted":
+      return file.text;
     default: {
       const _exhaustive = id;
       void _exhaustive;

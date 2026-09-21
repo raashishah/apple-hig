@@ -741,12 +741,20 @@ const results = [];
       catalog.byId.toggles?.dontCoverageComplete === true &&
       catalog.byId["text-fields"]?.dontCoverageComplete === true &&
       catalog.byId["segmented-controls"]?.dontCoverageComplete === true &&
+      catalog.byId.widgets?.dontCoverageComplete === true &&
+      catalog.byId["live-activities"]?.dontCoverageComplete === true &&
+      catalog.byId["status-bars"]?.dontCoverageComplete === true &&
+      catalog.byId.controls?.dontCoverageComplete === true &&
       (catalog.byId.menus?.dontHeuristicIds || []).includes("hide-unavailable-menu-items") &&
       (catalog.byId.pickers?.dontHeuristicIds || []).includes("overweight-wheel-short-list") &&
       (catalog.byId["progress-indicators"]?.dontHeuristicIds || []).includes(
         "morph-circular-bar",
       ) &&
       (catalog.byId.buttons?.dontHeuristicIds || []).includes("ok-instead-of-verb") &&
+      (catalog.byId.widgets?.dontHeuristicIds || []).includes("fake-in-app-widget") &&
+      (catalog.byId.controls?.dontHeuristicIds || []).includes(
+        "settings-row-as-control-center",
+      ) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
       (catalog.byId.searching?.dontHeuristicIds || []).includes("hide-only-path-behind-search") &&
@@ -2373,6 +2381,244 @@ const results = [];
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-host-widget-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sys-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sys-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sys-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sys-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, cleanDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    const writeCaps = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: phone\nregister: product\nThis product is a phone inventory app with glanceable native system chrome for widgets, Live Activities, status bars, and Control Center.\n",
+      );
+      fs.writeFileSync(
+        path.join(dir, "WidgetCap.swift"),
+        `import WidgetKit
+import SwiftUI
+struct StatusWidget: Widget {
+  var body: some WidgetConfiguration { EmptyView() }
+}
+`,
+      );
+      fs.writeFileSync(
+        path.join(dir, "ActivityCap.swift"),
+        `import ActivityKit
+struct GameAttrs: ActivityAttributes {}
+`,
+      );
+      fs.writeFileSync(
+        path.join(dir, "ControlCap.swift"),
+        `import SwiftUI
+import WidgetKit
+struct Torch: ControlWidget {
+  var body: some ControlWidgetConfiguration {
+    StaticControlConfiguration(kind: "torch") {
+      ControlWidgetButton(action: OpenApp()) {
+        Label("Torch", systemImage: "flashlight.on.fill")
+        Label("Torch Off", systemImage: "flashlight.off.fill")
+      }
+    }
+  }
+}
+`,
+      );
+    };
+    writeCaps(cleanDir);
+    writeCaps(fixDir);
+    writeCaps(holdDir);
+    fs.writeFileSync(
+      path.join(fixDir, "FakeWidget.tsx"),
+      `export function Fake() { return <div data-fake-widget>Home</div>; }\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Stretch.tsx"),
+      `export function Stretch() { return <div data-widget-stretch />; }\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Island.tsx"),
+      `export function Island() { return <div data-dynamic-island-pointer>Look</div>; }\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Ad.tsx"),
+      `export function Ad() { return <div data-live-activity-ad>Sale</div>; }\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Hidden.swift"),
+      `var prefersStatusBarHidden: Bool { true }\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Clock.tsx"),
+      `export function Clock() { return <div data-fake-status-bar>9:41</div>; }\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Fill.tsx"),
+      `export function Fill() { return <header data-status-bar-fill style={{ background: "#111111" }}>x</header>; }\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "FakeCC.tsx"),
+      `export function FakeCC() { return <div data-control-center data-settings>CC</div>; }\n`,
+    );
+    const origHold = `import WidgetKit
+import SwiftUI
+struct IconWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "icon", provider: Provider()) { _ in
+      Image("AppIcon")
+    }
+  }
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "IconWidget.swift"), origHold);
+    const origToggle = `import SwiftUI
+import WidgetKit
+struct OneTorch: ControlWidget {
+  var body: some ControlWidgetConfiguration {
+    StaticControlConfiguration(kind: "torch") {
+      ControlWidgetToggle("Torch", isOn: .constant(true), action: ToggleTorch()) {
+        Label("Torch", systemImage: "flashlight.on.fill")
+      }
+    }
+  }
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "OneSymbol.swift"), origToggle);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const cleanReport = applyCatalog({
+      cwd: cleanDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const cleanStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(cleanDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fake = fs.readFileSync(path.join(fixDir, "FakeWidget.tsx"), "utf8");
+    const stretch = fs.readFileSync(path.join(fixDir, "Stretch.tsx"), "utf8");
+    const island = fs.readFileSync(path.join(fixDir, "Island.tsx"), "utf8");
+    const ad = fs.readFileSync(path.join(fixDir, "Ad.tsx"), "utf8");
+    const hidden = fs.readFileSync(path.join(fixDir, "Hidden.swift"), "utf8");
+    const clock = fs.readFileSync(path.join(fixDir, "Clock.tsx"), "utf8");
+    const fill = fs.readFileSync(path.join(fixDir, "Fill.tsx"), "utf8");
+    const fakeCc = fs.readFileSync(path.join(fixDir, "FakeCC.tsx"), "utf8");
+    const heldIcon = fs.readFileSync(path.join(holdDir, "IconWidget.swift"), "utf8");
+    const heldToggle = fs.readFileSync(path.join(holdDir, "OneSymbol.swift"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(cleanDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passWidgets: passStatus.topics.widgets?.state === "skipped-gate",
+      passLive: passStatus.topics["live-activities"]?.state === "skipped-gate",
+      passStatus: passStatus.topics["status-bars"]?.state === "skipped-gate",
+      passControls: passStatus.topics.controls?.state === "skipped-gate",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      cleanWidgets: cleanStatus.topics.widgets?.state === "already-compliant",
+      cleanLive: cleanStatus.topics["live-activities"]?.state === "already-compliant",
+      cleanStatus: cleanStatus.topics["status-bars"]?.state === "already-compliant",
+      cleanControls: cleanStatus.topics.controls?.state === "already-compliant",
+      cleanRemaining: cleanReport.plan.coverage.remaining > 0,
+      fixWidgets: fixStatus.topics.widgets?.state === "applied",
+      fixLive: fixStatus.topics["live-activities"]?.state === "applied",
+      fixStatus: fixStatus.topics["status-bars"]?.state === "applied",
+      fixControls: fixStatus.topics.controls?.state === "applied",
+      fakeGone: !/data-fake-widget/.test(fake),
+      stretchGone: !/data-widget-stretch/.test(stretch),
+      islandGone: !/data-dynamic-island-pointer/.test(island),
+      adGone: !/data-live-activity-ad/.test(ad),
+      hiddenFalse: /prefersStatusBarHidden[\s\S]*\{\s*false\s*\}/.test(hidden),
+      clockGone: !/data-fake-status-bar/.test(clock),
+      fillGone: !/data-status-bar-fill|#111111/.test(fill),
+      ccGone: !/data-control-center/.test(fakeCc) && /data-settings/.test(fakeCc),
+      holdUnchanged: heldIcon === origHold && heldToggle === origToggle,
+      holdWidgets: holdStatus.topics.widgets?.state === "pending",
+      holdControls: holdStatus.topics.controls?.state === "pending",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWidgets: passStatus.topics.widgets?.state,
+      cleanWidgets: cleanStatus.topics.widgets?.state,
+      fixWidgets: fixStatus.topics.widgets?.state,
+      fixLive: fixStatus.topics["live-activities"]?.state,
+      fixStatus: fixStatus.topics["status-bars"]?.state,
+      fixControls: fixStatus.topics.controls?.state,
+      holdWidgets: holdStatus.topics.widgets?.state,
+      holdControls: holdStatus.topics.controls?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fake,
+      hidden,
+      fakeCc,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(cleanDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-system-chrome-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

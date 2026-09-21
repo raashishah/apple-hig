@@ -168,3 +168,27 @@ heuristics:
     match: Toggles that navigate or submit
   - id: multiple-primaries-one-region
     match: Multiple primary actions in one region
+  - id: fake-in-app-widget
+    match: Mirror a fake Home Screen widget inside the app
+  - id: stretch-small-widget-large
+    match: Stretch a small widget layout to fill a large size
+  - id: app-icon-as-widget
+    match: Replicate the app icon as a widget
+  - id: point-at-dynamic-island
+    match: Decorate the in-app UI to point at the Dynamic Island
+  - id: live-activity-full-app-icon
+    match: Put the full app icon on a Live Activity
+  - id: live-activity-ads
+    match: Run ads in a Live Activity
+  - id: status-bar-always-hidden
+    match: Permanently hide the status bar
+  - id: fake-status-clock
+    match: Cover the status bar with a competing fake clock
+  - id: opaque-status-strip
+    match: Paint a custom opaque strip that fights status-bar materials
+  - id: settings-row-as-control-center
+    match: Style a settings row as Control Center
+  - id: control-toggle-one-symbol
+    match: A Control Center toggle with only one symbol for on and off
+  - id: locked-control-unredacted
+    match: Show personal title/value on a locked-device control
