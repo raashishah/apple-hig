@@ -41,7 +41,8 @@ node eval/run-catalog.mjs
 - [x] `catalog.yaml` tracks the live Apple article index; lists apply on Vue; complications skip on web; `requiredIds` stay 12
 - [x] Goal loop: wave 0 is `requiredIds`; after chrome P0 remaining packed catalog topics apply; done when `remaining` is 0; brand app-shell catalog rows are `n/a-register`
 - [x] Host-pattern affordance: list/form/overlay/chrome skip when the widget is absent; collection/card grids still count as list
-- [x] Optional widget affordance: menu/picker/progress/search/notification/loading/feedback/onboarding/drag skip when absent; Search nav link is not search; `<select>` is picker not menu; writing/settings/undo stay pending; remaining is not a frozen integer; `requiredIds` stay 12
+- [x] Optional widget affordance: menu/picker/progress/search/notification/loading/feedback/onboarding/drag skip when absent; Search nav link is not search; `<select>` is picker not menu; writing stays pending; remaining is not a frozen integer; `requiredIds` stay 12
+- [x] Settings/undo skip-unless: chrome-pass skips both; a Settings screen or Undo control stays pending; a data-entry form is not Settings; Cancel is not Undo; writing stays pending; remaining is not a frozen integer
 - [x] Search Don't heuristics account search-fields/searching on tmp chrome-pass (already-compliant); spinner-on-keystroke applies; hide-only-path and command-dump stay pending without inventing a list; writing stays pending; remaining is not a frozen integer
 - [x] Same chrome P0 FAIL on a web host and a Swift host; grammar `failWhen` / `passWhen` do not name frameworks
 - [x] Packed catalog topics derive `failWhen` from grammar + pack Do/Don't at load; unpackaged rows stay stubs; no SF Pro / framework names

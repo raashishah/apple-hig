@@ -46,10 +46,10 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.feedback?.affordance === "feedback" &&
     surfaces.byId.onboarding?.affordance === "onboarding" &&
     surfaces.byId["drag-and-drop"]?.affordance === "drag" &&
+    surfaces.byId.settings?.affordance === "settings" &&
+    surfaces.byId.undo?.affordance === "undo" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
-    !surfaces.byId.settings?.affordance &&
-    !surfaces.byId.undo?.affordance &&
     surfaces.requiredIds.length === 12
   );
 }
@@ -403,6 +403,8 @@ const results = [];
     "feedback",
     "onboarding",
     "drag-and-drop",
+    "settings",
+    "undo-and-redo",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -458,6 +460,26 @@ const results = [];
   const loadingOnly = scanAffordances([
     { path: "Skeleton.tsx", text: '<div data-skeleton aria-busy="true" />' },
   ]);
+  const formOnly = scanAffordances(
+    walkSource(path.join(pluginRoot, "eval", "fixtures", "chrome-pass")).filter((f) =>
+      /CohesiveForm/.test(f.path),
+    ),
+  );
+  const settingsPage = scanAffordances([
+    { path: "Settings.tsx", text: '<main data-settings><h1>Settings</h1></main>' },
+  ]);
+  const undoBar = scanAffordances([
+    { path: "UndoBar.tsx", text: '<button type="button" aria-label="Undo Delete">Undo</button>' },
+  ]);
+  const dumpLabel = scanAffordances([
+    {
+      path: "CommandDump.tsx",
+      text: '<input type="search" aria-label="Search settings and commands" />',
+    },
+  ]);
+  const cancelOnly = scanAffordances([
+    { path: "Form.tsx", text: '<button type="button">Cancel</button>' },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -478,6 +500,8 @@ const results = [];
       !passList.includes("feedback") &&
       !passList.includes("onboarding") &&
       !passList.includes("drag") &&
+      !passList.includes("settings") &&
+      !passList.includes("undo") &&
       cardGrid.includes("list") &&
       !navLink.includes("search") &&
       nativeSelect.includes("picker") &&
@@ -487,6 +511,13 @@ const results = [];
       !progressOnly.includes("loading") &&
       loadingOnly.includes("loading") &&
       !loadingOnly.includes("progress") &&
+      formOnly.includes("form") &&
+      !formOnly.includes("settings") &&
+      !formOnly.includes("undo") &&
+      settingsPage.includes("settings") &&
+      undoBar.includes("undo") &&
+      !dumpLabel.includes("settings") &&
+      !cancelOnly.includes("undo") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -695,6 +726,28 @@ const results = [];
 }
 `,
     );
+    fs.writeFileSync(
+      path.join(holdDir, "Settings.tsx"),
+      `export function SettingsScreen() {
+  return (
+    <main data-settings>
+      <h1>Settings</h1>
+    </main>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(holdDir, "UndoBar.tsx"),
+      `export function UndoBar() {
+  return (
+    <button type="button" aria-label="Undo Delete">
+      Undo
+    </button>
+  );
+}
+`,
+    );
     const passFiles = [
       "CohesiveForm.tsx",
       "CompactListBrowser.tsx",
@@ -732,6 +785,8 @@ const results = [];
       "feedback",
       "onboarding",
       "drag-and-drop",
+      "settings",
+      "undo-and-redo",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -750,13 +805,15 @@ const results = [];
       skipStatus.topics.searching?.state === "already-compliant" &&
       skipStatus.topics["search-fields"]?.state === "already-compliant" &&
       skipStatus.topics.writing?.state === "pending" &&
-      skipStatus.topics.settings?.state === "pending" &&
-      skipStatus.topics["undo-and-redo"]?.state === "pending" &&
+      skipStatus.topics.settings?.state === "skipped-no-affordance" &&
+      skipStatus.topics["undo-and-redo"]?.state === "skipped-no-affordance" &&
       !skipReport.plan.waveTopicIds.includes("searching") &&
       skipReport.plan.waveTopicIds.includes("writing") &&
       !skipReport.plan.waveTopicIds.includes("menus") &&
       skipReport.plan.coverage.remaining > 0 &&
       holdStatus.topics.menus?.state === "pending" &&
+      holdStatus.topics.settings?.state === "pending" &&
+      holdStatus.topics["undo-and-redo"]?.state === "pending" &&
       holdStatus.topics.pickers?.state === "skipped-no-affordance" &&
       holdStatus.topics.searching?.state === "already-compliant" &&
       destUnchanged &&
@@ -767,6 +824,10 @@ const results = [];
       holdRemaining: holdReport.plan.coverage.remaining,
       skipMenus: skipStatus.topics.menus?.state,
       holdMenus: holdStatus.topics.menus?.state,
+      skipSettings: skipStatus.topics.settings?.state,
+      holdSettings: holdStatus.topics.settings?.state,
+      skipUndo: skipStatus.topics["undo-and-redo"]?.state,
+      holdUndo: holdStatus.topics["undo-and-redo"]?.state,
       searching: skipStatus.topics.searching?.state,
     };
   } catch (err) {

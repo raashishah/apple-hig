@@ -292,10 +292,11 @@ const results = [];
     surfaces.byId.forms?.affordance === "form" &&
     surfaces.byId.menus?.affordance === "menu" &&
     surfaces.byId.search?.affordance === "search" &&
+    surfaces.byId.settings?.affordance === "settings" &&
+    surfaces.byId.undo?.affordance === "undo" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
-    !surfaces.byId.writing?.affordance &&
-    !surfaces.byId.settings?.affordance;
+    !surfaces.byId.writing?.affordance;
   results.push({
     case: "pattern-affordances-not-foundations",
     ok,

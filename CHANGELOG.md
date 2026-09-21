@@ -23,6 +23,7 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - Catalog apply mechanically scans required-surface prose Don'ts (type, color, motion, a11y) and accounts a topic only when every Don't has a scanner. Host fonts stay. Optional packed Don'ts stay pending. Remaining is not a frozen integer.
 - Optional widget affordances (`menu`, `picker`, `progress`, `search`, `notification`, `loading`, `feedback`, `onboarding`, `drag`) skip with `skipped-no-affordance` when the host has no matching widget. Search field ≠ Search nav link. `<select>` is a picker, not a menu. Presence without a Don't scanner still stays pending. `requiredIds` stay 12.
 - Search Don't heuristics: hide-only-path, spinner-per-keystroke, search-as-settings-dump. chrome-pass search is already-compliant. Unfixable hide-only-path and command-dump stay pending. Do not invent a list. `requiredIds` stay 12.
+- Settings and undo skip-unless affordances: hosts without a settings/preferences screen or undo chrome are `skipped-no-affordance`. A form is not Settings. Cancel is not Undo. Presence without a Don't scanner stays pending. Writing and other foundations stay pending. `requiredIds` stay 12.
 
 ## Unreleased
 

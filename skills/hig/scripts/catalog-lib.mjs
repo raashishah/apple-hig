@@ -548,6 +548,8 @@ function affordanceMissing(need, present) {
     case "feedback":
     case "onboarding":
     case "drag":
+    case "settings":
+    case "undo":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -558,7 +560,9 @@ function affordanceMissing(need, present) {
 }
 
 export function scanAffordances(files) {
-  const blob = (files || []).map((f) => String(f.text || "")).join("\n");
+  const list = files || [];
+  const blob = list.map((f) => String(f.text || "")).join("\n");
+  const paths = list.map((f) => String(f.path || "")).join("\n");
   const found = [];
   if (
     /<(ul|ol|table)\b/i.test(blob) ||
@@ -677,6 +681,28 @@ export function scanAffordances(files) {
     /data-drop/.test(blob)
   ) {
     found.push("drag");
+  }
+  if (
+    /data-settings/.test(blob) ||
+    /\bSettingsLink\b/.test(blob) ||
+    /\bSettings\s*[{(]/.test(blob) ||
+    /(?:href|to)=["'][^"']*\/(settings|preferences)\b/i.test(blob) ||
+    /<(h1|h2)[^>]*>\s*(Settings|Preferences)\s*</i.test(blob) ||
+    /(^|\n|\/)(settings|preferences)([./]|$)/im.test(paths) ||
+    /Settings(View|Screen|Page|Form)?\.(tsx|jsx|swift|vue|html)\b/i.test(paths)
+  ) {
+    found.push("settings");
+  }
+  if (
+    /\b(UndoManager|undoManager|NSUndoManager)\b/.test(blob) ||
+    /\bregisterUndo\b/.test(blob) ||
+    /\bcanUndo\b/.test(blob) ||
+    /data-undo/.test(blob) ||
+    /aria-label=["']Undo\b/i.test(blob) ||
+    />\s*(Undo|Redo)\s*</.test(blob) ||
+    /(^|\n|\/)undo([./]|$)/im.test(paths)
+  ) {
+    found.push("undo");
   }
   return found;
 }

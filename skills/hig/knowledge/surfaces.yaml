@@ -5,7 +5,7 @@ version: 1
 # affordance (optional): host widget class for catalog-phase skip.
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
-# loading | feedback | onboarding | drag.
+# loading | feedback | onboarding | drag | settings | undo.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -159,6 +159,7 @@ surfaces:
     covers: [search-fields]
   - id: settings
     pack: patterns-settings.md
+    affordance: settings
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/settings
     gate: always
     covers: [preferences]
@@ -176,6 +177,7 @@ surfaces:
     covers: [skeletons]
   - id: undo
     pack: patterns-undo.md
+    affordance: undo
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/undo-and-redo
     gate: always
     covers: [shake-undo]
