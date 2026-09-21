@@ -49,8 +49,8 @@ HIG_PREFLIGHT: <value from JSON>
 
 Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
 
-1. If `appleTypeDefault.apply` is true, write that `fontFamily` into `DESIGN.md` and the host type tokens. Do not invent a display face. Brand register leaves fonts alone.
-2. Round 1 **apply** only `requiredIds` (12). Optional surfaces may audit; do not lease-apply them until required P0 chrome is clean.
+1. Do not rewrite host fonts or invent a face. Colors and typeface stay with the product.
+2. Round 1 **apply** only `requiredIds` (12) from `knowledge/surfaces.yaml` (the apply SSOT). Optional/gated surfaces may audit; do not lease-apply them until required P0 chrome is clean.
 3. After each apply round, run `node <skill>/scripts/check-chrome.mjs` on the host and consume the JSON.
 4. If `pass` is false (any P0 in `fails[]`), you may **not** print `HIG_CHROME` PASS. Fix from `knowledge/chrome/recipes.md` and re-check.
 5. Apply using `knowledge/chrome/recipes.md` in the host language. No kit injection.
@@ -92,4 +92,4 @@ Compose from `knowledge/packs/`:
 
 Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Recipes: `knowledge/chrome/recipes.md`. Rubric: `knowledge/chrome/review-rubric.md`. Scanner: `scripts/check-chrome.mjs`.
 
-Deep Apple URLs remain in `knowledge/registry.yaml` for rare leaves.
+Deep Apple URLs remain in `knowledge/registry.yaml` for rare leaves. That file is not the apply catalog.

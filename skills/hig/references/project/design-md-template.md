@@ -23,7 +23,7 @@
 
 - personality: []
 - accent_and_palette:
-- fonts: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif
+- fonts:
 - anti_references: []
 - materials: system-chrome-glass-functional-layer
 

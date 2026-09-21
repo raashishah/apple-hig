@@ -26,7 +26,7 @@ From context JSON + repo skim (do not invent other products’ brands):
 - `platform` (`phone` / `ipad` / `desktop` / `games` / `unknown`) and `capabilities` (tokens such as `healthkit`)
 - Infer `register`: `product` for tools/scoreboards/shells; `brand` for marketing/portfolio/landing
 
-Ask **zero** interview questions when enough signal exists. If brand hue is missing, keep a quiet system accent. If preflight `appleTypeDefault.apply` is true, set `DESIGN.md` fonts and host type tokens to `appleTypeDefault.fontFamily`. Do not pick a decorative display face.
+Ask **zero** interview questions when enough signal exists. If brand hue is missing, keep a quiet system accent. Do not rewrite fonts.
 
 If `stack.family` is `web` and kind is React/Next, load optional sibling `hig-react` for DOM/ARIA mapping only.
 

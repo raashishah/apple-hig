@@ -3,7 +3,7 @@
 Source of truth: [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/).  
 This file does **not** invent a house style. It restates Apple’s principles so `/hig` can apply them in whatever stack the host project already uses.
 
-Brand (hue, typeface, voice) stays in the host `DESIGN.md` when locked. Product with unspecified fonts uses the Apple system type stack. Structure, density, materials, motion, and controls come from Apple.
+Brand (hue, typeface, voice) stays in the host `DESIGN.md`. Structure, density, materials, motion, and controls come from Apple.
 
 ## Aesthetic (Jony Ive)
 

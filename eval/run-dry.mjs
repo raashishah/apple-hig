@@ -190,7 +190,7 @@ const results = [];
   const ok =
     !(j.capabilities || []).includes("healthkit") &&
     !launchedIds.includes("healthkit") &&
-    surfaces.requiredIds.length >= 12;
+    surfaces.requiredIds.length === 12;
   results.push({
     case: "tech-absent-skips-healthkit",
     ok,
@@ -424,30 +424,20 @@ const results = [];
 }
 
 {
-  const j = run("fixtures/sparse");
+  const sparse = run("fixtures/sparse");
+  const brand = run("fixtures/brand-veto");
+  const blob = JSON.stringify(sparse);
   const ok =
-    j.appleTypeDefault?.apply === true &&
-    typeof j.appleTypeDefault?.fontFamily === "string" &&
-    /apple-system/.test(j.appleTypeDefault.fontFamily) &&
-    /type_default=apple/.test(j.HIG_PREFLIGHT);
+    sparse.appleTypeDefault == null &&
+    brand.appleTypeDefault == null &&
+    !/type_default=/.test(sparse.HIG_PREFLIGHT) &&
+    !/type_default=/.test(brand.HIG_PREFLIGHT) &&
+    !/SF Pro/.test(blob) &&
+    !/-apple-system/.test(blob);
   results.push({
-    case: "sparse-apple-type-default",
+    case: "host-fonts-stay",
     ok,
-    preflight: j.HIG_PREFLIGHT,
-    appleTypeDefault: j.appleTypeDefault,
-  });
-}
-
-{
-  const j = run("fixtures/brand-veto");
-  const ok =
-    j.appleTypeDefault?.apply === false &&
-    /type_default=locked/.test(j.HIG_PREFLIGHT);
-  results.push({
-    case: "brand-veto-locks-type-default",
-    ok,
-    preflight: j.HIG_PREFLIGHT,
-    appleTypeDefault: j.appleTypeDefault,
+    preflight: sparse.HIG_PREFLIGHT,
   });
 }
 

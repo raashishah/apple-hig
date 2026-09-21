@@ -12,17 +12,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultSkillRoot = path.resolve(__dirname, "..");
 
-const REQUIRED_CLASSES = [
-  "chrome.view-mode.icons",
-  "chrome.list-browser.toolbar-budget",
-  "chrome.list-browser.filter-density",
-  "chrome.form.column-cohesion",
-  "chrome.sidebar.collapsible",
-  "chrome.bars.system-materials",
-  "chrome.materials.fashion-glass",
-  "chrome.layout.card-grid-home",
-];
-
 function parseSimpleYaml(text) {
   // Minimal YAML subset for this grammar file (no nested objects beyond lists of scalars).
   const lines = text.split(/\r?\n/);
@@ -122,18 +111,13 @@ export function loadChromeGrammar(skillRoot = defaultSkillRoot) {
     }
   }
 
-  const missing = REQUIRED_CLASSES.filter((id) => !byId[id]);
-  if (missing.length) {
-    throw new Error(`grammar missing required rules: ${missing.join(", ")}`);
-  }
-
   return {
     version: doc.version,
     grammarPath,
     rules: doc.rules,
     byId,
     byPack,
-    requiredIds: REQUIRED_CLASSES,
+    requiredIds: Object.keys(byId),
   };
 }
 

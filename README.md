@@ -51,7 +51,7 @@ Chrome grammar ([`skills/hig/knowledge/chrome/grammar.yaml`](skills/hig/knowledg
 | `chrome.layout.card-grid-home` | Product home is a workspace, not a marketing card grid |
 | `chrome.ive.nested-cards` | Lists/forms are not wrapped in extra card panels |
 
-After apply, `/hig` runs `node skills/hig/scripts/check-chrome.mjs` on the host. P0 hits block PASS. Recipes: [`skills/hig/knowledge/chrome/recipes.md`](skills/hig/knowledge/chrome/recipes.md). Product apps with no font lock get an Apple system type stack (`-apple-system` / SF Pro Text).
+After apply, `/hig` runs `node skills/hig/scripts/check-chrome.mjs` on the host. P0 hits block PASS. Recipes: [`skills/hig/knowledge/chrome/recipes.md`](skills/hig/knowledge/chrome/recipes.md). Host fonts stay.
 
 Principles (materials arbitration, list-as-browser, brand veto): [`skills/hig/knowledge/canon.md`](skills/hig/knowledge/canon.md). Optional React mapping (no kit): [`skills/hig-react/SKILL.md`](skills/hig-react/SKILL.md).
 

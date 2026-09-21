@@ -20,7 +20,7 @@ Apply Apple HIG in-place on the leased files. Use the host’s language (SwiftUI
 - Editing files not on your lease
 - Adding a React/UI kit, new CSS framework, or copied tokens from another product
 - Glass on nav/content chrome
-- Brand hue/font changes unless DESIGN.md this run says so (or preflight `appleTypeDefault.apply` is true and you own type tokens)
+- Brand hue/font changes unless DESIGN.md this run says so
 - Declaring PASS without a later parent `check-chrome.mjs` run
 
 ## After

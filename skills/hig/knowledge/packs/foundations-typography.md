@@ -13,7 +13,7 @@
 ## Web translation
 
 - Define a type ramp in tokens (`--text-large-title`, `--text-title`, `--text-body`, …) using rem.
-- **Font families:** product + unspecified → Apple system stack (`-apple-system`, SF Pro Text/Display, system-ui). Brand register and locked `DESIGN.md` fonts win. Do not invent a display face.
+- **Font families:** host face stays. Hierarchy, ramp, list-vs-detail roles, and readability are the rules. Do not invent a display face or force a system stack.
 - Page/detail large titles live in detail chrome; list browser columns stay compact (callout/body), not marketing display.
 - Minimum readable body size; avoid decorative tiny labels for critical data.
 - If the project canon sets a root scale (e.g. 112.5%), DESIGN.md wins.
@@ -37,10 +37,10 @@ Typography rarely changes on press; selection/emphasis use weight or secondary c
 ## Craft checklist
 
 - [ ] Ramp exists as tokens
-- [ ] Brand fonts applied, or Apple system stack when `appleTypeDefault.apply`
+- [ ] Brand or host fonts preserved; hierarchy/ramp present
 - [ ] List vs detail type roles differ
 - [ ] Zoom/reflow does not clip primary labels
 
 ## Apply in host
 
-SwiftUI/UIKit: system text styles (`largeTitle` … `caption`) and Dynamic Type. Web: rem ramp. Product with no font lock → Apple system stack from preflight `appleTypeDefault`. Brand `DESIGN.md` fonts stay.
+SwiftUI/UIKit: system text styles (`largeTitle` … `caption`) and Dynamic Type when the host already uses them. Web: rem ramp. Do not replace the host typeface.

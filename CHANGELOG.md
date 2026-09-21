@@ -7,10 +7,11 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - `scripts/check-chrome.mjs` scans host UI source; P0 hits block `HIG_CHROME` PASS
 - Recipes: `knowledge/chrome/recipes.md`
 - New FAIL IDs: `chrome.materials.fashion-glass`, `chrome.layout.card-grid-home`, `chrome.ive.nested-cards`
-- Round 1 apply = 12 required surfaces; optional packs wait until core P0 is clean
-- Product + unspecified fonts → Apple system type stack (`type_default=apple`)
+- Round 1 apply = 12 required surfaces from `surfaces.yaml`; optional packs wait until core P0 is clean
+- Product + unspecified fonts stay with the host (no hardcoded SF Pro)
 - `chrome.list-browser.filter-density` is a required grammar class
 - Eval: `eval/run-check-chrome.mjs` plus pass/fail fixtures
+- Later catalog goal-loop plan: `docs/plans/2026-09-21-hig-catalog-goal-agent.md` (additive; does not replace `requiredIds`)
 
 ## Unreleased
 

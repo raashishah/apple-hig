@@ -33,7 +33,8 @@ node eval/run-check-chrome.mjs
 - [x] Grammar loads; required chrome rule IDs present (including filter-density + fashion-glass + card-grid-home)
 - [x] `fixtures/chrome-antipatterns` covers view-mode, toolbar budget, filter density, form column, sidebar, opaque bars, fashion glass, card-grid home, nested cards
 - [x] `check-chrome.mjs` detects those antipatterns and stays quiet on `fixtures/chrome-pass`
-- [x] Product + no DESIGN fonts → `type_default=apple`; brand register locks type
+- [x] Host fonts stay (no forced SF Pro / system stack)
+- [x] `surfaces.yaml` apply SSOT; `requiredIds` stay 12; Duo stays gated
 - [x] Packs + SKILL/review/design wire chrome grammar IDs
 - [x] All chrome rules are `mutationClass: structure` (brand veto does not hide them)
 
