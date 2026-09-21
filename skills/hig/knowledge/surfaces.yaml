@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -404,6 +404,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/airplay
     gate: always
     covers: [airplay]
+  - id: gyro-and-accelerometer
+    pack: inputs-gyro-and-accelerometer.md
+    affordance: gyro
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/gyro-and-accelerometer
+    gate: always
+    covers: [gyro-and-accelerometer]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

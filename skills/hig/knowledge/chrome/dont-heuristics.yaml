@@ -354,3 +354,7 @@ heuristics:
     match: Automatic mirroring
   - id: stream-background-loop
     match: background loops or in-app-only
+  - id: motion-without-benefit
+    match: no tangible benefit
+  - id: motion-direct-ui
+    match: directly manipulate the interface

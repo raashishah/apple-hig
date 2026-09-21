@@ -585,6 +585,7 @@ function affordanceMissing(need, present) {
     case "videoplayer":
     case "haptic":
     case "airplay":
+    case "gyro":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -969,6 +970,18 @@ export function scanAffordances(files) {
     /\ballowsExternalPlayback\b/.test(blob)
   ) {
     found.push("airplay");
+  }
+  if (
+    /\bdata-gyro\b/.test(blob) ||
+    /\bdata-accelerometer\b/.test(blob) ||
+    /\bDeviceMotionEvent\b/.test(blob) ||
+    /\bDeviceOrientationEvent\b/.test(blob) ||
+    /\bCMMotionManager\b/.test(blob) ||
+    /\bstartDeviceMotionUpdates\b/.test(blob) ||
+    /\bstartAccelerometerUpdates\b/.test(blob) ||
+    /\bstartGyroUpdates\b/.test(blob)
+  ) {
+    found.push("gyro");
   }
   return found;
 }
