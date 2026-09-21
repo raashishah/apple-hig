@@ -257,6 +257,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/popovers
     gate: always
     covers: [popovers]
+  - id: collections
+    pack: components-collections.md
+    affordance: collection
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/collections
+    gate: always
+    covers: [collections]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

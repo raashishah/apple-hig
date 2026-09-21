@@ -51,6 +51,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.sliders?.affordance === "slider" &&
     surfaces.byId["scroll-views"]?.affordance === "scroll" &&
     surfaces.byId.popovers?.affordance === "popover" &&
+    surfaces.byId.collections?.affordance === "collection" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -411,6 +412,7 @@ const results = [];
     "sliders",
     "scroll-views",
     "popovers",
+    "collections",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -501,6 +503,12 @@ const results = [];
   const popoverOnly = scanAffordances([
     { path: "Tip.tsx", text: '<div popover="auto">Share</div>' },
   ]);
+  const collectionOnly = scanAffordances([
+    { path: "Gallery.tsx", text: '<div data-collection><img alt="" /></div>' },
+  ]);
+  const listOnly = scanAffordances([
+    { path: "Rows.tsx", text: "<ul><li>Item A</li></ul>" },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -526,7 +534,9 @@ const results = [];
       !passList.includes("slider") &&
       !passList.includes("scroll") &&
       !passList.includes("popover") &&
+      !passList.includes("collection") &&
       cardGrid.includes("list") &&
+      !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
       nativeSelect.includes("picker") &&
       !nativeSelect.includes("menu") &&
@@ -552,6 +562,10 @@ const results = [];
       !dialogOnly.includes("popover") &&
       popoverOnly.includes("popover") &&
       !popoverOnly.includes("overlay") &&
+      collectionOnly.includes("collection") &&
+      !collectionOnly.includes("list") &&
+      listOnly.includes("list") &&
+      !listOnly.includes("collection") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -827,6 +841,17 @@ const results = [];
       catalog.byId.sliders?.pack === "components-sliders.md" &&
       catalog.byId["scroll-views"]?.pack === "components-scroll-views.md" &&
       catalog.byId.popovers?.pack === "components-popovers.md" &&
+      catalog.byId.collections?.dontCoverageComplete === true &&
+      (catalog.byId.collections?.dontHeuristicIds || []).includes(
+        "custom-collection-layout",
+      ) &&
+      (catalog.byId.collections?.dontHeuristicIds || []).includes(
+        "text-collection-as-table",
+      ) &&
+      (catalog.byId.collections?.dontHeuristicIds || []).includes(
+        "overlapping-collection-items",
+      ) &&
+      catalog.byId.collections?.pack === "components-collections.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -922,6 +947,7 @@ const results = [];
       "sliders",
       "scroll-views",
       "popovers",
+      "collections",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -3194,6 +3220,139 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-slider-scroll-popover-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-collections-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-collections-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-collections-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div
+      data-collection
+      data-custom-collection-layout
+      data-text-collection
+      data-overlapping-collection
+    >
+      <img alt="" />
+      Cover
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-collection>
+      <span>Alpha</span>
+      <span>Beta</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passCollections: passStatus.topics.collections?.state === "skipped-no-affordance",
+      passLists: passStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixCollections: fixStatus.topics.collections?.state === "applied",
+      fixLists: fixStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      collectionKept: /data-collection/.test(fixed) && /<img\b/.test(fixed),
+      markersGone:
+        !/data-custom-collection-layout/.test(fixed) &&
+        !/data-text-collection/.test(fixed) &&
+        !/data-overlapping-collection/.test(fixed),
+      notFlattenedToList: !/<ul\b/i.test(fixed) && !/<table\b/i.test(fixed),
+      holdUnchanged: held === origHold,
+      holdCollections: holdStatus.topics.collections?.state === "pending",
+      holdLists: holdStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      holdNotList: !/<ul\b/i.test(held) && !/<table\b/i.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passCollections: passStatus.topics.collections?.state,
+      passLists: passStatus.topics["lists-and-tables"]?.state,
+      fixCollections: fixStatus.topics.collections?.state,
+      holdCollections: holdStatus.topics.collections?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-collections-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

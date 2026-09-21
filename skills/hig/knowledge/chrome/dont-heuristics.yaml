@@ -212,3 +212,9 @@ heuristics:
     match: popover to show a warning
   - id: popover-on-compact
     match: displaying popovers in compact
+  - id: custom-collection-layout
+    match: custom collection layouts that confuse
+  - id: text-collection-as-table
+    match: collection of text
+  - id: overlapping-collection-items
+    match: collection items that overlap

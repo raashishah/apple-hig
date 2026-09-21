@@ -560,6 +560,7 @@ function affordanceMissing(need, present) {
     case "slider":
     case "scroll":
     case "popover":
+    case "collection":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -736,6 +737,14 @@ export function scanAffordances(files) {
     /\b(UIPopoverPresentationController|NSPopover)\b/.test(blob)
   ) {
     found.push("popover");
+  }
+  if (
+    /data-collection/.test(blob) ||
+    /\b(UICollectionView|NSCollectionView)\b/.test(blob) ||
+    /\bLazy(VGrid|HGrid)\b/.test(blob) ||
+    /\bCollectionView\s*[\({]/.test(blob)
+  ) {
+    found.push("collection");
   }
   return found;
 }
