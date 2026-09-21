@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -470,6 +470,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/augmented-reality
     gate: always
     covers: [augmented-reality]
+  - id: tap-to-pay-on-iphone
+    pack: tech-tap-to-pay.md
+    affordance: taptopay
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/tap-to-pay-on-iphone
+    gate: always
+    covers: [tap-to-pay-on-iphone]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

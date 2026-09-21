@@ -596,6 +596,7 @@ function affordanceMissing(need, present) {
     case "activityring":
     case "nfc":
     case "ar":
+    case "taptopay":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1071,6 +1072,14 @@ export function scanAffordances(files) {
     /\brel=["']ar["']/.test(blob)
   ) {
     found.push("ar");
+  }
+  if (
+    /\bdata-tap-to-pay\b/.test(blob) ||
+    /\bProximityReader\b/.test(blob) ||
+    /\bPaymentCardReader\b/.test(blob) ||
+    /\bPaymentCardReaderSession\b/.test(blob)
+  ) {
+    found.push("taptopay");
   }
   return found;
 }

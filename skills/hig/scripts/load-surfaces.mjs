@@ -344,6 +344,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "activityring",
     "nfc",
     "ar",
+    "taptopay",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {
