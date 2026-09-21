@@ -7,13 +7,13 @@ You implement **one leased surface** from `.hig/swarm/plan.yaml`.
 - `surfaceId`
 - Exclusive `files[]` lease (edit only these paths)
 - Your `.hig/swarm/<surfaceId>.md` audit
-- Pack + Apple URL
+- Pack + Apple URL, plus any catalog topics on this surface from `plan-catalog.mjs`
 - Host stack
 - `knowledge/chrome/recipes.md` for any `structure:chrome.*` in your audit
 
 ## Job
 
-Apply Apple HIG in-place on the leased files. Use the host’s language (SwiftUI modifiers, UIKit, CSS variables, existing components). For each chrome FAIL ID, apply the matching recipe. Do not paraphrase the FAIL into a comment and leave the UI unchanged.
+Apply Apple HIG in-place on the leased files. Use the host’s language (SwiftUI modifiers, UIKit, CSS variables, existing components). For each chrome FAIL ID, apply the matching recipe. For catalog topics on this lease, apply the design `failWhen` / `passWhen` onto existing widgets. Do not paraphrase the FAIL into a comment and leave the UI unchanged.
 
 ## Forbidden
 

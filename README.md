@@ -24,7 +24,7 @@ Then in any Cursor chat:
 
 | Command | What happens |
 |---|---|
-| `/hig` | **Default.** Preflight → ingest → parallel swarm audit/apply → gold QA (up to 3 rounds) |
+| `/hig` | **Default.** Preflight → ingest → parallel swarm audit/apply → gold QA (chrome up to 3 rounds) → catalog waves until remaining is 0 |
 | `/hig review [screens] --viewport 768,375` | Report-only gold QA. **Never auto-fixes** |
 | `/hig adapt [surface]` | One-surface structural fix when you ask |
 | `/hig upgrade` | Pull latest from GitHub + re-link skills (also say **HIG upgrade**) |
@@ -51,7 +51,7 @@ Chrome grammar ([`skills/hig/knowledge/chrome/grammar.yaml`](skills/hig/knowledg
 | `chrome.layout.card-grid-home` | Product home is a workspace, not a marketing card grid |
 | `chrome.ive.nested-cards` | Lists/forms are not wrapped in extra card panels |
 
-After apply, `/hig` runs `node skills/hig/scripts/check-chrome.mjs` on the host. P0 hits block PASS. Recipes: [`skills/hig/knowledge/chrome/recipes.md`](skills/hig/knowledge/chrome/recipes.md). Host fonts stay. Live Apple article inventory: [`skills/hig/knowledge/catalog.yaml`](skills/hig/knowledge/catalog.yaml) (not the round-1 apply list).
+After apply, `/hig` runs `node skills/hig/scripts/check-chrome.mjs` on the host. P0 hits block PASS. Recipes: [`skills/hig/knowledge/chrome/recipes.md`](skills/hig/knowledge/chrome/recipes.md). Host fonts stay. Live Apple article inventory: [`skills/hig/knowledge/catalog.yaml`](skills/hig/knowledge/catalog.yaml) (not the round-1 apply list). After chrome is clean, `scripts/plan-catalog.mjs` continues applicable packed topics until remaining is 0.
 
 Principles (materials arbitration, list-as-browser, brand veto): [`skills/hig/knowledge/canon.md`](skills/hig/knowledge/canon.md). Optional React mapping (no kit): [`skills/hig-react/SKILL.md`](skills/hig-react/SKILL.md).
 

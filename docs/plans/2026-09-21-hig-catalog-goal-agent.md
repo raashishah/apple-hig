@@ -11,9 +11,9 @@ jev: jev-1.13.0
 
 # HIG catalog goal agent - Plan
 
-Later-PR plan. It does **not** change apply on main or on PR #12, and it is not implementation work on this branch. Jev `plan_doc_shape=one_page_locked_lane` (0.98): this is the catalog plan.
+Locked-lane catalog plan. It does **not** change apply on main until merge. PR #12 now carries chrome, host fonts, catalog inventory, and the after-chrome goal loop. Jev `plan_doc_shape=one_page_locked_lane` (0.98).
 
-Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_loop_relation=additive_later` (1.0); `this_pr_scope=chrome_host_fonts_plus_plan` (1.0); `fonts_this_pr=leave_host` (1.0); `plan_doc_shape=one_page_locked_lane` (0.98). Remove `requiredIds` later noul 0.17. Watch/TV/Vision now noul 0.08. Lists on Vue/Flutter noul 0.87. TypeSafe is not a `/hig` runtime.
+Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_loop_relation=additive_later` (1.0, U2 now landed additive on this PR); `fonts_this_pr=leave_host` (1.0). Remove `requiredIds` later noul 0.17. Watch/TV/Vision now noul 0.08. Lists on Vue/Flutter noul 0.87. TypeSafe is not a `/hig` runtime. Jev `next_unit=finish_eval_docs_commit` (0.53); `mark_goal_complete_after_u2` noul 0.08.
 
 ## Locked apply (already on main)
 
@@ -27,9 +27,9 @@ Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_lo
 
 ## This PR (#12)
 
-Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT.
+Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. Visual any-host Apple-ness is still unproven.
 
-## Later: additive catalog loop
+## Additive catalog loop
 
 Ingest Apple's **live** HIG index into derived records (`id`, URL, framework-free `failWhen` / `passWhen`, `appliesWhen`). No frozen topic count. Refresh on `/hig upgrade`.
 
@@ -48,10 +48,10 @@ Do not delete `requiredIds`. Do not replace `surfaces.yaml`. Keep `check-chrome.
 
 Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not.
 
-## Sequence (later PR)
+## Sequence
 
 1. U1. Ingest live Apple index → derived catalog records. Eval tracks the index, not a number. **Landed on this PR.**
-2. U2. Goal loop **after** wave-0 `requiredIds`. Applicable set is extra work, not a replacement stop condition.
+2. U2. Goal loop **after** wave-0 `requiredIds`. Applicable set is extra work, not a replacement stop condition. **Landed on this PR** (`plan-catalog.mjs` + `eval/run-catalog.mjs` loop cases).
 3. U3. Host fonts already left alone on #12. Keep that.
 4. U4. `appliesWhen` from host patterns (scan list, form, overlay, platform), not a framework enum.
 5. U5. Same design FAIL proven on two detected stacks without naming those stacks in the rule.
@@ -75,4 +75,4 @@ node eval/run-check-chrome.mjs
 node eval/run-catalog.mjs
 ```
 
-`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family.
+`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family; wave 0 then catalog; remaining 0 is done; brand app-shell rows `n/a-register`; contract does not stop at twelve.

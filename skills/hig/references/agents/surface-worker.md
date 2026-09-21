@@ -12,11 +12,11 @@ You are one HIG swarm agent. You own **one** surface id. You do not own brand.
 - Shared laws from `knowledge/canon.md`
 - Chrome recipes from `knowledge/chrome/recipes.md` when citing `structure:chrome.*`
 
-You were launched because this id is **required** or its `gate` matched. A host that never matched the gate **skips** this surface (no worker). If you have nothing to mutate on this host, say so so the synthesizer can **drop** the surface — skip ≠ drop.
+You were launched because this id is **required**, its `gate` matched, or `plan-catalog.mjs` put it on `waveSurfaceIds`. A host that never matched the gate **skips** this surface (no worker). If you have nothing to mutate on this host, say so so the synthesizer can **drop** the surface — skip ≠ drop.
 
 ## Job
 
-Read the **host project as it exists**. Map Apple’s rules onto the host’s own views/CSS. Do not invent React components. Do not copy another app’s look.
+Read the **host project as it exists**. Map Apple’s rules onto the host’s own views/CSS. Do not invent React components. Do not copy another app’s look. Do not inject a widget the host does not already have.
 
 ## Output (only)
 

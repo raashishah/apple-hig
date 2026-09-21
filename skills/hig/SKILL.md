@@ -50,10 +50,12 @@ HIG_PREFLIGHT: <value from JSON>
 Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
 
 1. Do not rewrite host fonts or invent a face. Colors and typeface stay with the product.
-2. Round 1 **apply** only `requiredIds` (12) from `knowledge/surfaces.yaml` (the apply SSOT). Optional/gated surfaces may audit; do not lease-apply them until required P0 chrome is clean.
+2. Wave 0 **apply** only `requiredIds` (12) from `knowledge/surfaces.yaml` (the apply SSOT) until `check-chrome.mjs` is P0-clean. Optional/gated surfaces may audit.
 3. After each apply round, run `node <skill>/scripts/check-chrome.mjs` on the host and consume the JSON.
 4. If `pass` is false (any P0 in `fails[]`), you may **not** print `HIG_CHROME` PASS. Fix from `knowledge/chrome/recipes.md` and re-check.
 5. Apply using `knowledge/chrome/recipes.md` in the host language. No kit injection.
+6. When chrome P0 is clean, run `node <skill>/scripts/plan-catalog.mjs --chromePass true --write` and apply remaining `waveSurfaceIds` (applicable catalog topics that have a pack/`surfaceId`). Skip unmatched Watch/TV/Vision. Topics with no pack are `skipped-no-pack`, not injected. A 12-surface lease is not catalog done.
+7. Catalog done when chrome P0 is clean and `remaining` is 0 (every catalog row is terminal). Chrome retries use a 3-round cap; catalog waves continue until accounted or the user stops. Persist `.hig/catalog-status.yaml`. Print `HIG_CATALOG` from the plan JSON (loaded/applicable/remaining are data, not a frozen pass integer).
 
 ## Shared laws
 
@@ -70,7 +72,7 @@ Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
 ## Default pipeline (swarm)
 
 1. Preflight (`load-context.mjs`).
-2. Follow `references/verbs/design.md` end-to-end: ingest → design artifacts → **fan-out surface agents** → exclusive-file apply → gold QA → repeat until PASS or max rounds.
+2. Follow `references/verbs/design.md` end-to-end: ingest → design artifacts → **fan-out surface agents** → exclusive-file apply → gold QA → chrome P0 → **catalog waves** until remaining is 0.
 3. Summarize evidence (web: 768 and 375; native: compact + regular width).
 
 ## Swarm surfaces
@@ -94,4 +96,4 @@ Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Rec
 
 Deep Apple URLs remain in `knowledge/registry.yaml` for rare leaves. That file is not the apply catalog.
 
-Live Apple article inventory: `knowledge/catalog.yaml` (refresh with `scripts/sync-hig-catalog.mjs`). It does not replace round-1 apply.
+Live Apple article inventory: `knowledge/catalog.yaml` (refresh with `scripts/sync-hig-catalog.mjs`). Planner: `scripts/plan-catalog.mjs`. It does not replace wave-0 apply.

@@ -12,7 +12,7 @@ Default `/hig` path. Whole-app Apple HIG from existing requirements, then a **pa
 - `load-context.mjs` → `mutation` is not `unsupported`
 - If unsupported: print `stopLine` and stop
 - Read `knowledge/canon.md`
-- Run `node <skill>/scripts/load-surfaces.mjs` and `node <skill>/scripts/load-chrome-grammar.mjs`
+- Run `node <skill>/scripts/load-surfaces.mjs`, `node <skill>/scripts/load-chrome-grammar.mjs`, and `node <skill>/scripts/load-catalog.mjs`
 
 ## Steps
 
@@ -24,6 +24,7 @@ From context JSON + repo skim (do not invent other products’ brands):
 - Existing brand snapshot (`brandSnapshot`)
 - `stack.kind` / `stack.family` (swiftui, uikit, web, react, …)
 - `platform` (`phone` / `ipad` / `desktop` / `games` / `unknown`) and `capabilities` (tokens such as `healthkit`)
+- `node <skill>/scripts/plan-catalog.mjs --cwd <host>` after preflight (wave-0 vs catalog remaining)
 - Infer `register`: `product` for tools/scoreboards/shells; `brand` for marketing/portfolio/landing
 
 Ask **zero** interview questions when enough signal exists. If brand hue is missing, keep a quiet system accent. Do not rewrite fonts.
@@ -38,7 +39,8 @@ Write/refresh (Apple-designer voice for **this** product):
 2. `.hig/app-design.md` using `references/project/app-design-template.md`
 3. `.hig/screens.yaml` using `references/project/screens-yaml-template.yaml`
 4. `.hig/progress.yaml` — screens + swarm round status
-5. `.hig/swarm/` directory
+5. `.hig/catalog-status.yaml` from `plan-catalog.mjs --write`
+6. `.hig/swarm/` directory
 
 On `register: brand`, include:
 
@@ -58,7 +60,7 @@ unless the user explicitly asked to restyle spacing.
 
 Do **not** implement serially as a single agent editing all of `src/` at once. Fan out.
 
-**Round cap:** 3. Stop early on gold PASS.
+**Chrome retries:** at most 3 rounds. That cap is not catalog done.
 
 #### 3a. Audit (parallel)
 
@@ -87,9 +89,21 @@ Follow `references/agents/synthesizer.md`. Write `.hig/swarm/plan.yaml` with **e
 
 Launch apply Tasks (`references/agents/apply-worker.md`) only for surfaces with files. They edit **leased paths only**, in the host language (SwiftUI/UIKit/CSS/existing components). No React kit injection.
 
-**Round 1 apply leases = `requiredIds` only.** Optional `gate: always` surfaces may audit; do not apply them until `check-chrome.mjs` reports `pass: true` for required chrome.
+**Wave 0 apply leases = `requiredIds` only.** Optional `gate: always` surfaces may audit; do not apply them until `check-chrome.mjs` reports `pass: true` for required chrome.
 
-Parent agent applies any leftover files that could not be leased. Then run `node <skill>/scripts/check-chrome.mjs`. If P0 remains, next round re-applies only failed surfaces using `recipes.md`.
+Parent agent applies any leftover files that could not be leased. Then run `node <skill>/scripts/check-chrome.mjs`. If P0 remains, next chrome round re-applies only failed surfaces using `recipes.md`.
+
+#### 3c-2. Catalog waves (after chrome P0)
+
+When `check-chrome.mjs` `pass` is true, run:
+
+```bash
+node <skill>/scripts/plan-catalog.mjs --chromePass true --write
+```
+
+Apply `waveSurfaceIds` with the same leased apply workers. Map each catalog topic onto the host’s existing widgets. Do not inject a kit or a missing control. Topics in the plan with `skipped-no-pack` / `skipped-gate` / `n/a-register` are accounted — do not invent UI for them. Human-only packs (Apple Pay capture, Sign in consent, biometrics) style chrome around system sheets only.
+
+If `done` is false, persist `.hig/catalog-status.yaml`, mark applied topics, and run `plan-catalog.mjs` again. Do not print catalog done after only 12 surfaces.
 
 #### 3d. Gold QA
 
@@ -98,7 +112,7 @@ Follow `references/verbs/review.md` (report). Use `references/agents/gold-qa-rev
 - Web: **768** and **375**
 - Native: compact and regular width
 
-If P0 `structure:chrome.*` remains (review **or** `check-chrome.mjs`) and mutation is open, start the next round (re-audit failed surfaces only).
+If P0 `structure:chrome.*` remains (review **or** `check-chrome.mjs`) and mutation is open, start the next **chrome** round (re-audit failed surfaces only). If chrome is clean and catalog `remaining` > 0, continue catalog waves.
 
 ### 4. Evidence
 
@@ -122,6 +136,7 @@ If P0 `structure:chrome.*` remains (review **or** `check-chrome.mjs`) and mutati
 HIG_DESIGN: register=<product|brand> screens=<n> stack=<kind>
 HIG_SWARM: round=<n> surfaces=<n> applied=<n>
 HIG_CHROME: gates=<n> passed=<n>
+HIG_CATALOG: applicable=<n> remaining=<n> phase=<chrome|catalog>
 HIG_BRAND: preserved|updated-per-design
 HIG_EVIDENCE: wide=<path|pending> compact=<path|pending>
 HIG_IVE: simpler=yes|no native=yes|no

@@ -1,6 +1,6 @@
 /**
- * Live Apple HIG article catalog: extract, classify, parse, select.
- * Inventory only. Round-1 apply stays surfaces.yaml requiredIds.
+ * Live Apple HIG article catalog: extract, classify, parse, select, plan waves.
+ * Wave 0 apply stays surfaces.yaml requiredIds until chrome P0 is clean.
  */
 
 import fs from "node:fs";
@@ -296,4 +296,159 @@ export function loadCatalog(skillRoot) {
   validateCatalog(doc);
   const byId = Object.fromEntries(doc.topics.map((t) => [t.id, t]));
   return { ...doc, byId, catalogPath, count: doc.topics.length };
+}
+
+const BRAND_NA = new Set(["tab-bars", "tab-views", "split-views", "status-bars"]);
+
+export function catalogStateIsTerminal(state) {
+  switch (state) {
+    case "applied":
+    case "already-compliant":
+    case "skipped-gate":
+    case "skipped-no-pack":
+    case "n/a-register":
+      return true;
+    case "pending":
+      return false;
+    default: {
+      const _exhaustive = state;
+      void _exhaustive;
+      return false;
+    }
+  }
+}
+
+function countStates(topics) {
+  const counts = {
+    pending: 0,
+    applied: 0,
+    "already-compliant": 0,
+    "skipped-gate": 0,
+    "skipped-no-pack": 0,
+    "n/a-register": 0,
+  };
+  for (const row of Object.values(topics)) {
+    const key = row.state;
+    if (counts[key] == null) counts[key] = 0;
+    counts[key] += 1;
+  }
+  return counts;
+}
+
+function inferTopicState(topic, applicableIds, preflight, prevState) {
+  if (catalogStateIsTerminal(prevState)) return prevState;
+  if (!applicableIds.has(topic.id)) return "skipped-gate";
+  if (preflight?.register === "brand" && BRAND_NA.has(topic.id)) return "n/a-register";
+  if (!topic.pack && !topic.surfaceId) return "skipped-no-pack";
+  return "pending";
+}
+
+export function planGoalLoop({ catalog, surfaces, preflight, chromePass, status }) {
+  const { applicable } = selectCatalog(catalog, preflight);
+  const applicableIds = new Set(applicable.map((t) => t.id));
+  const requiredIds = [...(surfaces.requiredIds || [])];
+  const topics = {};
+  for (const topic of catalog.topics) {
+    const prev = status?.topics?.[topic.id];
+    const state = inferTopicState(topic, applicableIds, preflight, prev?.state);
+    topics[topic.id] = {
+      state,
+      surfaceId: topic.surfaceId || null,
+      pack: topic.pack || null,
+    };
+  }
+
+  const pendingTopics = catalog.topics.filter((t) => topics[t.id].state === "pending");
+  let phase;
+  let waveSurfaceIds;
+  let waveTopicIds;
+  if (!chromePass) {
+    phase = "chrome";
+    waveSurfaceIds = requiredIds;
+    waveTopicIds = pendingTopics
+      .filter((t) => t.surfaceId && requiredIds.includes(t.surfaceId))
+      .map((t) => t.id);
+  } else {
+    phase = "catalog";
+    waveTopicIds = pendingTopics.map((t) => t.id);
+    const seen = new Set();
+    waveSurfaceIds = [];
+    for (const t of pendingTopics) {
+      const sid = t.surfaceId || t.id;
+      if (seen.has(sid)) continue;
+      seen.add(sid);
+      waveSurfaceIds.push(sid);
+    }
+  }
+
+  const counts = countStates(topics);
+  const remaining = counts.pending;
+  return {
+    phase,
+    waveSurfaceIds,
+    waveTopicIds,
+    topics,
+    done: Boolean(chromePass) && remaining === 0,
+    coverage: {
+      loaded: catalog.topics.length,
+      applicable: applicable.length,
+      ...counts,
+      remaining,
+    },
+  };
+}
+
+export function stringifyCatalogStatus(plan, extras = {}) {
+  const chromePass = Boolean(extras.chromePass) || plan.phase === "catalog" || plan.done;
+  const lines = [
+    "version: 1",
+    `phase: ${plan.phase}`,
+    `chromePass: ${chromePass ? "true" : "false"}`,
+    `done: ${plan.done ? "true" : "false"}`,
+    `loaded: ${plan.coverage.loaded}`,
+    `applicable: ${plan.coverage.applicable}`,
+    `remaining: ${plan.coverage.remaining}`,
+    "topics:",
+  ];
+  for (const [id, row] of Object.entries(plan.topics)) {
+    lines.push(`  ${id}:`);
+    lines.push(`    state: ${row.state}`);
+    if (row.surfaceId) lines.push(`    surfaceId: ${row.surfaceId}`);
+    if (row.pack) lines.push(`    pack: ${row.pack}`);
+  }
+  return lines.join("\n") + "\n";
+}
+
+export function parseCatalogStatus(text) {
+  const topics = {};
+  let current = null;
+  const doc = { version: null, topics };
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.replace(/\t/g, "  ");
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+    const top = line.match(/^([A-Za-z]+):\s*(.*)$/);
+    if (top && !line.startsWith(" ")) {
+      const key = top[1];
+      const val = top[2].trim();
+      if (key === "topics") continue;
+      if (key === "version") doc.version = Number(val);
+      else if (val === "true" || val === "false") doc[key] = val === "true";
+      else if (/^\d+$/.test(val)) doc[key] = Number(val);
+      else doc[key] = val;
+      continue;
+    }
+    const start = line.match(/^\s{2}([A-Za-z0-9-]+):\s*$/);
+    if (start) {
+      current = start[1];
+      topics[current] = { state: "pending", surfaceId: null, pack: null };
+      continue;
+    }
+    if (!current) continue;
+    const kv = line.match(/^\s{4}([A-Za-z]+):\s*(.+)$/);
+    if (!kv) continue;
+    const key = kv[1];
+    const val = kv[2].trim();
+    if (key === "state" || key === "surfaceId" || key === "pack") topics[current][key] = val;
+  }
+  return doc;
 }

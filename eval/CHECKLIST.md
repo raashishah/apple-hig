@@ -39,6 +39,7 @@ node eval/run-catalog.mjs
 - [x] Packs + SKILL/review/design wire chrome grammar IDs
 - [x] All chrome rules are `mutationClass: structure` (brand veto does not hide them)
 - [x] `catalog.yaml` tracks the live Apple article index; lists apply on Vue; complications skip on web; `requiredIds` stay 12
+- [x] Goal loop: wave 0 is `requiredIds`; after chrome P0 remaining packed catalog topics apply; done when `remaining` is 0; brand app-shell catalog rows are `n/a-register`
 
 ## Swarm / stack (0.4)
 

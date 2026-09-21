@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 /**
- * Catalog inventory eval: live Apple index, applicability, no frozen counts.
+ * Catalog inventory + goal-loop eval: live Apple index, applicability, no frozen counts.
  * Does not mutate hosts. Does not replace surfaces.yaml requiredIds.
  */
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CATALOG_SOURCE_URL,
   extractArticles,
   loadCatalog,
+  parseCatalogStatus,
+  planGoalLoop,
   selectCatalog,
 } from "../skills/hig/scripts/catalog-lib.mjs";
+import { runPlanCatalog } from "../skills/hig/scripts/plan-catalog.mjs";
 import { loadSurfaces } from "../skills/hig/scripts/load-surfaces.mjs";
 import { fetchHigIndex } from "../skills/hig/scripts/sync-hig-catalog.mjs";
 
@@ -125,6 +129,167 @@ const results = [];
     requiredCount: surfaces.requiredIds.length,
     hasWatchRows: watchIds.every((id) => Boolean(catalog.byId[id])),
   });
+}
+
+{
+  const catalog = loadCatalog(skillRoot);
+  const surfaces = loadSurfaces(skillRoot);
+  const preflight = {
+    platform: "unknown",
+    capabilities: [],
+    stack: { kind: "vue", family: "web" },
+    register: "product",
+  };
+  const wave0 = planGoalLoop({ catalog, surfaces, preflight, chromePass: false });
+  const after = planGoalLoop({ catalog, surfaces, preflight, chromePass: true });
+  const extraPacked = after.waveSurfaceIds.filter((id) => !surfaces.requiredIds.includes(id));
+  results.push({
+    case: "goal-loop-wave0-then-catalog",
+    ok:
+      wave0.phase === "chrome" &&
+      wave0.done === false &&
+      wave0.waveSurfaceIds.join(",") === surfaces.requiredIds.join(",") &&
+      wave0.coverage.remaining > 0 &&
+      after.phase === "catalog" &&
+      after.done === false &&
+      extraPacked.length > 0 &&
+      after.coverage.remaining > surfaces.requiredIds.length &&
+      after.topics["lists-and-tables"]?.state === "pending" &&
+      after.topics["complications"]?.state === "skipped-gate",
+    wave0Phase: wave0.phase,
+    catalogPhase: after.phase,
+    extraPacked: extraPacked.length,
+    remaining: after.coverage.remaining,
+  });
+}
+
+{
+  const catalog = loadCatalog(skillRoot);
+  const surfaces = loadSurfaces(skillRoot);
+  const preflight = {
+    platform: "unknown",
+    capabilities: [],
+    stack: { kind: "vue", family: "web" },
+    register: "product",
+  };
+  const open = planGoalLoop({ catalog, surfaces, preflight, chromePass: true });
+  const status = { topics: {} };
+  for (const [id, row] of Object.entries(open.topics)) {
+    status.topics[id] = {
+      ...row,
+      state: row.state === "pending" ? "applied" : row.state,
+    };
+  }
+  const accounted = planGoalLoop({
+    catalog,
+    surfaces,
+    preflight,
+    chromePass: true,
+    status,
+  });
+  const beforeChrome = planGoalLoop({
+    catalog,
+    surfaces,
+    preflight,
+    chromePass: false,
+    status,
+  });
+  const persist = planGoalLoop({
+    catalog,
+    surfaces,
+    preflight,
+    chromePass: true,
+    status: {
+      topics: {
+        "lists-and-tables": { state: "applied", surfaceId: "lists-split" },
+      },
+    },
+  });
+  results.push({
+    case: "goal-loop-done-when-accounted",
+    ok:
+      open.done === false &&
+      accounted.done === true &&
+      accounted.phase === "catalog" &&
+      accounted.coverage.remaining === 0 &&
+      accounted.waveTopicIds.length === 0 &&
+      beforeChrome.done === false &&
+      persist.topics["lists-and-tables"]?.state === "applied" &&
+      !persist.waveTopicIds.includes("lists-and-tables"),
+    remainingOpen: open.coverage.remaining,
+    remainingAccounted: accounted.coverage.remaining,
+  });
+}
+
+{
+  const catalog = loadCatalog(skillRoot);
+  const surfaces = loadSurfaces(skillRoot);
+  const preflight = { platform: "phone", capabilities: [], register: "brand" };
+  const plan = planGoalLoop({ catalog, surfaces, preflight, chromePass: true });
+  const brandIds = ["tab-bars", "tab-views", "split-views", "status-bars"];
+  results.push({
+    case: "brand-skips-app-shell-catalog",
+    ok:
+      brandIds.every((id) => plan.topics[id]?.state === "n/a-register") &&
+      brandIds.every((id) => !plan.waveTopicIds.includes(id)),
+    states: Object.fromEntries(brandIds.map((id) => [id, plan.topics[id]?.state])),
+  });
+}
+
+{
+  const skillText = fs.readFileSync(path.join(skillRoot, "SKILL.md"), "utf8");
+  const designText = fs.readFileSync(
+    path.join(skillRoot, "references", "verbs", "design.md"),
+    "utf8",
+  );
+  results.push({
+    case: "contract-does-not-stop-at-twelve",
+    ok:
+      skillText.includes("A 12-surface lease is not catalog done") &&
+      skillText.includes("`remaining` is 0") &&
+      skillText.includes("catalog waves continue until accounted") &&
+      designText.includes("Do not print catalog done after only 12 surfaces") &&
+      designText.includes("HIG_CATALOG:"),
+    hasCatalogDoneShape: designText.includes("HIG_CATALOG:"),
+  });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-plan-catalog-"));
+  try {
+    const fixture = path.join(pluginRoot, "eval", "fixtures", "web-css");
+    fs.cpSync(fixture, dir, { recursive: true });
+    const planned = runPlanCatalog({
+      cwd: dir,
+      skillRoot,
+      chromePass: false,
+      write: true,
+    });
+    const statusPath = path.join(dir, ".hig", "catalog-status.yaml");
+    const parsed = parseCatalogStatus(fs.readFileSync(statusPath, "utf8"));
+    ok =
+      planned.phase === "chrome" &&
+      planned.done === false &&
+      planned.waveSurfaceIds.join(",") === loadSurfaces(skillRoot).requiredIds.join(",") &&
+      parsed.phase === "chrome" &&
+      parsed.chromePass === false &&
+      parsed.done === false &&
+      parsed.remaining === planned.coverage.remaining &&
+      parsed.topics.complications?.state === "skipped-gate" &&
+      parsed.loaded === loadCatalog(skillRoot).count;
+    detail = {
+      phase: planned.phase,
+      remaining: parsed.remaining,
+      loaded: parsed.loaded,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "plan-catalog-writes-status", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
