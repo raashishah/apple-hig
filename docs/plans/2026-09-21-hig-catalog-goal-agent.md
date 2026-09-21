@@ -27,7 +27,7 @@ Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_lo
 
 ## This PR (#12)
 
-Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Mechanical apply (`apply-chrome.mjs`) for every grammar ID. Catalog apply (`apply-catalog.mjs`) accounts chrome-backed packed topics, pack Don't code spans, and required-surface prose Don'ts. Optional widget affordances skip missing menus/pickers/progress/search/notifications/loading/feedback/onboarding/drag/settings/undo. Visual any-host Apple-ness is still unproven.
+Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Mechanical apply (`apply-chrome.mjs`) for every grammar ID. Catalog apply (`apply-catalog.mjs`) accounts chrome-backed packed topics, pack Don't code spans, and required-surface prose Don'ts. Optional widget affordances skip missing menus/pickers/progress/search/notifications/loading/feedback/onboarding/drag/settings/undo. Writing Don'ts account when every bullet has a scanner. Visual any-host Apple-ness is still unproven.
 
 ## Additive catalog loop
 
@@ -64,7 +64,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 12. Required-surface prose Don't heuristics (type, color, motion, a11y). Account only when every Don't is mechanically checkable. **Landed on this PR.** Optional packed Don'ts stay pending.
 13. Optional widget affordance skip (menu, picker, progress, search, notification, loading, feedback, onboarding, drag). **Landed on this PR.** Hosts that have the widget still need Don't apply.
 14. Search Don't heuristics. **Landed on this PR.** Account search-fields/searching when every Don't is checkable. Do not invent a browse list.
-15. Settings and undo skip-unless affordance. **Landed on this PR.** Do not invent Settings or Undo. Writing/foundation Don'ts wait.
+15. Settings and undo skip-unless affordance. **Landed on this PR.** Do not invent Settings or Undo.
+16. Writing Don't heuristics. **Landed on this PR.** Account writing when every Don't is checkable. Do not invent the next step or rewrite brand voice. Other foundation Don'ts wait.
 
 ## Non-goals
 

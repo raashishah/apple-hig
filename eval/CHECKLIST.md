@@ -41,9 +41,10 @@ node eval/run-catalog.mjs
 - [x] `catalog.yaml` tracks the live Apple article index; lists apply on Vue; complications skip on web; `requiredIds` stay 12
 - [x] Goal loop: wave 0 is `requiredIds`; after chrome P0 remaining packed catalog topics apply; done when `remaining` is 0; brand app-shell catalog rows are `n/a-register`
 - [x] Host-pattern affordance: list/form/overlay/chrome skip when the widget is absent; collection/card grids still count as list
-- [x] Optional widget affordance: menu/picker/progress/search/notification/loading/feedback/onboarding/drag skip when absent; Search nav link is not search; `<select>` is picker not menu; writing stays pending; remaining is not a frozen integer; `requiredIds` stay 12
-- [x] Settings/undo skip-unless: chrome-pass skips both; a Settings screen or Undo control stays pending; a data-entry form is not Settings; Cancel is not Undo; writing stays pending; remaining is not a frozen integer
-- [x] Search Don't heuristics account search-fields/searching on tmp chrome-pass (already-compliant); spinner-on-keystroke applies; hide-only-path and command-dump stay pending without inventing a list; writing stays pending; remaining is not a frozen integer
+- [x] Optional widget affordance: menu/picker/progress/search/notification/loading/feedback/onboarding/drag skip when absent; Search nav link is not search; `<select>` is picker not menu; remaining is not a frozen integer; `requiredIds` stay 12
+- [x] Settings/undo skip-unless: chrome-pass skips both; a Settings screen or Undo control stays pending; a data-entry form is not Settings; Cancel is not Undo; remaining is not a frozen integer
+- [x] Search Don't heuristics account search-fields/searching on tmp chrome-pass (already-compliant); spinner-on-keystroke applies; hide-only-path and command-dump stay pending without inventing a list; remaining is not a frozen integer
+- [x] Writing Don't heuristics account writing on tmp chrome-pass (already-compliant); Title Case long help sentence-cases; sarcastic errors without a next step and rewritten system alerts stay pending without inventing copy; other foundations stay pending; remaining is not a frozen integer
 - [x] Same chrome P0 FAIL on a web host and a Swift host; grammar `failWhen` / `passWhen` do not name frameworks
 - [x] Packed catalog topics derive `failWhen` from grammar + pack Do/Don't at load; unpackaged rows stay stubs; no SF Pro / framework names
 - [x] Mechanical apply clears the two dual-stack P0s on tmp copies of the web and Swift antipattern hosts; chrome-pass stays clean; no SF Pro/kit; committed fixtures stay dirty
@@ -51,7 +52,7 @@ node eval/run-catalog.mjs
 - [x] Mechanical apply clears filter-density and sidebar on a tmp copy of `chrome-antipatterns`; after.fails is empty; committed fixtures stay dirty
 - [x] Catalog apply accounts chrome-backed packed topics on tmp chrome-pass (already-compliant) and tmp chrome-antipatterns (applied after chrome fix); pack-only rows stay pending; remaining is not a frozen integer
 - [x] Pack Chrome gates join catalog chromeIds (buttons/text-fields); pack Don't code spans apply on a tmp host (`scaleX(-1)` / `margin-left`); tab-views stays a title stub; no SF Pro/kit
-- [x] Required-surface prose Don'ts (type/color/motion/a11y) scan/apply/account on tmp chrome-pass and tmp antipattern files; a topic accounts only when every Don't has a scanner; writing stays pending; missing optional widgets are skipped-no-affordance; no SF Pro/kit; remaining is not a frozen integer
+- [x] Required-surface prose Don'ts (type/color/motion/a11y) scan/apply/account on tmp chrome-pass and tmp antipattern files; a topic accounts only when every Don't has a scanner; missing optional widgets are skipped-no-affordance; no SF Pro/kit; remaining is not a frozen integer
 
 ## Swarm / stack (0.4)
 

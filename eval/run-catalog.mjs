@@ -695,7 +695,10 @@ const results = [];
       (catalog.byId.color?.dontHeuristicIds || []).includes("rainbow-nav-accents") &&
       (catalog.byId.motion?.dontHeuristicIds || []).includes("bounce-on-appear") &&
       (catalog.byId.accessibility?.dontHeuristicIds || []).includes("placeholder-only-label") &&
-      catalog.byId.writing?.dontCoverageComplete === false &&
+      catalog.byId.writing?.dontCoverageComplete === true &&
+      (catalog.byId.writing?.dontHeuristicIds || []).includes("sarcastic-error-hides-fix") &&
+      (catalog.byId.writing?.dontHeuristicIds || []).includes("title-case-long-help") &&
+      (catalog.byId.writing?.dontHeuristicIds || []).includes("rewrite-system-alerts") &&
       catalog.byId.menus?.dontCoverageComplete === false &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -804,11 +807,12 @@ const results = [];
       optionalSkip.every((id) => skipStatus.topics[id]?.state === "skipped-no-affordance") &&
       skipStatus.topics.searching?.state === "already-compliant" &&
       skipStatus.topics["search-fields"]?.state === "already-compliant" &&
-      skipStatus.topics.writing?.state === "pending" &&
+      skipStatus.topics.writing?.state === "already-compliant" &&
       skipStatus.topics.settings?.state === "skipped-no-affordance" &&
       skipStatus.topics["undo-and-redo"]?.state === "skipped-no-affordance" &&
       !skipReport.plan.waveTopicIds.includes("searching") &&
-      skipReport.plan.waveTopicIds.includes("writing") &&
+      !skipReport.plan.waveTopicIds.includes("writing") &&
+      skipReport.plan.waveTopicIds.includes("privacy") &&
       !skipReport.plan.waveTopicIds.includes("menus") &&
       skipReport.plan.coverage.remaining > 0 &&
       holdStatus.topics.menus?.state === "pending" &&
@@ -952,7 +956,7 @@ const results = [];
       spinHasSearch: /type=["']search["']/.test(spin),
       dumpPending: dumpStatus.topics.searching?.state === "pending",
       dumpUnchanged: dump === origDump,
-      writing: passStatus.topics.writing?.state === "pending",
+      writing: passStatus.topics.writing?.state === "already-compliant",
       remaining: passReport.plan.coverage.remaining > 0,
       noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
     };
@@ -975,6 +979,127 @@ const results = [];
     fs.rmSync(dumpDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-search-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-writing-pass-"));
+  const cuteDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-writing-cute-"));
+  const titleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-writing-title-"));
+  const alertDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-writing-alert-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, cuteDir, { recursive: true });
+    fs.cpSync(src, titleDir, { recursive: true });
+    fs.cpSync(src, alertDir, { recursive: true });
+    const origCute = `export function OopsError() {
+  return <p role="alert">Oops! Nice try, champ.</p>;
+}
+`;
+    const origAlert = `export function FakeSignIn() {
+  return (
+    <div role="dialog">
+      <p>Sign in with Apple to unlock exclusive magic.</p>
+      <button type="button">Continue</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cuteDir, "OopsError.tsx"), origCute);
+    fs.writeFileSync(
+      path.join(titleDir, "HelpCopy.tsx"),
+      `export function HelpCopy() {
+  return <p data-help>Please Check Your Email Address And Try Again Later</p>;
+}
+`,
+    );
+    fs.writeFileSync(path.join(alertDir, "FakeSignIn.tsx"), origAlert);
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const cuteReport = applyCatalog({
+      cwd: cuteDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const titleReport = applyCatalog({
+      cwd: titleDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const alertReport = applyCatalog({
+      cwd: alertDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const cuteStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(cuteDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const titleStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(titleDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const alertStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(alertDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const cute = fs.readFileSync(path.join(cuteDir, "OopsError.tsx"), "utf8");
+    const help = fs.readFileSync(path.join(titleDir, "HelpCopy.tsx"), "utf8");
+    const alert = fs.readFileSync(path.join(alertDir, "FakeSignIn.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(cuteDir),
+      ...walkSource(titleDir),
+      ...walkSource(alertDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cuteChrome: cuteReport.chrome.pass === true,
+      titleChrome: titleReport.chrome.pass === true,
+      alertChrome: alertReport.chrome.pass === true,
+      passWriting: passStatus.topics.writing?.state === "already-compliant",
+      passPrivacy: passStatus.topics.privacy?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      cutePending: cuteStatus.topics.writing?.state === "pending",
+      cuteUnchanged: cute === origCute,
+      titleApplied: titleStatus.topics.writing?.state === "applied",
+      titleSentence: /Please check your email address and try again later/.test(help),
+      titleNoTitleCase: !/Please Check Your Email Address And Try Again Later/.test(help),
+      alertPending: alertStatus.topics.writing?.state === "pending",
+      alertUnchanged: alert === origAlert,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWriting: passStatus.topics.writing?.state,
+      cuteWriting: cuteStatus.topics.writing?.state,
+      titleWriting: titleStatus.topics.writing?.state,
+      alertWriting: alertStatus.topics.writing?.state,
+      help,
+      remaining: passReport.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(cuteDir, { recursive: true, force: true });
+    fs.rmSync(titleDir, { recursive: true, force: true });
+    fs.rmSync(alertDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-writing-donts", ok, ...detail });
 }
 
 {
@@ -1007,7 +1132,7 @@ const results = [];
     ok =
       report.chrome.pass === true &&
       required.every((id) => status.topics[id]?.state === "already-compliant") &&
-      status.topics.writing?.state === "pending" &&
+      status.topics.writing?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1083,7 +1208,7 @@ const results = [];
       !/\bbounce\b/i.test(motion) &&
       !/background:\s*#000/.test(chromeCss) &&
       !/#fff/i.test(chromeCss) &&
-      status.topics.writing?.state === "pending" &&
+      status.topics.writing?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1153,7 +1278,7 @@ const results = [];
       status.topics.color?.state === "pending" &&
       status.topics.typography?.state === "pending" &&
       status.topics.accessibility?.state === "already-compliant" &&
-      status.topics.writing?.state === "pending" &&
+      status.topics.writing?.state === "already-compliant" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&

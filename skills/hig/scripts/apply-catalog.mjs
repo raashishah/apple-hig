@@ -2,7 +2,7 @@
 /**
  * After chrome P0, account packed catalog topics whose chromeIds are clean
  * and pack Don't code spans that the host does not hit (or that we can strip).
- * Required-surface and search prose Don'ts apply when every Don't has a scanner.
+ * Required-surface, search, and writing prose Don'ts apply when every Don't has a scanner.
  * Optional widget affordances skip when the host has no matching control.
  * Does not inject a kit or rewrite the host typeface.
  * Usage: node apply-catalog.mjs [--cwd host] [--write]

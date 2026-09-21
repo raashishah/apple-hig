@@ -653,6 +653,163 @@ function scanSearchDump(files) {
   return out;
 }
 
+const CUTE_ERROR =
+  /\b(oops(?:ie)?|whoops(?:ie)?|uh-oh|uh oh|yikes|d'oh|my bad|nice try|silly|champ|butterfingers|try harder|not this time|well that didn't)\b/i;
+const ERROR_NEXT_STEP =
+  /\b(try again|enter a? ?valid|check your|retry|go back|use a different|contact|add a|choose a|re-?enter|fix the|correct the)\b/i;
+const HELP_ATTR =
+  /data-help|data-hint|aria-description|class(?:Name)?=["'][^"']*\b(?:help|hint|description|empty-state)\b/;
+const SYSTEM_JOB =
+  /sign\s*in\s*with\s*apple|apple\s*pay|would like to access your|allow .{0,80}to (access|use) your (camera|mic(?:rophone)?|location|photos)/i;
+const SYSTEM_EXTRA =
+  /\b(unlock|magic|exclusive|delight|sprinkle|continue to enjoy|don't miss|we need you to)\b/i;
+
+function innerText(html) {
+  return String(html || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function errorRegions(text) {
+  const out = [];
+  const tagRe =
+    /<(p|div|span|small)\b([^>]*(?:role=["']alert["']|aria-live|data-error|class(?:Name)?=["'][^"']*\berror\b)[^>]*)>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = tagRe.exec(text))) out.push(innerText(m[3]));
+  const assignRe =
+    /\b(?:error(?:Message|Text)?|errMsg|setError)\s*(?:=|\()\s*["']([^"']+)["']/g;
+  while ((m = assignRe.exec(text))) out.push(m[1]);
+  return out;
+}
+
+function scanSarcasticError(files) {
+  const out = [];
+  for (const f of files) {
+    for (const copy of errorRegions(f.text)) {
+      if (CUTE_ERROR.test(copy) && !ERROR_NEXT_STEP.test(copy)) {
+        out.push(hit(f.path, "sarcastic error without a next step"));
+      }
+    }
+  }
+  return out;
+}
+
+function isTitleCaseLong(s) {
+  const words = String(s || "")
+    .replace(/[^\w\s'-]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length < 6) return false;
+  const skip = new Set(["a", "an", "the", "and", "or", "of", "to", "in", "on", "for", "with", "at"]);
+  let content = 0;
+  let titled = 0;
+  for (const w of words) {
+    if (skip.has(w.toLowerCase())) continue;
+    content += 1;
+    if (/^[A-Z][a-z]/.test(w) || /^[A-Z]{2,}$/.test(w)) titled += 1;
+  }
+  return content >= 4 && titled >= Math.ceil(content * 0.7);
+}
+
+function toSentenceCase(s) {
+  return String(s).replace(/[A-Za-z][A-Za-z']*/g, (word, offset, whole) => {
+    if (/^[A-Z]{2,4}$/.test(word)) return word;
+    const lead = whole.slice(0, offset);
+    if (offset === 0 || /[.!?]\s*$/.test(lead)) {
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }
+    return word.toLowerCase();
+  });
+}
+
+function helpSpans(text) {
+  const spans = [];
+  const tagRe = /<(p|small|span|div|em)\b([^>]*)>([^<]{8,})<\/\1>/gi;
+  let m;
+  while ((m = tagRe.exec(text))) {
+    if (!HELP_ATTR.test(m[2])) continue;
+    const inner = m[3];
+    const start = m.index + m[0].indexOf(inner);
+    spans.push({ start, end: start + inner.length, text: inner });
+  }
+  const propRe =
+    /\b(?:helpText|description|emptyMessage|hintText)\s*[:=]\s*(["'])([^"']{8,})\1/g;
+  while ((m = propRe.exec(text))) {
+    const inner = m[2];
+    const start = m.index + m[0].lastIndexOf(inner);
+    spans.push({ start, end: start + inner.length, text: inner });
+  }
+  const ariaRe = /aria-description=["']([^"']{8,})["']/g;
+  while ((m = ariaRe.exec(text))) {
+    const inner = m[1];
+    const start = m.index + m[0].indexOf(inner);
+    spans.push({ start, end: start + inner.length, text: inner });
+  }
+  return spans;
+}
+
+function scanTitleCaseHelp(files) {
+  const out = [];
+  for (const f of files) {
+    for (const span of helpSpans(f.text)) {
+      if (isTitleCaseLong(span.text)) {
+        out.push(hit(f.path, "title case on long help"));
+      }
+    }
+  }
+  return out;
+}
+
+function applyTitleCaseHelp(text) {
+  const spans = helpSpans(text).filter((s) => isTitleCaseLong(s.text));
+  if (!spans.length) return text;
+  let next = text;
+  for (const span of [...spans].sort((a, b) => b.start - a.start)) {
+    next = next.slice(0, span.start) + toSentenceCase(span.text) + next.slice(span.end);
+  }
+  return next;
+}
+
+function dialogRegions(text) {
+  const out = [];
+  const tagRe = /<(dialog)\b([^>]*)>([\s\S]*?)<\/dialog>/gi;
+  let m;
+  while ((m = tagRe.exec(text))) out.push(m[0]);
+  const roleRe =
+    /<([A-Za-z][\w]*)\b([^>]*role=["'](?:dialog|alertdialog)["'][^>]*)>([\s\S]*?)<\/\1>/gi;
+  while ((m = roleRe.exec(text))) out.push(m[0]);
+  return out;
+}
+
+function scanRewriteSystemAlerts(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /<(button|a|span)\b[^>]*>\s*((?:Continue|Log in|Unlock|Join) with (?:your )?Apple(?: ID)?|Pay With Apple Pay Now!?)\s*</i.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "rewritten Sign in/Pay control label"));
+    }
+    for (const region of dialogRegions(f.text)) {
+      const copy = innerText(region);
+      if (!SYSTEM_JOB.test(copy)) continue;
+      const leftover = copy
+        .replace(/sign\s*in\s*with\s*apple/gi, "")
+        .replace(/apple\s*pay/gi, "")
+        .replace(/\b(cancel|continue|ok|allow|don'?t allow|pay)\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (leftover.length > 24 || SYSTEM_EXTRA.test(copy)) {
+        out.push(hit(f.path, "rewritten system Sign in/Pay/permission alert"));
+      }
+    }
+  }
+  return out;
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -689,6 +846,12 @@ function scanHeuristic(id, files) {
       return scanSearchSpinner(files);
     case "search-as-settings-dump":
       return scanSearchDump(files);
+    case "sarcastic-error-hides-fix":
+      return scanSarcasticError(files);
+    case "title-case-long-help":
+      return scanTitleCaseHelp(files);
+    case "rewrite-system-alerts":
+      return scanRewriteSystemAlerts(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -732,6 +895,12 @@ function applyHeuristic(id, file) {
     case "spinner-per-keystroke":
       return applySearchSpinner(file.text);
     case "search-as-settings-dump":
+      return file.text;
+    case "sarcastic-error-hides-fix":
+      return file.text;
+    case "title-case-long-help":
+      return applyTitleCaseHelp(file.text);
+    case "rewrite-system-alerts":
       return file.text;
     default: {
       const _exhaustive = id;

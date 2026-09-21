@@ -36,3 +36,9 @@ heuristics:
     match: Block the UI with a spinner on every keystroke
   - id: search-as-settings-dump
     match: Use search as the settings or command dump
+  - id: sarcastic-error-hides-fix
+    match: Cute or sarcastic error copy that hides the fix
+  - id: title-case-long-help
+    match: Title Case On Every Long Sentence in body help
+  - id: rewrite-system-alerts
+    match: Rewriting system alerts
