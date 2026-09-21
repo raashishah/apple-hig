@@ -1,6 +1,6 @@
 /**
- * Mechanical Don't scanners for required catalog surfaces.
- * Do not rewrite host fonts. Do not inject a kit.
+ * Mechanical Don't scanners for catalog surfaces with complete Don't coverage.
+ * Do not rewrite host fonts. Do not inject a kit. Do not invent missing widgets.
  */
 
 import fs from "node:fs";
@@ -569,6 +569,90 @@ function applyTinyCritical(text) {
     .replace(/text-\[(?:[0-9]|10)px\]/g, "text-[13px]");
 }
 
+function fileHasSearchWidget(text) {
+  return (
+    /type=["']search["']/i.test(text) ||
+    /role=["']search["']/i.test(text) ||
+    /\.searchable\b/.test(text) ||
+    /\b(UISearchBar|UISearchController|NSSearchField)\b/.test(text)
+  );
+}
+
+function fileHasCollection(text) {
+  return (
+    /<(ul|ol|table)\b/i.test(text) ||
+    /role=["']list["']/i.test(text) ||
+    /data-list-pane/.test(text) ||
+    /\bList\s*[\({]/.test(text) ||
+    /card-grid|dashboard-cards/.test(text)
+  );
+}
+
+function scanHideOnlySearch(files) {
+  const blob = files.map((f) => f.text).join("\n");
+  if (!fileHasSearchWidget(blob)) return [];
+  const out = [];
+  if (!fileHasCollection(blob)) {
+    const f = files.find((x) => fileHasSearchWidget(x.text)) || files[0];
+    out.push(hit(f.path, "search is the only path to content"));
+  }
+  for (const f of files) {
+    if (
+      /\{\s*(query|searchQuery|q)\s*(&&|\?)/.test(f.text) &&
+      /<(ul|ol|table)\b/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "collection gated on search query"));
+    }
+    if (/<(ul|ol|table)\b[^>]*hidden=\{\s*!/.test(f.text)) {
+      out.push(hit(f.path, "list hidden unless query"));
+    }
+  }
+  return out;
+}
+
+function scanSearchSpinner(files) {
+  const out = [];
+  for (const f of files) {
+    if (!fileHasSearchWidget(f.text)) continue;
+    const types = /on(Change|Input)\s*=/.test(f.text);
+    const busy =
+      /aria-busy=["']true["']/.test(f.text) ||
+      /\bspinner\b/i.test(f.text) ||
+      /setLoading\s*\(\s*true/.test(f.text);
+    const debounced = /\bdebounce\b|\bsetTimeout\b/.test(f.text);
+    if (types && busy && !debounced) {
+      out.push(hit(f.path, "spinner on search keystroke"));
+    }
+  }
+  return out;
+}
+
+function applySearchSpinner(text) {
+  if (!fileHasSearchWidget(text)) return text;
+  if (!/on(Change|Input)\s*=/.test(text)) return text;
+  if (/\bdebounce\b|\bsetTimeout\b/.test(text)) return text;
+  return text
+    .replace(/\s*aria-busy=["']true["']/gi, "")
+    .replace(/\s*<span[^>]*\bspinner\b[^>]*>(?:\s*<\/span>)?/gi, "")
+    .replace(/\s*<progress\b[^>]*\/?>(?:\s*<\/progress>)?/gi, "");
+}
+
+function scanSearchDump(files) {
+  const out = [];
+  for (const f of files) {
+    if (!fileHasSearchWidget(f.text)) continue;
+    if (
+      /(?:placeholder|aria-label)=["'][^"']*\b(settings|commands|command palette)\b/i.test(
+        f.text,
+      ) ||
+      /\b(cmdk|Command\.Dialog|data-command-palette)\b/.test(f.text)
+    ) {
+      out.push(hit(f.path, "search used as settings or command dump"));
+    }
+  }
+  return out;
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -599,6 +683,12 @@ function scanHeuristic(id, files) {
       return scanTinyCritical(files);
     case "color-only-error":
       return scanColorOnly(files);
+    case "hide-only-path-behind-search":
+      return scanHideOnlySearch(files);
+    case "spinner-per-keystroke":
+      return scanSearchSpinner(files);
+    case "search-as-settings-dump":
+      return scanSearchDump(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -637,6 +727,12 @@ function applyHeuristic(id, file) {
       return applyTinyCritical(file.text);
     case "color-only-error":
       return applyColorOnly(file.text);
+    case "hide-only-path-behind-search":
+      return file.text;
+    case "spinner-per-keystroke":
+      return applySearchSpinner(file.text);
+    case "search-as-settings-dump":
+      return file.text;
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -664,15 +760,13 @@ function applyWanted(files, ids) {
   return mutated;
 }
 
-export function accountRequiredProseDont({ topics, catalog, surfaces, files }) {
-  const required = new Set(surfaces.requiredIds || []);
+export function accountRequiredProseDont({ topics, catalog, files }) {
   const wanted = [];
   const seen = new Set();
   for (const [id, row] of Object.entries(topics)) {
     if (row.state !== "pending") continue;
     const topic = catalog.byId[id];
-    if (!topic?.surfaceId || !required.has(topic.surfaceId)) continue;
-    if (!topic.dontCoverageComplete) continue;
+    if (!topic?.dontCoverageComplete) continue;
     for (const hid of topic.dontHeuristicIds || []) {
       if (seen.has(hid)) continue;
       seen.add(hid);
@@ -686,7 +780,7 @@ export function accountRequiredProseDont({ topics, catalog, surfaces, files }) {
     let next = { ...row };
     if (row.state === "pending") {
       const topic = catalog.byId[id];
-      if (topic?.surfaceId && required.has(topic.surfaceId) && topic.dontCoverageComplete) {
+      if (topic?.dontCoverageComplete) {
         const ids = topic.dontHeuristicIds || [];
         const hits = ids.flatMap((hid) => scanHeuristic(hid, files));
         if (hits.length === 0) {

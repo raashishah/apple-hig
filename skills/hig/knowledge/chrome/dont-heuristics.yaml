@@ -1,4 +1,4 @@
-# Mechanical Don't scanners for required-surface catalog apply.
+# Mechanical Don't scanners for catalog apply.
 # Match is normalized against pack Don't bullets. Not a topic-id list.
 # Account a topic only when every Don't on it matches a scanner here.
 heuristics:
@@ -30,3 +30,9 @@ heuristics:
     match: Tiny decorative type for critical data
   - id: color-only-error
     match: Color-only error states
+  - id: hide-only-path-behind-search
+    match: Hide the only path to content behind search
+  - id: spinner-per-keystroke
+    match: Block the UI with a spinner on every keystroke
+  - id: search-as-settings-dump
+    match: Use search as the settings or command dump

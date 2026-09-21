@@ -22,6 +22,7 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - Catalog apply joins pack **Chrome gates** into topic `chromeIds` and accounts pack **Don't** backtick tokens (strip `scaleX(-1)`, map physical margin/padding, no kit). Prose-only Don'ts stay pending. Remaining is not a frozen integer.
 - Catalog apply mechanically scans required-surface prose Don'ts (type, color, motion, a11y) and accounts a topic only when every Don't has a scanner. Host fonts stay. Optional packed Don'ts stay pending. Remaining is not a frozen integer.
 - Optional widget affordances (`menu`, `picker`, `progress`, `search`, `notification`, `loading`, `feedback`, `onboarding`, `drag`) skip with `skipped-no-affordance` when the host has no matching widget. Search field ≠ Search nav link. `<select>` is a picker, not a menu. Presence without a Don't scanner still stays pending. `requiredIds` stay 12.
+- Search Don't heuristics: hide-only-path, spinner-per-keystroke, search-as-settings-dump. chrome-pass search is already-compliant. Unfixable hide-only-path and command-dump stay pending. Do not invent a list. `requiredIds` stay 12.
 
 ## Unreleased
 

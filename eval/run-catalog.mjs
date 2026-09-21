@@ -666,6 +666,9 @@ const results = [];
       (catalog.byId.accessibility?.dontHeuristicIds || []).includes("placeholder-only-label") &&
       catalog.byId.writing?.dontCoverageComplete === false &&
       catalog.byId.menus?.dontCoverageComplete === false &&
+      catalog.byId.searching?.dontCoverageComplete === true &&
+      catalog.byId["search-fields"]?.dontCoverageComplete === true &&
+      (catalog.byId.searching?.dontHeuristicIds || []).includes("hide-only-path-behind-search") &&
       loadSurfaces(skillRoot).requiredIds.length === 12,
     typeIds: catalog.byId.typography?.dontHeuristicIds,
     writingCovered: catalog.byId.writing?.dontCoverageComplete,
@@ -744,18 +747,18 @@ const results = [];
       skipReport.chrome.pass === true &&
       holdReport.chrome.pass === true &&
       optionalSkip.every((id) => skipStatus.topics[id]?.state === "skipped-no-affordance") &&
-      skipStatus.topics.searching?.state === "pending" &&
-      skipStatus.topics["search-fields"]?.state === "pending" &&
+      skipStatus.topics.searching?.state === "already-compliant" &&
+      skipStatus.topics["search-fields"]?.state === "already-compliant" &&
       skipStatus.topics.writing?.state === "pending" &&
       skipStatus.topics.settings?.state === "pending" &&
       skipStatus.topics["undo-and-redo"]?.state === "pending" &&
-      skipReport.plan.waveTopicIds.includes("searching") &&
+      !skipReport.plan.waveTopicIds.includes("searching") &&
       skipReport.plan.waveTopicIds.includes("writing") &&
       !skipReport.plan.waveTopicIds.includes("menus") &&
       skipReport.plan.coverage.remaining > 0 &&
       holdStatus.topics.menus?.state === "pending" &&
       holdStatus.topics.pickers?.state === "skipped-no-affordance" &&
-      holdStatus.topics.searching?.state === "pending" &&
+      holdStatus.topics.searching?.state === "already-compliant" &&
       destUnchanged &&
       !/SF Pro|-apple-system|shadcn/i.test(skipText) &&
       !/SF Pro|-apple-system|shadcn/i.test(holdText);
@@ -773,6 +776,144 @@ const results = [];
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-optional-widget-affordance", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-search-pass-"));
+  const hideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-search-hide-"));
+  const spinDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-search-spin-"));
+  const dumpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-search-dump-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, hideDir, { recursive: true });
+    fs.cpSync(src, spinDir, { recursive: true });
+    fs.cpSync(src, dumpDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(hideDir, "CompactListBrowser.tsx"),
+      `export function CompactListBrowser() {
+  return (
+    <div>
+      <input type="search" aria-label="Search inventory" />
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(spinDir, "Typeahead.tsx"),
+      `export function Typeahead() {
+  return (
+    <div aria-busy="true">
+      <input type="search" aria-label="Find" onChange={() => setBusy(true)} />
+      <span className="spinner"></span>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(dumpDir, "CommandDump.tsx"),
+      `export function CommandDump() {
+  return <input type="search" aria-label="Search settings and commands" />;
+}
+`,
+    );
+    const origPass = fs.readFileSync(path.join(src, "CompactListBrowser.tsx"), "utf8");
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const hideReport = applyCatalog({
+      cwd: hideDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const spinReport = applyCatalog({
+      cwd: spinDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const dumpReport = applyCatalog({
+      cwd: dumpDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const hideStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(hideDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const spinStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(spinDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const dumpStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(dumpDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const hideList = fs.readFileSync(path.join(hideDir, "CompactListBrowser.tsx"), "utf8");
+    const spin = fs.readFileSync(path.join(spinDir, "Typeahead.tsx"), "utf8");
+    const dump = fs.readFileSync(path.join(dumpDir, "CommandDump.tsx"), "utf8");
+    const origDump = `export function CommandDump() {
+  return <input type="search" aria-label="Search settings and commands" />;
+}
+`;
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(hideDir),
+      ...walkSource(spinDir),
+      ...walkSource(dumpDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      hideChrome: hideReport.chrome.pass === true,
+      spinChrome: spinReport.chrome.pass === true,
+      dumpChrome: dumpReport.chrome.pass === true,
+      passSearching: passStatus.topics.searching?.state === "already-compliant",
+      passFields: passStatus.topics["search-fields"]?.state === "already-compliant",
+      passUnchanged:
+        fs.readFileSync(path.join(passDir, "CompactListBrowser.tsx"), "utf8") === origPass,
+      hidePending: hideStatus.topics.searching?.state === "pending",
+      hideNoList: !/<(ul|ol|table)\b/i.test(hideList),
+      spinApplied: spinStatus.topics.searching?.state === "applied",
+      spinNoBusy: !/aria-busy=["']true["']/.test(spin),
+      spinNoSpinner: !/\bspinner\b/i.test(spin),
+      spinHasSearch: /type=["']search["']/.test(spin),
+      dumpPending: dumpStatus.topics.searching?.state === "pending",
+      dumpUnchanged: dump === origDump,
+      writing: passStatus.topics.writing?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passSearch: passStatus.topics.searching?.state,
+      hideSearch: hideStatus.topics.searching?.state,
+      spinSearch: spinStatus.topics.searching?.state,
+      dumpSearch: dumpStatus.topics.searching?.state,
+      spin,
+      remaining: passReport.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(hideDir, { recursive: true, force: true });
+    fs.rmSync(spinDir, { recursive: true, force: true });
+    fs.rmSync(dumpDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-search-donts", ok, ...detail });
 }
 
 {
@@ -807,7 +948,7 @@ const results = [];
       required.every((id) => status.topics[id]?.state === "already-compliant") &&
       status.topics.writing?.state === "pending" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
-      status.topics.searching?.state === "pending" &&
+      status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
       destUnchanged &&
       !/SF Pro|-apple-system|shadcn/i.test(hostText);
@@ -883,7 +1024,7 @@ const results = [];
       !/#fff/i.test(chromeCss) &&
       status.topics.writing?.state === "pending" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
-      status.topics.searching?.state === "pending" &&
+      status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
       !/SF Pro|-apple-system|shadcn/i.test(hostText);
     detail = {
@@ -953,7 +1094,7 @@ const results = [];
       status.topics.accessibility?.state === "already-compliant" &&
       status.topics.writing?.state === "pending" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
-      status.topics.searching?.state === "pending" &&
+      status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
       fonts === origFonts &&
       rainbow === origRainbow &&

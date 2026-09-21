@@ -63,6 +63,7 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 11. Pack **Chrome gates** join catalog `chromeIds`; pack **Don't** code spans apply/account. **Landed on this PR.** Prose-only Don'ts stay pending.
 12. Required-surface prose Don't heuristics (type, color, motion, a11y). Account only when every Don't is mechanically checkable. **Landed on this PR.** Optional packed Don'ts stay pending.
 13. Optional widget affordance skip (menu, picker, progress, search, notification, loading, feedback, onboarding, drag). **Landed on this PR.** Hosts that have the widget still need Don't apply. Settings/undo/foundations wait.
+14. Search Don't heuristics. **Landed on this PR.** Account search-fields/searching when every Don't is checkable. Do not invent a browse list.
 
 ## Non-goals
 
