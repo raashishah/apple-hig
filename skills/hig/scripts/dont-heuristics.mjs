@@ -3029,6 +3029,111 @@ function applyOverlappingCollectionItems(text) {
   return text.replace(/\s*data-overlapping-collection(?:="[^"]*")?/g, "");
 }
 
+function hasPageControlWidget(text) {
+  return (
+    /data-page-control/.test(text) ||
+    /data-carousel-dots/.test(text) ||
+    /\bUIPageControl\b/.test(text) ||
+    /\bPageControl\s*[\({]/.test(text) ||
+    /PageTabViewStyle/.test(text) ||
+    /\.tabViewStyle\(\s*\.page/.test(text)
+  );
+}
+
+function pageControlNumberOfPages(text) {
+  const nums = [...String(text).matchAll(/numberOfPages\s*[:=]\s*\{?\s*(\d+)/g)].map((m) =>
+    Number(m[1]),
+  );
+  return nums.length ? Math.max(...nums) : 0;
+}
+
+function countPageControlDots(text) {
+  let max = pageControlNumberOfPages(text);
+  for (const b of blocksWithAttr(text, "data-page-control")) {
+    const buttons = b.text.match(/<button\b/gi) || [];
+    const dots = b.text.match(/data-page-dot/g) || [];
+    max = Math.max(max, buttons.length, dots.length);
+  }
+  return max;
+}
+
+function scanPageControlAsHierarchy(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hierarchical-page-control/.test(f.text)) {
+      out.push(hit(f.path, "hierarchical page control"));
+    }
+  }
+  return out;
+}
+
+function applyPageControlAsHierarchy(text) {
+  return text.replace(/\s*data-hierarchical-page-control(?:="[^"]*")?/g, "");
+}
+
+function scanTooManyPageDots(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-too-many-page-dots/.test(f.text)) {
+      out.push(hit(f.path, "too many page-control dots"));
+      continue;
+    }
+    if (!hasPageControlWidget(f.text) && pageControlNumberOfPages(f.text) < 11) continue;
+    if (countPageControlDots(f.text) >= 11) {
+      out.push(hit(f.path, "too many page-control dots"));
+    }
+  }
+  return out;
+}
+
+function applyTooManyPageDots(text) {
+  return text.replace(/\s*data-too-many-page-dots(?:="[^"]*")?/g, "");
+}
+
+function scanTooManyPageIndicatorImages(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-many-page-indicator-images/.test(f.text)) {
+      out.push(hit(f.path, "too many page-control indicator images"));
+      continue;
+    }
+    if (!hasPageControlWidget(f.text)) continue;
+    const images = f.text.match(/<(img|Image)\b/gi) || [];
+    const symbols = f.text.match(/systemName:\s*["'][^"']+["']/g) || [];
+    if (images.length + symbols.length > 2) {
+      out.push(hit(f.path, "too many page-control indicator images"));
+    }
+  }
+  return out;
+}
+
+function applyTooManyPageIndicatorImages(text) {
+  return text.replace(/\s*data-many-page-indicator-images(?:="[^"]*")?/g, "");
+}
+
+function scanColoredPageIndicators(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-colored-page-indicators/.test(f.text)) {
+      out.push(hit(f.path, "colored page-control indicators"));
+      continue;
+    }
+    if (!hasPageControlWidget(f.text)) continue;
+    if (
+      /pageIndicatorTintColor/.test(f.text) ||
+      /currentPageIndicatorTintColor/.test(f.text) ||
+      /--page-indicator-color/.test(f.text)
+    ) {
+      out.push(hit(f.path, "colored page-control indicators"));
+    }
+  }
+  return out;
+}
+
+function applyColoredPageIndicators(text) {
+  return text.replace(/\s*data-colored-page-indicators(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -3262,6 +3367,14 @@ function scanHeuristic(id, files) {
       return scanTextCollectionAsTable(files);
     case "overlapping-collection-items":
       return scanOverlappingCollectionItems(files);
+    case "page-control-as-hierarchy":
+      return scanPageControlAsHierarchy(files);
+    case "too-many-page-dots":
+      return scanTooManyPageDots(files);
+    case "too-many-page-indicator-images":
+      return scanTooManyPageIndicatorImages(files);
+    case "colored-page-indicators":
+      return scanColoredPageIndicators(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -3488,6 +3601,14 @@ function applyHeuristic(id, file) {
       return applyTextCollectionAsTable(file.text);
     case "overlapping-collection-items":
       return applyOverlappingCollectionItems(file.text);
+    case "page-control-as-hierarchy":
+      return applyPageControlAsHierarchy(file.text);
+    case "too-many-page-dots":
+      return applyTooManyPageDots(file.text);
+    case "too-many-page-indicator-images":
+      return applyTooManyPageIndicatorImages(file.text);
+    case "colored-page-indicators":
+      return applyColoredPageIndicators(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

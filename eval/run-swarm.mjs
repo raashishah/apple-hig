@@ -298,6 +298,7 @@ const results = [];
     surfaces.byId["scroll-views"]?.affordance === "scroll" &&
     surfaces.byId.popovers?.affordance === "popover" &&
     surfaces.byId.collections?.affordance === "collection" &&
+    surfaces.byId["page-controls"]?.affordance === "pagecontrol" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

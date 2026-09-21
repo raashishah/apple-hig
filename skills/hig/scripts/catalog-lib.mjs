@@ -561,6 +561,7 @@ function affordanceMissing(need, present) {
     case "scroll":
     case "popover":
     case "collection":
+    case "pagecontrol":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -745,6 +746,16 @@ export function scanAffordances(files) {
     /\bCollectionView\s*[\({]/.test(blob)
   ) {
     found.push("collection");
+  }
+  if (
+    /data-page-control/.test(blob) ||
+    /data-carousel-dots/.test(blob) ||
+    /\bUIPageControl\b/.test(blob) ||
+    /\bPageControl\s*[\({]/.test(blob) ||
+    /PageTabViewStyle/.test(blob) ||
+    /\.tabViewStyle\(\s*\.page/.test(blob)
+  ) {
+    found.push("pagecontrol");
   }
   return found;
 }

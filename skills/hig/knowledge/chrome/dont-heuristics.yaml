@@ -218,3 +218,11 @@ heuristics:
     match: collection of text
   - id: overlapping-collection-items
     match: collection items that overlap
+  - id: page-control-as-hierarchy
+    match: hierarchical or nonsequential
+  - id: too-many-page-dots
+    match: more than about 10
+  - id: too-many-page-indicator-images
+    match: more than two different
+  - id: colored-page-indicators
+    match: colored page-control indicator
