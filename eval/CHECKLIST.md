@@ -47,6 +47,7 @@ node eval/run-catalog.mjs
 - [x] Writing Don't heuristics account writing on tmp chrome-pass (already-compliant); Title Case long help sentence-cases; sarcastic errors without a next step and rewritten system alerts stay pending without inventing copy; remaining is not a frozen integer
 - [x] Privacy Don't heuristics account privacy on tmp chrome-pass (already-compliant); hidden Don't Allow unhides; Allow-only and marketing camera prompts stay pending without inventing a decline; remaining is not a frozen integer
 - [x] Branding Don't heuristics account branding on tmp chrome-pass (already-compliant); watermarks strip; mixed outlined/system toolbars stay pending without injecting a kit; other foundations stay pending; remaining is not a frozen integer
+- [x] Icons/images/app-icons/inclusion Don't heuristics account those topics on tmp chrome-pass (already-compliant); decorative heading icons, screenshot empty-states, and app-icon masks strip; outlined doodles and ability jokes stay pending without injecting a kit or inventing copy; design-principles stay pending; remaining is not a frozen integer
 - [x] Same chrome P0 FAIL on a web host and a Swift host; grammar `failWhen` / `passWhen` do not name frameworks
 - [x] Packed catalog topics derive `failWhen` from grammar + pack Do/Don't at load; unpackaged rows stay stubs; no SF Pro / framework names
 - [x] Mechanical apply clears the two dual-stack P0s on tmp copies of the web and Swift antipattern hosts; chrome-pass stays clean; no SF Pro/kit; committed fixtures stay dirty

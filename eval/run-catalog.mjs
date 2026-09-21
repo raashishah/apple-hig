@@ -707,6 +707,17 @@ const results = [];
       (catalog.byId.branding?.dontHeuristicIds || []).includes("opaque-brand-bar-fills") &&
       (catalog.byId.branding?.dontHeuristicIds || []).includes("watermarks-on-content") &&
       (catalog.byId.branding?.dontHeuristicIds || []).includes("brand-outlined-sf-rewrite") &&
+      catalog.byId.icons?.dontCoverageComplete === true &&
+      (catalog.byId.icons?.dontHeuristicIds || []).includes("decorative-icon-duplicates-label") &&
+      (catalog.byId.icons?.dontHeuristicIds || []).includes("outlined-doodles-in-toolbar") &&
+      (catalog.byId.icons?.dontHeuristicIds || []).includes("sf-symbol-name-tables") &&
+      catalog.byId.images?.dontCoverageComplete === true &&
+      (catalog.byId.images?.dontHeuristicIds || []).includes("screenshot-empty-state") &&
+      catalog.byId["app-icons"]?.dontCoverageComplete === true &&
+      (catalog.byId["app-icons"]?.dontHeuristicIds || []).includes("app-icon-alpha-mask-tricks") &&
+      catalog.byId.inclusion?.dontCoverageComplete === true &&
+      (catalog.byId.inclusion?.dontHeuristicIds || []).includes("ability-body-jokes-empty") &&
+      catalog.byId["design-principles"]?.dontCoverageComplete === false &&
       catalog.byId.menus?.dontCoverageComplete === false &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -818,12 +829,17 @@ const results = [];
       skipStatus.topics.writing?.state === "already-compliant" &&
       skipStatus.topics.privacy?.state === "already-compliant" &&
       skipStatus.topics.branding?.state === "already-compliant" &&
+      skipStatus.topics.icons?.state === "already-compliant" &&
+      skipStatus.topics.images?.state === "already-compliant" &&
+      skipStatus.topics["app-icons"]?.state === "already-compliant" &&
+      skipStatus.topics.inclusion?.state === "already-compliant" &&
       skipStatus.topics.settings?.state === "skipped-no-affordance" &&
       skipStatus.topics["undo-and-redo"]?.state === "skipped-no-affordance" &&
       !skipReport.plan.waveTopicIds.includes("searching") &&
       !skipReport.plan.waveTopicIds.includes("writing") &&
       !skipReport.plan.waveTopicIds.includes("branding") &&
-      skipReport.plan.waveTopicIds.includes("inclusion") &&
+      !skipReport.plan.waveTopicIds.includes("inclusion") &&
+      skipReport.plan.waveTopicIds.includes("design-principles") &&
       !skipReport.plan.waveTopicIds.includes("menus") &&
       skipReport.plan.coverage.remaining > 0 &&
       holdStatus.topics.menus?.state === "pending" &&
@@ -1146,6 +1162,11 @@ const results = [];
       status.topics.writing?.state === "already-compliant" &&
       status.topics.privacy?.state === "already-compliant" &&
       status.topics.branding?.state === "already-compliant" &&
+      status.topics.icons?.state === "already-compliant" &&
+      status.topics.images?.state === "already-compliant" &&
+      status.topics["app-icons"]?.state === "already-compliant" &&
+      status.topics.inclusion?.state === "already-compliant" &&
+      status.topics["design-principles"]?.state === "pending" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1155,6 +1176,7 @@ const results = [];
       remaining: report.plan.coverage.remaining,
       required: Object.fromEntries(required.map((id) => [id, status.topics[id]?.state])),
       writing: status.topics.writing?.state,
+      inclusion: status.topics.inclusion?.state,
     };
   } catch (err) {
     detail = { error: String(err.message || err) };
@@ -1224,6 +1246,11 @@ const results = [];
       status.topics.writing?.state === "already-compliant" &&
       status.topics.privacy?.state === "already-compliant" &&
       status.topics.branding?.state === "already-compliant" &&
+      status.topics.icons?.state === "already-compliant" &&
+      status.topics.images?.state === "already-compliant" &&
+      status.topics["app-icons"]?.state === "already-compliant" &&
+      status.topics.inclusion?.state === "already-compliant" &&
+      status.topics["design-principles"]?.state === "pending" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1296,6 +1323,11 @@ const results = [];
       status.topics.writing?.state === "already-compliant" &&
       status.topics.privacy?.state === "already-compliant" &&
       status.topics.branding?.state === "already-compliant" &&
+      status.topics.icons?.state === "already-compliant" &&
+      status.topics.images?.state === "already-compliant" &&
+      status.topics["app-icons"]?.state === "already-compliant" &&
+      status.topics.inclusion?.state === "already-compliant" &&
+      status.topics["design-principles"]?.state === "pending" &&
       status.topics.menus?.state === "skipped-no-affordance" &&
       status.topics.searching?.state === "already-compliant" &&
       report.plan.coverage.remaining > 0 &&
@@ -1419,7 +1451,8 @@ const results = [];
       marketChrome: marketReport.chrome.pass === true,
       passPrivacy: passStatus.topics.privacy?.state === "already-compliant",
       passBranding: passStatus.topics.branding?.state === "already-compliant",
-      passInclusion: passStatus.topics.inclusion?.state === "pending",
+      passInclusion: passStatus.topics.inclusion?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
       remaining: passReport.plan.coverage.remaining > 0,
       allowPending: allowStatus.topics.privacy?.state === "pending",
       allowUnchanged: allow === origAllow,
@@ -1529,7 +1562,8 @@ const results = [];
       markChrome: markReport.chrome.pass === true,
       mixChrome: mixReport.chrome.pass === true,
       passBranding: passStatus.topics.branding?.state === "already-compliant",
-      passInclusion: passStatus.topics.inclusion?.state === "pending",
+      passInclusion: passStatus.topics.inclusion?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
       remaining: passReport.plan.coverage.remaining > 0,
       markApplied: markStatus.topics.branding?.state === "applied",
       markNoWatermark: !/data-watermark/.test(marked),
@@ -1554,6 +1588,161 @@ const results = [];
     fs.rmSync(mixDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-branding-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-foundation-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-foundation-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-foundation-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "DecoHeading.tsx"),
+      `export function DecoHeading() {
+  return (
+    <div data-list-pane>
+      <h1><svg width="16" height="16" aria-hidden="true" /> Inbox</h1>
+      <div data-empty className="empty-state">
+        <img src="/iphone-screenshot.png" alt="screenshot of the app" />
+        <p>No items yet</p>
+      </div>
+      <ul>
+        <li>Item</li>
+      </ul>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "AppMark.tsx"),
+      `export function AppMark() {
+  return (
+    <div
+      data-app-icon
+      className="app-icon"
+      style={{ webkitMaskImage: "url(#mask)", borderRadius: "22%" }}
+    />
+  );
+}
+`,
+    );
+    const origMix = `export function MixedBar() {
+  return (
+    <header data-nav role="toolbar">
+      <Image systemName="plus" />
+      <svg fill="none" stroke="currentColor" width="16" height="16" />
+    </header>
+  );
+}
+`;
+    const origJoke = `export function EmptyJoke() {
+  return (
+    <div data-empty className="empty-state">
+      <p>This list is lame until you add items.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "MixedBar.tsx"), origMix);
+    fs.writeFileSync(path.join(holdDir, "EmptyJoke.tsx"), origJoke);
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const heading = fs.readFileSync(path.join(fixDir, "DecoHeading.tsx"), "utf8");
+    const mark = fs.readFileSync(path.join(fixDir, "AppMark.tsx"), "utf8");
+    const mixed = fs.readFileSync(path.join(holdDir, "MixedBar.tsx"), "utf8");
+    const joke = fs.readFileSync(path.join(holdDir, "EmptyJoke.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passIcons: passStatus.topics.icons?.state === "already-compliant",
+      passImages: passStatus.topics.images?.state === "already-compliant",
+      passAppIcons: passStatus.topics["app-icons"]?.state === "already-compliant",
+      passInclusion: passStatus.topics.inclusion?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      waveNotInclusion: !passReport.plan.waveTopicIds.includes("inclusion"),
+      fixIcons: fixStatus.topics.icons?.state === "applied",
+      fixImages: fixStatus.topics.images?.state === "applied",
+      fixAppIcons: fixStatus.topics["app-icons"]?.state === "applied",
+      fixInclusion: fixStatus.topics.inclusion?.state === "already-compliant",
+      headingNoSvg: !/<svg\b/.test(heading),
+      headingKeepsInbox: /Inbox/.test(heading),
+      shotNoImg: !/<img\b/.test(heading),
+      shotKeepsEmpty: /No items yet/.test(heading),
+      markNoMask: !/webkitMaskImage|mask-image|borderRadius:\s*"22%"/.test(mark),
+      holdIcons: holdStatus.topics.icons?.state === "pending",
+      holdInclusion: holdStatus.topics.inclusion?.state === "pending",
+      holdImages: holdStatus.topics.images?.state === "already-compliant",
+      mixUnchanged: mixed === origMix,
+      jokeUnchanged: joke === origJoke,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passIcons: passStatus.topics.icons?.state,
+      passImages: passStatus.topics.images?.state,
+      passAppIcons: passStatus.topics["app-icons"]?.state,
+      passInclusion: passStatus.topics.inclusion?.state,
+      passPrinciples: passStatus.topics["design-principles"]?.state,
+      fixIcons: fixStatus.topics.icons?.state,
+      fixImages: fixStatus.topics.images?.state,
+      fixAppIcons: fixStatus.topics["app-icons"]?.state,
+      holdIcons: holdStatus.topics.icons?.state,
+      holdInclusion: holdStatus.topics.inclusion?.state,
+      remaining: passReport.plan.coverage.remaining,
+      heading,
+      mark,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-foundation-dont-subset", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

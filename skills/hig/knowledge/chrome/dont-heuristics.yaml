@@ -54,3 +54,27 @@ heuristics:
     match: Watermarks on content
   - id: brand-outlined-sf-rewrite
     match: Rewriting SF Symbols into a custom outlined set
+  - id: sf-symbol-name-tables
+    match: Pixel tables of SF Symbol names
+  - id: outlined-doodles-in-toolbar
+    match: Custom outlined doodles next to system symbols
+  - id: decorative-icon-duplicates-label
+    match: Decorative icons that duplicate a visible text label
+  - id: screenshot-empty-state
+    match: Screenshot dumps as empty-state
+  - id: bitmap-sf-symbols
+    match: Lossy scaling of SF Symbols exported as bitmaps
+  - id: copied-scale-factor-tables
+    match: Copying Apple's scale-factor tables
+  - id: icon-composer-templates-as-law
+    match: Copying Icon Composer templates or variant recipes
+  - id: busy-photo-app-icon
+    match: Photos of people or busy gradients that collapse
+  - id: app-icon-alpha-mask-tricks
+    match: Alpha tricks that fight the system mask
+  - id: tokenizing-diversity-stock
+    match: Clownish diversity stock that tokenizes
+  - id: ability-body-jokes-empty
+    match: Ability or body jokes in empty states
+  - id: locked-skin-tone-defaults
+    match: Skin-tone or hair defaults that cannot be changed

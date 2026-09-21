@@ -68,6 +68,7 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 16. Writing Don't heuristics. **Landed on this PR.** Account writing when every Don't is checkable. Do not invent the next step or rewrite brand voice.
 17. Privacy Don't heuristics. **Landed on this PR.** Account privacy when every Don't is checkable. Do not invent a decline control.
 18. Branding Don't heuristics. **Landed on this PR.** Account branding when every Don't is checkable. Do not inject a brand kit. Other foundation Don'ts wait.
+19. Icons / images / app-icons / inclusion Don't heuristics. **Landed on this PR.** Account those topics when every Don't is checkable. Do not inject an icon kit or invent inclusive copy. Design-principles Don'ts stay pending (pack-authoring: Watch/TV/Vision coverage, house taste).
 
 ## Non-goals
 

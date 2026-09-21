@@ -1024,6 +1024,272 @@ function scanBrandOutlinedSymbols(files) {
   return out;
 }
 
+function scanSfSymbolTables(files) {
+  const out = [];
+  for (const f of files) {
+    if (/Contents\.json$/i.test(f.path)) continue;
+    if (/sfSymbols?\s*[:=]\s*\{|SYMBOL_NAMES|sfSymbolCatalog|sf-symbol-table/i.test(f.text)) {
+      out.push(hit(f.path, "SF Symbol name table in host tokens"));
+      continue;
+    }
+    const names = [...f.text.matchAll(/systemName:\s*["']([^"']+)["']/g)];
+    if (names.length >= 8) {
+      out.push(hit(f.path, `${names.length} systemName tokens`));
+    }
+  }
+  return out;
+}
+
+function headingCopyRegions(text) {
+  const out = [];
+  const re = /<(h1|h2|h3|p|small)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    out.push({ tag: m[1], attrs: m[2], inner: m[3], all: m[0] });
+  }
+  return out;
+}
+
+function hasDecoIcon(inner) {
+  const hiddenImg = /<img\b[^>]*(?:aria-hidden=["']true["']|alt=["']["'])[^>]*\/?>/i.test(
+    inner,
+  );
+  const hiddenSvgPair = /<svg\b[^>]*aria-hidden=["']true["'][^>]*>[\s\S]*?<\/svg>/i.test(
+    inner,
+  );
+  const hiddenSvgSelf = /<svg\b[^>]*aria-hidden=["']true["'][^>]*\/>/i.test(inner);
+  return hiddenImg || hiddenSvgPair || hiddenSvgSelf;
+}
+
+function scanDecorativeDuplicate(files) {
+  const out = [];
+  for (const f of files) {
+    for (const block of headingCopyRegions(f.text)) {
+      const copy = innerText(block.inner);
+      if (hasDecoIcon(block.inner) && copy.length >= 2) {
+        out.push(hit(f.path, "decorative icon duplicates heading/help text"));
+      }
+    }
+  }
+  return out;
+}
+
+function applyDecorativeDuplicate(text) {
+  return text.replace(
+    /<(h1|h2|h3|p|small)\b([^>]*)>([\s\S]*?)<\/\1>/gi,
+    (all, tag, attrs, inner) => {
+      const copy = innerText(inner);
+      if (!hasDecoIcon(inner) || copy.length < 2) return all;
+      const cleaned = inner
+        .replace(/<svg\b[\s\S]*?<\/svg>/gi, "")
+        .replace(/<svg\b[^>]*\/>/gi, "")
+        .replace(/<img\b[^>]*\/?>/gi, "");
+      return `<${tag}${attrs}>${cleaned}</${tag}>`;
+    },
+  );
+}
+
+function emptyStateRegions(text) {
+  const out = [];
+  const re =
+    /<([A-Za-z][\w]*)\b([^>]*(?:data-empty|class(?:Name)?=["'][^"']*\bempty-state\b)[^>]*)>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(text))) out.push(m[0]);
+  return out;
+}
+
+function scanScreenshotEmpty(files) {
+  const out = [];
+  for (const f of files) {
+    for (const region of emptyStateRegions(f.text)) {
+      if (
+        /<img\b[^>]*(screenshot|screen-shot|mockup|capture|bezel)/i.test(region) ||
+        /<img\b[^>]*alt=["'][^"']*screenshot/i.test(region)
+      ) {
+        out.push(hit(f.path, "screenshot dump as empty-state illustration"));
+      }
+    }
+  }
+  return out;
+}
+
+function applyScreenshotEmpty(text) {
+  let next = text;
+  for (const region of emptyStateRegions(text)) {
+    if (
+      !/<img\b[^>]*(screenshot|screen-shot|mockup|capture|bezel)/i.test(region) &&
+      !/<img\b[^>]*alt=["'][^"']*screenshot/i.test(region)
+    ) {
+      continue;
+    }
+    const stripped = region
+      .replace(/<img\b[^>]*(screenshot|screen-shot|mockup|capture|bezel)[^>]*\/?>/gi, "")
+      .replace(/<img\b[^>]*alt=["'][^"']*screenshot[^"']*["'][^>]*\/?>/gi, "");
+    next = next.replace(region, stripped);
+  }
+  return next;
+}
+
+function scanBitmapSf(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /<(img)\b[^>]*src=["'][^"']*(sf-?symbol|systemname)[^"']*\.(png|jpe?g|webp)/i.test(
+        f.text,
+      ) ||
+      /Image\(["'][^"']*(sf-?symbol|systemname)[^"']*\.(png|jpe?g|webp)["']\)/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "SF Symbol exported as a bitmap"));
+    }
+  }
+  return out;
+}
+
+function scanScaleTables(files) {
+  const out = [];
+  for (const f of files) {
+    if (/Contents\.json$/i.test(f.path)) continue;
+    if (
+      /@1x/.test(f.text) &&
+      /@2x/.test(f.text) &&
+      /@3x/.test(f.text) &&
+      /scaleFactors?\s*[:=]|APPLE_SCALES|@1x["']?\s*:/.test(f.text)
+    ) {
+      out.push(hit(f.path, "Apple scale-factor table copied into host source"));
+    }
+  }
+  return out;
+}
+
+function scanIconComposerLaw(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /\.iconcomposer\b/i.test(f.path) ||
+      /icon composer template|variant recipes as .{0,40}HIG law|IconComposerTemplate/i.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "Icon Composer template copied as HIG law"));
+    }
+  }
+  return out;
+}
+
+function isAppIconFile(file) {
+  return (
+    /AppIcon|apple-touch-icon|favicon/i.test(file.path) ||
+    /data-app-icon|rel=["']apple-touch-icon["']/i.test(file.text)
+  );
+}
+
+function scanBusyAppIcon(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isAppIconFile(f)) continue;
+    if (
+      /(headshot|portrait|selfie|photo-of|people\.jpg|person\.png)/i.test(f.text) ||
+      /linear-gradient\([^)]*(,|#)[^)]*(,|#)[^)]*(,|#)[^)]*\)/.test(f.text)
+    ) {
+      out.push(hit(f.path, "photo or busy gradient used as app icon"));
+    }
+  }
+  return out;
+}
+
+function scanAppIconAlpha(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /data-app-icon[\s\S]{0,240}(mask-image|-webkit-mask|webkitMaskImage)/i.test(f.text) ||
+      /class(?:Name)?=["'][^"']*app-icon[^"']*["'][\s\S]{0,160}(mask-image|border-radius:\s*22%)/i.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "alpha/mask trick on the app icon"));
+    }
+  }
+  return out;
+}
+
+function stripAppIconMaskDecls(body) {
+  return body
+    .replace(/webkitMaskImage\s*:\s*["'][^"']*["']\s*,?/g, "")
+    .replace(/maskImage\s*:\s*["'][^"']*["']\s*,?/g, "")
+    .replace(/borderRadius\s*:\s*["']22%["']\s*,?/g, "")
+    .replace(/mask-image\s*:[^;]+;?/gi, "")
+    .replace(/-webkit-mask(?:-image)?\s*:[^;]+;?/gi, "")
+    .replace(/border-radius\s*:\s*22%\s*;?/gi, "");
+}
+
+function applyAppIconAlpha(text) {
+  let next = text.replace(
+    /(<[^>]*(?:data-app-icon|class(?:Name)?=["'][^"']*app-icon)[^>]*style=\{\{)([^}]*)(\}\})/gi,
+    (all, open, body, close) => {
+      const stripped = stripAppIconMaskDecls(body);
+      return stripped === body ? all : `${open}${stripped}${close}`;
+    },
+  );
+  next = next.replace(
+    /(<[^>]*(?:data-app-icon|class(?:Name)?=["'][^"']*app-icon)[^>]*style=["'])([^"']*)(["'])/gi,
+    (all, open, body, close) => {
+      const stripped = stripAppIconMaskDecls(body);
+      return stripped === body ? all : `${open}${stripped}${close}`;
+    },
+  );
+  next = next.replace(
+    /((?:^|,|\n)\s*\.app-icon[^{]*)\{([^}]*)\}/gi,
+    (all, sel, body) => {
+      const stripped = stripAppIconMaskDecls(body);
+      return stripped === body ? all : `${sel}{${stripped}}`;
+    },
+  );
+  return next;
+}
+
+function scanDiversityStock(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /diversity[- ]stock|tokeniz(?:e|ing) diversity|stock photo.{0,40}diverse team/i.test(
+        f.text,
+      ) ||
+      /alt=["'][^"']*(diverse team|multicultural group|people of all)[^"']*["']/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "tokenizing diversity stock"));
+    }
+  }
+  return out;
+}
+
+function scanAbilityJokes(files) {
+  const out = [];
+  const joke = /\b(lame|cripple|spaz|wheelchair joke|fat joke|blind joke)\b/i;
+  for (const f of files) {
+    for (const region of emptyStateRegions(f.text)) {
+      if (joke.test(innerText(region))) {
+        out.push(hit(f.path, "ability or body joke in empty state"));
+      }
+    }
+  }
+  return out;
+}
+
+function scanLockedSkin(files) {
+  const blob = files.map((f) => f.text).join("\n");
+  const avatar = /data-avatar|UserAvatar|profile-photo|emoji-avatar/;
+  const tone = /skin-tone|skinTone|fitzpatrick|skin_tone/;
+  const changer =
+    /skinTonePicker|data-skin-tone-picker|aria-label=["'][^"']*skin tone/i;
+  const out = [];
+  for (const f of files) {
+    if (avatar.test(f.text) && tone.test(f.text) && !changer.test(blob)) {
+      out.push(hit(f.path, "locked skin-tone default on a user depiction"));
+    }
+  }
+  return out;
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -1078,6 +1344,30 @@ function scanHeuristic(id, files) {
       return scanWatermarks(files);
     case "brand-outlined-sf-rewrite":
       return scanBrandOutlinedSymbols(files);
+    case "sf-symbol-name-tables":
+      return scanSfSymbolTables(files);
+    case "outlined-doodles-in-toolbar":
+      return scanBrandOutlinedSymbols(files);
+    case "decorative-icon-duplicates-label":
+      return scanDecorativeDuplicate(files);
+    case "screenshot-empty-state":
+      return scanScreenshotEmpty(files);
+    case "bitmap-sf-symbols":
+      return scanBitmapSf(files);
+    case "copied-scale-factor-tables":
+      return scanScaleTables(files);
+    case "icon-composer-templates-as-law":
+      return scanIconComposerLaw(files);
+    case "busy-photo-app-icon":
+      return scanBusyAppIcon(files);
+    case "app-icon-alpha-mask-tricks":
+      return scanAppIconAlpha(files);
+    case "tokenizing-diversity-stock":
+      return scanDiversityStock(files);
+    case "ability-body-jokes-empty":
+      return scanAbilityJokes(files);
+    case "locked-skin-tone-defaults":
+      return scanLockedSkin(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -1139,6 +1429,30 @@ function applyHeuristic(id, file) {
     case "watermarks-on-content":
       return applyWatermarks(file.text);
     case "brand-outlined-sf-rewrite":
+      return file.text;
+    case "sf-symbol-name-tables":
+      return file.text;
+    case "outlined-doodles-in-toolbar":
+      return file.text;
+    case "decorative-icon-duplicates-label":
+      return applyDecorativeDuplicate(file.text);
+    case "screenshot-empty-state":
+      return applyScreenshotEmpty(file.text);
+    case "bitmap-sf-symbols":
+      return file.text;
+    case "copied-scale-factor-tables":
+      return file.text;
+    case "icon-composer-templates-as-law":
+      return file.text;
+    case "busy-photo-app-icon":
+      return file.text;
+    case "app-icon-alpha-mask-tricks":
+      return applyAppIconAlpha(file.text);
+    case "tokenizing-diversity-stock":
+      return file.text;
+    case "ability-body-jokes-empty":
+      return file.text;
+    case "locked-skin-tone-defaults":
       return file.text;
     default: {
       const _exhaustive = id;
