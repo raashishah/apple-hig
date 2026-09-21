@@ -19,6 +19,7 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - Mechanical apply for remaining P0 IDs (`toolbar-budget`, `form.column-cohesion`, `fashion-glass`, `card-grid-home`) plus `nested-cards` on tmp copies of `chrome-antipatterns`. Filter-density and sidebar still use `recipes.md`. Committed fixtures stay dirty.
 - Mechanical apply for remaining P1 IDs (`filter-density`, `sidebar.collapsible`). `apply-chrome.mjs` now owns every grammar ID. Committed fixtures stay dirty.
 - Catalog apply: `scripts/apply-catalog.mjs` accounts packed topics whose `chromeIds` are clean after chrome P0. Pack-only pending topics stay pending. Eval on tmp `chrome-pass` and `chrome-antipatterns`.
+- Catalog apply joins pack **Chrome gates** into topic `chromeIds` and accounts pack **Don't** backtick tokens (strip `scaleX(-1)`, map physical margin/padding, no kit). Prose-only Don'ts stay pending. Remaining is not a frozen integer.
 
 ## Unreleased
 

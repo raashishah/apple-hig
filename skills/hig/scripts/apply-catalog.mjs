@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * After chrome P0, account packed catalog topics whose chromeIds are clean.
+ * After chrome P0, account packed catalog topics whose chromeIds are clean
+ * and pack Don't code spans that the host does not hit (or that we can strip).
  * Does not inject a kit or rewrite the host typeface.
  * Usage: node apply-catalog.mjs [--cwd host] [--write]
  */
@@ -12,6 +13,7 @@ import { applyChrome } from "./apply-chrome.mjs";
 import { loadContext } from "./load-context.mjs";
 import { loadSurfaces } from "./load-surfaces.mjs";
 import {
+  applyDontToken,
   loadCatalog,
   planGoalLoop,
   scanAffordances,
@@ -31,6 +33,10 @@ function parseArgs(argv) {
     else if (a === "--write") out.write = true;
   }
   return out;
+}
+
+function blobOf(files) {
+  return files.map((f) => f.text).join("\n");
 }
 
 function accountChromeBacked(open, catalog, chrome) {
@@ -56,6 +62,61 @@ function accountChromeBacked(open, catalog, chrome) {
   return { topics, accounted };
 }
 
+function pendingDontTokens(topics, catalog) {
+  const tokens = [];
+  const seen = new Set();
+  for (const [id, row] of Object.entries(topics)) {
+    if (row.state !== "pending") continue;
+    for (const tok of catalog.byId[id]?.dontTokens || []) {
+      if (seen.has(tok)) continue;
+      seen.add(tok);
+      tokens.push(tok);
+    }
+  }
+  return tokens;
+}
+
+function applyDontTokensToFiles(files, tokens) {
+  const mutatedTokens = new Set();
+  const appliedFiles = [];
+  for (const file of files) {
+    let text = file.text;
+    for (const tok of tokens) {
+      const next = applyDontToken(text, tok);
+      if (next !== text) mutatedTokens.add(tok);
+      text = next;
+    }
+    if (text === file.text) continue;
+    file.text = text;
+    appliedFiles.push(file.path);
+  }
+  return { mutatedTokens, appliedFiles };
+}
+
+function accountPackDont(topics, catalog, blob, mutatedTokens) {
+  const accounted = [];
+  const nextTopics = {};
+  for (const [id, row] of Object.entries(topics)) {
+    let next = { ...row };
+    if (row.state === "pending") {
+      const tokens = catalog.byId[id]?.dontTokens || [];
+      if (tokens.length) {
+        const hits = tokens.filter((tok) => blob.includes(tok));
+        if (hits.length === 0) {
+          const mutated = tokens.some((tok) => mutatedTokens.has(tok));
+          next = {
+            ...row,
+            state: mutated ? "applied" : "already-compliant",
+          };
+          accounted.push({ id, state: next.state, tokens });
+        }
+      }
+    }
+    nextTopics[id] = next;
+  }
+  return { topics: nextTopics, accounted };
+}
+
 export function applyCatalog(options = {}) {
   const cwd = path.resolve(options.cwd || process.cwd());
   const skillRoot = path.resolve(options.skillRoot || defaultSkillRoot);
@@ -77,14 +138,30 @@ export function applyCatalog(options = {}) {
   let plan = open;
   let accounted = [];
   if (chromePass) {
-    const next = accountChromeBacked(open, catalog, chrome);
-    accounted = next.accounted;
+    const chromeNext = accountChromeBacked(open, catalog, chrome);
+    accounted = chromeNext.accounted;
+    let topics = chromeNext.topics;
+    const tokens = pendingDontTokens(topics, catalog);
+    const hitTokens = tokens.filter((tok) => blobOf(files).includes(tok));
+    const dontApply = applyDontTokensToFiles(files, hitTokens);
+    if (write) {
+      for (const file of files) {
+        const abs = path.join(cwd, file.path);
+        const prev = fs.readFileSync(abs, "utf8");
+        if (prev === file.text) continue;
+        fs.writeFileSync(abs, file.text);
+      }
+    }
+    const afterBlob = blobOf(files);
+    const packNext = accountPackDont(topics, catalog, afterBlob, dontApply.mutatedTokens);
+    topics = packNext.topics;
+    accounted = accounted.concat(packNext.accounted);
     plan = planGoalLoop({
       catalog,
       surfaces,
-      preflight: { ...preflight, affordances },
+      preflight: { ...preflight, affordances: scanAffordances(files) },
       chromePass: true,
-      status: { topics: next.topics },
+      status: { topics },
     });
   }
   const statusPath = path.join(cwd, ".hig", "catalog-status.yaml");

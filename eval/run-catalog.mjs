@@ -455,7 +455,7 @@ const results = [];
       chromeBackedPending.every((id) =>
         ["applied", "already-compliant"].includes(status.topics[id]?.state),
       ) &&
-      accountedIds.size === chromeBackedPending.length &&
+      chromeBackedPending.every((id) => accountedIds.has(id)) &&
       orig.includes("aria-label=\"List view\"") &&
       !kitOrFont;
     detail = {
@@ -509,6 +509,69 @@ const results = [];
     fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-fixes-then-accounts", ok, ...detail });
+}
+
+{
+  const catalog = loadCatalog(skillRoot);
+  const buttons = catalog.byId.buttons;
+  const fields = catalog.byId["text-fields"];
+  const stub = catalog.byId["tab-views"];
+  const rtl = catalog.byId["right-to-left"];
+  results.push({
+    case: "pack-chrome-gates-and-dont-tokens",
+    ok:
+      (buttons?.chromeIds || []).includes("chrome.view-mode.icons") &&
+      (buttons?.chromeIds || []).includes("chrome.list-browser.filter-density") &&
+      (fields?.chromeIds || []).includes("chrome.view-mode.icons") &&
+      (rtl?.dontTokens || []).some((t) => t.includes("scaleX")) &&
+      (rtl?.dontTokens || []).includes("margin-left") &&
+      isTitleStub(stub) &&
+      !/SF Pro|-apple-system/i.test(`${buttons?.failWhen || ""} ${rtl?.failWhen || ""}`),
+    buttonChrome: buttons?.chromeIds,
+    rtlTokens: rtl?.dontTokens,
+    unpackagedStub: isTitleStub(stub),
+  });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-catalog-dont-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "rtl-mirror.css"),
+      "html { transform: scaleX(-1); margin-left: 12px; }\n",
+    );
+    const origPass = fs.readFileSync(path.join(src, "CompactListBrowser.tsx"), "utf8");
+    const report = applyCatalog({ cwd: dir, skillRoot, register: "product", write: true });
+    const status = parseCatalogStatus(
+      fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const css = fs.readFileSync(path.join(dir, "rtl-mirror.css"), "utf8");
+    const hostText = walkSource(dir)
+      .map((f) => f.text)
+      .join("\n");
+    ok =
+      report.chrome.pass === true &&
+      !/scaleX\(\s*-1\s*\)/.test(css) &&
+      /margin-inline-start\s*:/.test(css) &&
+      !/margin-left\s*:/.test(css) &&
+      status.topics["right-to-left"]?.state === "applied" &&
+      origPass.includes('aria-label="List view"') &&
+      !/SF Pro|-apple-system|shadcn/i.test(hostText);
+    detail = {
+      rtlState: status.topics["right-to-left"]?.state,
+      css,
+      remaining: report.plan.coverage.remaining,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-pack-dont-tokens", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

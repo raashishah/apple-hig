@@ -179,6 +179,69 @@ export function parsePackDoDont(text) {
   return { do: doBullets, dont: dontBullets };
 }
 
+export function parsePackChromeGates(text) {
+  const ids = [];
+  let inGates = false;
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim();
+    if (/^##\s+Chrome gates\b/i.test(line)) {
+      inGates = true;
+      continue;
+    }
+    if (/^##\s+/.test(line)) {
+      inGates = false;
+      continue;
+    }
+    if (!inGates) continue;
+    const m = line.match(/`(chrome\.[a-z0-9.-]+)`/);
+    if (m) ids.push(m[1]);
+  }
+  return [...new Set(ids)];
+}
+
+export function parseDontCodeTokens(text) {
+  const { dont } = parsePackDoDont(text);
+  const tokens = [];
+  for (const bullet of dont) {
+    const re = /`([^`]+)`/g;
+    let m;
+    while ((m = re.exec(bullet))) {
+      const tok = m[1].trim();
+      if (tok.length < 6) continue;
+      if (CATALOG_FRAME_OR_FONT.test(tok)) continue;
+      tokens.push(tok);
+    }
+  }
+  return [...new Set(tokens)];
+}
+
+export function applyDontToken(text, tok) {
+  let next = text;
+  if (/scaleX\(\s*-1\s*\)/.test(tok)) {
+    next = next.replace(/transform\s*:\s*scaleX\(\s*-1\s*\)\s*;?/gi, "");
+    next = next.replace(/scaleX\(\s*-1\s*\)/g, "none");
+  }
+  if (/UIDesignRequiresCompatibility/.test(tok)) {
+    next = next.replace(/^[^\n]*UIDesignRequiresCompatibility[^\n]*\n?/gm, "");
+  }
+  if (/dir=["']auto["']/.test(tok)) {
+    next = next.replace(/\sdir=["']auto["']/gi, ' dir="ltr"');
+  }
+  if (tok === "margin-left") {
+    next = next.replace(/margin-left\s*:/gi, "margin-inline-start:");
+  }
+  if (tok === "margin-right") {
+    next = next.replace(/margin-right\s*:/gi, "margin-inline-end:");
+  }
+  if (tok === "padding-left") {
+    next = next.replace(/padding-left\s*:/gi, "padding-inline-start:");
+  }
+  if (tok === "padding-right") {
+    next = next.replace(/padding-right\s*:/gi, "padding-inline-end:");
+  }
+  return next;
+}
+
 function uniqueJoin(parts) {
   const seen = new Set();
   const out = [];
@@ -220,6 +283,13 @@ export function deriveTopicRule(topic, { surfaces, grammar, packCache }) {
       const { do: doBullets, dont } = parsePackDoDont(packText);
       failParts.push(...dont);
       passParts.push(...doBullets);
+      for (const id of parsePackChromeGates(packText)) {
+        const rule = grammar.byId?.[id];
+        if (!rule || chromeIds.includes(id)) continue;
+        chromeIds.push(id);
+        failParts.push(rule.failWhen);
+        passParts.push(rule.passWhen);
+      }
     }
   }
 
@@ -230,6 +300,9 @@ export function deriveTopicRule(topic, { surfaces, grammar, packCache }) {
   }
   const derived = { ...topic, failWhen, passWhen };
   if (chromeIds.length) derived.chromeIds = [...new Set(chromeIds)];
+  const packForTokens = surface?.pack ? packCache?.[surface.pack] : "";
+  const dontTokens = packForTokens ? parseDontCodeTokens(packForTokens) : [];
+  if (dontTokens.length) derived.dontTokens = dontTokens;
   return derived;
 }
 
