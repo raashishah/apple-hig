@@ -5142,23 +5142,14 @@ struct OneTorch: ControlWidget {
       path.join(fixDir, "HostWidgets.tsx"),
       `export function HostWidgets() {
   return (
-    <button
-      type="button"
-      data-print
-      data-print-nothing
-      data-duplicate-page-orientation
-    >
-      Print
-    </button>
+    <button type="button" data-print data-print-nothing data-duplicate-page-orientation>Print</button>
   );
 }
 `,
     );
     const origHold = `export function HostWidgets() {
   return (
-    <button type="button" data-print data-nothing-printable>
-      Print
-    </button>
+    <button type="button" data-print data-nothing-printable>Print</button>
   );
 }
 `;
@@ -5223,13 +5214,13 @@ struct OneTorch: ControlWidget {
       destUnchanged,
       wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
       fixPrinting: fixStatus.topics.printing?.state === "applied",
-      printKept: /data-print/.test(fixed) && />Print</.test(fixed),
+      printKept: /data-print/.test(fixed) && />\s*Print\s*</.test(fixed),
       markersGone:
         !/data-print-nothing/.test(fixed) &&
         !/data-duplicate-page-orientation/.test(fixed),
       holdUnchanged: held === origHold,
       holdPrinting: holdStatus.topics.printing?.state === "pending",
-      holdStillPrint: />Print</.test(held) && /data-nothing-printable/.test(held),
+      holdStillPrint: />\s*Print\s*</.test(held) && /data-nothing-printable/.test(held),
       holdNotInvented: !/disabled/.test(held) && !/aria-disabled/.test(held),
       holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
       holdRemaining: holdReport.plan.coverage.remaining > 0,
