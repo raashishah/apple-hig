@@ -78,3 +78,49 @@ heuristics:
     match: Ability or body jokes in empty states
   - id: locked-skin-tone-defaults
     match: Skin-tone or hair defaults that cannot be changed
+  - id: settings-required-for-first-run
+    match: Require Settings to complete first-run
+  - id: nested-prefs-no-grouping
+    match: Nest every preference under undiscoverable chevrons
+  - id: retheme-system-settings
+    match: Re-theme system Settings chrome
+  - id: confirm-every-delete-with-undo
+    match: Confirm every delete when Undo is one tap
+  - id: silent-nav-data-loss
+    match: Silent data loss on navigation with no undo
+  - id: spinner-loop-no-way-out
+    match: Loop an indeterminate spinner with no way out
+  - id: fake-percent-progress
+    match: Animate fake percent
+  - id: loading-modal-hides-nav
+    match: Hide the nav behind a loading modal
+  - id: modal-success-after-save
+    match: Modal "Success" alerts after a save
+  - id: error-toast-disappears
+    match: Error-only-as-toast that disappears
+  - id: confetti-on-crud
+    match: Celebratory confetti on ordinary CRUD
+  - id: account-wall-before-value
+    match: Require an account before any value
+  - id: every-permission-on-page-one
+    match: Ask for every permission on page one
+  - id: help-as-six-interstitials
+    match: Duplicate Help as six interstitial cards
+  - id: first-launch-notification-wall
+    match: First-launch "Enable notifications" wall
+  - id: marketing-as-time-sensitive
+    match: Marketing as time-sensitive
+  - id: custom-lock-screen-ui
+    match: Custom lock-screen UI that fights the system
+  - id: hidden-drag-no-alternative
+    match: Hidden drag with no alternative
+  - id: drop-navigates-without-preview
+    match: Drop that navigates away without a preview
+  - id: fight-split-view-drops
+    match: Fighting system multi-window / split-view drops
+  - id: animated-splash-after-launch
+    match: Animated splash after the system launch screen
+  - id: video-sound-on-launch
+    match: Video / sound on launch
+  - id: launch-compatibility-brand-bars
+    match: UIDesignRequiresCompatibility or custom opaque

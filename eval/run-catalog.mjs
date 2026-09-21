@@ -717,6 +717,14 @@ const results = [];
       (catalog.byId["app-icons"]?.dontHeuristicIds || []).includes("app-icon-alpha-mask-tricks") &&
       catalog.byId.inclusion?.dontCoverageComplete === true &&
       (catalog.byId.inclusion?.dontHeuristicIds || []).includes("ability-body-jokes-empty") &&
+      catalog.byId.settings?.dontCoverageComplete === true &&
+      catalog.byId["undo-and-redo"]?.dontCoverageComplete === true &&
+      catalog.byId.loading?.dontCoverageComplete === true &&
+      catalog.byId.feedback?.dontCoverageComplete === true &&
+      catalog.byId.onboarding?.dontCoverageComplete === true &&
+      catalog.byId["drag-and-drop"]?.dontCoverageComplete === true &&
+      catalog.byId["managing-notifications"]?.dontCoverageComplete === true &&
+      catalog.byId.launching?.dontCoverageComplete === true &&
       catalog.byId["design-principles"]?.dontCoverageComplete === false &&
       catalog.byId.menus?.dontCoverageComplete === false &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -843,8 +851,8 @@ const results = [];
       !skipReport.plan.waveTopicIds.includes("menus") &&
       skipReport.plan.coverage.remaining > 0 &&
       holdStatus.topics.menus?.state === "pending" &&
-      holdStatus.topics.settings?.state === "pending" &&
-      holdStatus.topics["undo-and-redo"]?.state === "pending" &&
+      holdStatus.topics.settings?.state === "already-compliant" &&
+      holdStatus.topics["undo-and-redo"]?.state === "already-compliant" &&
       holdStatus.topics.pickers?.state === "skipped-no-affordance" &&
       holdStatus.topics.searching?.state === "already-compliant" &&
       destUnchanged &&
@@ -1743,6 +1751,178 @@ const results = [];
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-foundation-dont-subset", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-optional-dont-pass-"));
+  const themeDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-optional-dont-theme-"));
+  const partyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-optional-dont-party-"));
+  const splashDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-optional-dont-splash-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-optional-dont-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, themeDir, { recursive: true });
+    fs.cpSync(src, partyDir, { recursive: true });
+    fs.cpSync(src, splashDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(themeDir, "Settings.tsx"),
+      `export function SettingsScreen() {
+  return (
+    <main data-settings>
+      <h1>Settings</h1>
+      <UITableView barTintColor="#111111" />
+    </main>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(partyDir, "SavedToast.tsx"),
+      `export function SavedToast() {
+  function handleSave() {}
+  return (
+    <div>
+      <button type="button" onClick={handleSave}>Save</button>
+      <span className="confetti"></span>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(splashDir, "Splash.tsx"),
+      `export function Splash() {
+  return (
+    <main data-launch>
+      <video autoPlay src="/intro.mp4" />
+    </main>
+  );
+}
+`,
+    );
+    const origHold = `export function ConfirmDelete() {
+  function handleDelete() {
+    window.confirm("Are you sure you want to delete?");
+  }
+  return (
+    <div>
+      <button type="button" aria-label="Undo Delete">Undo</button>
+      <button type="button" onClick={handleDelete}>Delete</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "ConfirmDelete.tsx"), origHold);
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const themeReport = applyCatalog({
+      cwd: themeDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const partyReport = applyCatalog({
+      cwd: partyDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const splashReport = applyCatalog({
+      cwd: splashDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const themeStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(themeDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const partyStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(partyDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const splashStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(splashDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const themed = fs.readFileSync(path.join(themeDir, "Settings.tsx"), "utf8");
+    const party = fs.readFileSync(path.join(partyDir, "SavedToast.tsx"), "utf8");
+    const splash = fs.readFileSync(path.join(splashDir, "Splash.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "ConfirmDelete.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(themeDir),
+      ...walkSource(partyDir),
+      ...walkSource(splashDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      themeChrome: themeReport.chrome.pass === true,
+      partyChrome: partyReport.chrome.pass === true,
+      splashChrome: splashReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passSettings: passStatus.topics.settings?.state === "skipped-no-affordance",
+      passUndo: passStatus.topics["undo-and-redo"]?.state === "skipped-no-affordance",
+      passLoading: passStatus.topics.loading?.state === "skipped-no-affordance",
+      passLaunching: passStatus.topics.launching?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      themeApplied: themeStatus.topics.settings?.state === "applied",
+      themeNoHex: !/#111111/.test(themed),
+      partyApplied: partyStatus.topics.feedback?.state === "applied",
+      partyNoConfetti: !/\bconfetti\b/.test(party),
+      splashApplied: splashStatus.topics.launching?.state === "applied",
+      splashNoAuto: !/autoPlay/i.test(splash),
+      splashKeepsVideo: /<video\b/.test(splash),
+      holdUndo: holdStatus.topics["undo-and-redo"]?.state === "pending",
+      holdUnchanged: held === origHold,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passSettings: passStatus.topics.settings?.state,
+      passLaunching: passStatus.topics.launching?.state,
+      themeSettings: themeStatus.topics.settings?.state,
+      partyFeedback: partyStatus.topics.feedback?.state,
+      splashLaunching: splashStatus.topics.launching?.state,
+      holdUndo: holdStatus.topics["undo-and-redo"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      themed,
+      party,
+      splash,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(themeDir, { recursive: true, force: true });
+    fs.rmSync(partyDir, { recursive: true, force: true });
+    fs.rmSync(splashDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-optional-widget-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

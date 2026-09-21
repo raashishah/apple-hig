@@ -1290,6 +1290,404 @@ function scanLockedSkin(files) {
   return out;
 }
 
+function fileHasSettings(file) {
+  return (
+    /data-settings/.test(file.text) ||
+    /\bSettingsLink\b/.test(file.text) ||
+    /<(h1|h2)[^>]*>\s*(Settings|Preferences)\s*</i.test(file.text) ||
+    /Settings(View|Screen|Page|Form)?\.(tsx|jsx|swift|vue|html)\b/i.test(file.path)
+  );
+}
+
+function fileHasUndo(text) {
+  return (
+    /\b(UndoManager|undoManager|NSUndoManager)\b/.test(text) ||
+    /\bregisterUndo\b/.test(text) ||
+    /data-undo/.test(text) ||
+    /aria-label=["']Undo\b/i.test(text) ||
+    />\s*(Undo|Redo)\s*</.test(text)
+  );
+}
+
+function fileHasOnboarding(text) {
+  return (
+    /data-onboarding/.test(text) ||
+    /\bOnboarding(View|Screen|Flow)?\b/.test(text) ||
+    /\b(coach-?mark|feature-?tour|first-?run)\b/i.test(text) ||
+    /\bisOnboarding\b/.test(text)
+  );
+}
+
+function isLaunchFile(file) {
+  return (
+    /Launch(Screen|View|Storyboard)?|Splash/i.test(file.path) ||
+    /data-launch|data-splash/.test(file.text) ||
+    /\bUILaunchStoryboard\b/.test(file.text)
+  );
+}
+
+function scanSettingsFirstRun(files) {
+  const out = [];
+  const blob = files.map((f) => f.text).join("\n");
+  if (!files.some(fileHasSettings)) return out;
+  if (
+    /(isOnboarding|data-onboarding|first-?run)[\s\S]{0,400}(settingsComplete|mustOpenSettings|requiredSettings|\/settings)/i.test(
+      blob,
+    ) ||
+    /(settingsComplete|hasCompletedSettings|requireSettings)\s*(\?|&&)/.test(blob)
+  ) {
+    const f = files.find(fileHasSettings) || files[0];
+    out.push(hit(f.path, "Settings required to finish first-run"));
+  }
+  return out;
+}
+
+function scanNestedPrefs(files) {
+  const out = [];
+  for (const f of files) {
+    if (!fileHasSettings(f)) continue;
+    const grouped = /<(fieldset|section)\b/i.test(f.text) || /\bSection\s*[\({]/.test(f.text);
+    const marks = [
+      ...(f.text.match(/[›→]/g) || []),
+      ...(f.text.match(/data-chevron/g) || []),
+      ...(f.text.match(/chevron\.right|ChevronRight/g) || []),
+      ...(f.text.match(/>\{\s*["']>["']\s*\}/g) || []),
+    ];
+    if (!grouped && marks.length >= 3) {
+      out.push(hit(f.path, "settings prefs nested under chevrons with no grouping"));
+    }
+  }
+  return out;
+}
+
+function scanRethemeSettings(files) {
+  const out = [];
+  for (const f of files) {
+    if (!fileHasSettings(f)) continue;
+    if (
+      /(background(?:-color|Color)?|barTintColor)\s*[:=]\s*["']?#(?:[0-9a-f]{3}|[0-9a-f]{6})\b/i.test(
+        f.text,
+      ) ||
+      /data-fashion-glass/.test(f.text)
+    ) {
+      out.push(hit(f.path, "re-themed Settings chrome"));
+    }
+  }
+  return out;
+}
+
+function scanConfirmEveryDelete(files) {
+  const blob = files.map((f) => f.text).join("\n");
+  if (!fileHasUndo(blob)) return [];
+  const out = [];
+  for (const f of files) {
+    if (
+      /window\.confirm\s*\(|confirmationDialog|Are you sure you want to delete|role=["']alertdialog["'][\s\S]{0,240}delete/i.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "delete confirmation while Undo exists"));
+    }
+  }
+  return out;
+}
+
+function scanSilentNavLoss(files) {
+  const blob = files.map((f) => f.text).join("\n");
+  if (fileHasUndo(blob)) return [];
+  const out = [];
+  for (const f of files) {
+    const dirty = /\b(isDirty|unsaved|hasUnsavedChanges)\b/.test(f.text);
+    const leaves = /\b(navigate|router\.(push|replace)|location\.href)\s*\(/.test(f.text);
+    const guarded = /beforeunload|useBlocker|data-draft|saveDraft/.test(f.text);
+    if (dirty && leaves && !guarded) {
+      out.push(hit(f.path, "navigate away from dirty form with no undo or draft"));
+    }
+  }
+  return out;
+}
+
+function scanSpinnerNoWayOut(files) {
+  const out = [];
+  for (const f of files) {
+    const loading =
+      /aria-busy=/.test(f.text) ||
+      /\b(spinner|skeleton|ProgressView|UIActivityIndicatorView)\b/i.test(f.text);
+    const looping = /animation:[^;]*infinite|indeterminate/i.test(f.text);
+    const escape = /\b(Cancel|Stop|Dismiss|Try again)\b/.test(f.text);
+    if (loading && looping && !escape) {
+      out.push(hit(f.path, "indeterminate spinner with no way out"));
+    }
+  }
+  return out;
+}
+
+function scanFakePercent(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /fakePercent|fake[- ]progress|percent\s*\+=|Math\.min\(\s*99/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "fake percent on a progress bar"));
+    }
+  }
+  return out;
+}
+
+function scanLoadingModalHidesNav(files) {
+  const blob = files.map((f) => f.text).join("\n");
+  if (!/<(nav|header)\b/i.test(blob) && !/data-nav/.test(blob)) return [];
+  const out = [];
+  for (const f of files) {
+    for (const region of dialogRegions(f.text)) {
+      if (
+        /aria-busy|spinner|ProgressView|data-skeleton/i.test(region) &&
+        /data-loading-modal|position:\s*fixed|inset:\s*0/i.test(region)
+      ) {
+        out.push(hit(f.path, "loading modal hides nav"));
+      }
+    }
+  }
+  return out;
+}
+
+function scanModalSuccess(files) {
+  const out = [];
+  for (const f of files) {
+    for (const region of dialogRegions(f.text)) {
+      if (/\b(Success|Saved!|Successfully saved)\b/i.test(innerText(region))) {
+        out.push(hit(f.path, "modal Success after save"));
+      }
+    }
+  }
+  return out;
+}
+
+function scanErrorToast(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /(data-toast|role=["']status["'])[\s\S]{0,240}\berror\b/i.test(f.text) &&
+      /setTimeout|toastDuration|autoHide|disappear/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "error toast that disappears"));
+    }
+  }
+  return out;
+}
+
+function scanConfettiCrud(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /\bconfetti\b/i.test(f.text) &&
+      /\b(onSave|handleSave|createItem|updateItem|onSubmit|CRUD)\b/.test(f.text)
+    ) {
+      out.push(hit(f.path, "confetti on ordinary CRUD"));
+    }
+  }
+  return out;
+}
+
+function applyConfettiCrud(text) {
+  return text
+    .replace(/<([A-Za-z][\w]*)\b[^>]*\bconfetti\b[^>]*\/>\s*/gi, "")
+    .replace(/<([A-Za-z][\w]*)\b[^>]*\bconfetti\b[^>]*>[\s\S]*?<\/\1>\s*/gi, "")
+    .replace(/\bconfetti\s*\([^)]*\)\s*;?/g, "");
+}
+
+function applyRethemeSettings(text) {
+  let next = applyOpaqueBrandBars(text);
+  next = next.replace(/\s*barTintColor=["']#[0-9a-fA-F]{3,8}["']/g, "");
+  next = next.replace(/\s*data-fashion-glass(?:="[^"]*")?/g, "");
+  return next;
+}
+
+function scanAccountWall(files) {
+  const out = [];
+  for (const f of files) {
+    if (!fileHasOnboarding(f.text)) continue;
+    const wall = /\b(Sign in|Log in|Create account|Create an account)\b/i.test(f.text);
+    const skip = /\b(Skip|Continue as guest|Not now)\b/i.test(f.text);
+    if (wall && !skip) {
+      out.push(hit(f.path, "account required before any value"));
+    }
+  }
+  return out;
+}
+
+function scanEveryPermissionPageOne(files) {
+  const out = [];
+  const kinds = [
+    /camera|getUserMedia/i,
+    /mic(?:rophone)?/i,
+    /geolocation|location/i,
+    /Notification\.requestPermission|notifications/i,
+    /tracking|ATTrackingManager/i,
+  ];
+  for (const f of files) {
+    if (!fileHasOnboarding(f.text)) continue;
+    const hits = kinds.filter((re) => re.test(f.text)).length;
+    if (hits >= 3) {
+      out.push(hit(f.path, "every permission asked on page one"));
+    }
+  }
+  return out;
+}
+
+function scanHelpInterstitials(files) {
+  const out = [];
+  for (const f of files) {
+    if (!fileHasOnboarding(f.text)) continue;
+    const steps = [
+      ...(f.text.match(/data-onboarding-step/g) || []),
+      ...(f.text.match(/\bhelp-card\b/g) || []),
+      ...(f.text.match(/\binterstitial\b/g) || []),
+    ];
+    if (steps.length >= 6) {
+      out.push(hit(f.path, "Help duplicated as six interstitial cards"));
+    }
+  }
+  return out;
+}
+
+function scanNotificationWall(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /(useEffect|componentDidMount|DOMContentLoaded|onMounted)\s*\([\s\S]{0,400}Notification\.requestPermission/i.test(
+        f.text,
+      ) ||
+      /data-onboarding[\s\S]{0,400}Enable notifications/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "first-launch Enable notifications wall"));
+    }
+  }
+  return out;
+}
+
+function scanMarketingTimeSensitive(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /(time[- ]sensitive|interruptionLevel.{0,40}timeSensitive|UNNotificationInterruptionLevel\.timeSensitive)/i.test(
+        f.text,
+      ) &&
+      /\b(sale|offer|discount|promo|marketing|don't miss)\b/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "marketing marked time-sensitive"));
+    }
+  }
+  return out;
+}
+
+function scanCustomLockScreen(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /data-lock-screen|LockScreen(View|UI)|custom lock[- ]screen/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "custom lock-screen notification UI"));
+    }
+  }
+  return out;
+}
+
+function scanHiddenDrag(files) {
+  const out = [];
+  for (const f of files) {
+    const drag = /\bdraggable\b|\bonDrag\s*\(|data-drop/.test(f.text);
+    if (!drag) continue;
+    const hidden = /draggable[\s\S]{0,120}(hidden|sr-only|opacity:\s*0)/i.test(f.text);
+    const alt = /\b(Move|Cut|Copy)\b/.test(f.text) || /aria-keyshortcuts|onKeyDown/.test(f.text);
+    if (hidden && !alt) {
+      out.push(hit(f.path, "hidden drag with no alternative"));
+    }
+  }
+  return out;
+}
+
+function scanDropNavigates(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /onDrop\s*\([\s\S]{0,400}(navigate\s*\(|router\.(push|replace)|location\.href)/i.test(
+        f.text,
+      ) &&
+      !/preview|drag-preview|lift/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "drop navigates away without a preview"));
+    }
+  }
+  return out;
+}
+
+function scanFightSplitDrops(files) {
+  const out = [];
+  for (const f of files) {
+    if (
+      /UIDropProposal[\s\S]{0,80}forbidden|preventDefault\s*\([\s\S]{0,120}(splitView|multi-?window|UISplitView)/i.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "fighting system split-view drops"));
+    }
+  }
+  return out;
+}
+
+function scanAnimatedSplash(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isLaunchFile(f)) continue;
+    if (/animation:|keyframes|setTimeout\s*\([\s\S]{0,80}splash/i.test(f.text)) {
+      out.push(hit(f.path, "animated splash after launch"));
+    }
+  }
+  return out;
+}
+
+function scanLaunchMedia(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isLaunchFile(f)) continue;
+    if (/<(video|audio)\b[^>]*(autoPlay|autoplay)/i.test(f.text)) {
+      out.push(hit(f.path, "video or sound on launch"));
+    }
+  }
+  return out;
+}
+
+function applyLaunchMedia(text, file) {
+  if (!isLaunchFile(file)) return text;
+  return text.replace(/<(video|audio)\b([^>]*)>/gi, (all, tag, attrs) => {
+    if (!/autoPlay|autoplay/i.test(attrs)) return all;
+    const next = attrs
+      .replace(/\s*autoPlay(=\{[^}]*\})?/g, "")
+      .replace(/\s*autoplay(="[^"]*")?/gi, "");
+    return `<${tag}${next}>`;
+  });
+}
+
+function scanLaunchBrandBars(files) {
+  const out = [];
+  for (const f of files) {
+    if (/UIDesignRequiresCompatibility/.test(f.text)) {
+      out.push(hit(f.path, "UIDesignRequiresCompatibility launch design"));
+      continue;
+    }
+    if (!isLaunchFile(f)) continue;
+    if (
+      /(background(?:-color|Color)?)\s*[:=]\s*["']?#(?:[0-9a-f]{3}|[0-9a-f]{6})\b/i.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "opaque brand bar as launch chrome"));
+    }
+  }
+  return out;
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -1368,6 +1766,52 @@ function scanHeuristic(id, files) {
       return scanAbilityJokes(files);
     case "locked-skin-tone-defaults":
       return scanLockedSkin(files);
+    case "settings-required-for-first-run":
+      return scanSettingsFirstRun(files);
+    case "nested-prefs-no-grouping":
+      return scanNestedPrefs(files);
+    case "retheme-system-settings":
+      return scanRethemeSettings(files);
+    case "confirm-every-delete-with-undo":
+      return scanConfirmEveryDelete(files);
+    case "silent-nav-data-loss":
+      return scanSilentNavLoss(files);
+    case "spinner-loop-no-way-out":
+      return scanSpinnerNoWayOut(files);
+    case "fake-percent-progress":
+      return scanFakePercent(files);
+    case "loading-modal-hides-nav":
+      return scanLoadingModalHidesNav(files);
+    case "modal-success-after-save":
+      return scanModalSuccess(files);
+    case "error-toast-disappears":
+      return scanErrorToast(files);
+    case "confetti-on-crud":
+      return scanConfettiCrud(files);
+    case "account-wall-before-value":
+      return scanAccountWall(files);
+    case "every-permission-on-page-one":
+      return scanEveryPermissionPageOne(files);
+    case "help-as-six-interstitials":
+      return scanHelpInterstitials(files);
+    case "first-launch-notification-wall":
+      return scanNotificationWall(files);
+    case "marketing-as-time-sensitive":
+      return scanMarketingTimeSensitive(files);
+    case "custom-lock-screen-ui":
+      return scanCustomLockScreen(files);
+    case "hidden-drag-no-alternative":
+      return scanHiddenDrag(files);
+    case "drop-navigates-without-preview":
+      return scanDropNavigates(files);
+    case "fight-split-view-drops":
+      return scanFightSplitDrops(files);
+    case "animated-splash-after-launch":
+      return scanAnimatedSplash(files);
+    case "video-sound-on-launch":
+      return scanLaunchMedia(files);
+    case "launch-compatibility-brand-bars":
+      return scanLaunchBrandBars(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -1453,6 +1897,52 @@ function applyHeuristic(id, file) {
     case "ability-body-jokes-empty":
       return file.text;
     case "locked-skin-tone-defaults":
+      return file.text;
+    case "settings-required-for-first-run":
+      return file.text;
+    case "nested-prefs-no-grouping":
+      return file.text;
+    case "retheme-system-settings":
+      return applyRethemeSettings(file.text);
+    case "confirm-every-delete-with-undo":
+      return file.text;
+    case "silent-nav-data-loss":
+      return file.text;
+    case "spinner-loop-no-way-out":
+      return file.text;
+    case "fake-percent-progress":
+      return file.text;
+    case "loading-modal-hides-nav":
+      return file.text;
+    case "modal-success-after-save":
+      return file.text;
+    case "error-toast-disappears":
+      return file.text;
+    case "confetti-on-crud":
+      return applyConfettiCrud(file.text);
+    case "account-wall-before-value":
+      return file.text;
+    case "every-permission-on-page-one":
+      return file.text;
+    case "help-as-six-interstitials":
+      return file.text;
+    case "first-launch-notification-wall":
+      return file.text;
+    case "marketing-as-time-sensitive":
+      return file.text;
+    case "custom-lock-screen-ui":
+      return file.text;
+    case "hidden-drag-no-alternative":
+      return file.text;
+    case "drop-navigates-without-preview":
+      return file.text;
+    case "fight-split-view-drops":
+      return file.text;
+    case "animated-splash-after-launch":
+      return file.text;
+    case "video-sound-on-launch":
+      return applyLaunchMedia(file.text, file);
+    case "launch-compatibility-brand-bars":
       return file.text;
     default: {
       const _exhaustive = id;
