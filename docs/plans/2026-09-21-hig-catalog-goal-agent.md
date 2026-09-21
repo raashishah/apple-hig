@@ -27,7 +27,7 @@ Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_lo
 
 ## This PR (#12)
 
-Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. No `catalog.yaml` / `load-catalog.mjs` in this change.
+Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT.
 
 ## Later: additive catalog loop
 
@@ -50,7 +50,7 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 ## Sequence (later PR)
 
-1. U1. Ingest live Apple index → derived catalog records. Eval tracks the index, not a number.
+1. U1. Ingest live Apple index → derived catalog records. Eval tracks the index, not a number. **Landed on this PR.**
 2. U2. Goal loop **after** wave-0 `requiredIds`. Applicable set is extra work, not a replacement stop condition.
 3. U3. Host fonts already left alone on #12. Keep that.
 4. U4. `appliesWhen` from host patterns (scan list, form, overlay, platform), not a framework enum.
@@ -72,8 +72,7 @@ node eval/run-dry.mjs
 node eval/run-chrome-grammar.mjs
 node eval/run-swarm.mjs
 node eval/run-check-chrome.mjs
+node eval/run-catalog.mjs
 ```
 
-`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`.
-
-Later catalog eval (not this PR): live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family.
+`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family.

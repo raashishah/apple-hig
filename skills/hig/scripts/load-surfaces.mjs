@@ -39,7 +39,15 @@ export function hostPlatformSet(preflight) {
       set.add("phone");
       return;
     }
-    if (v === "phone" || v === "ipad" || v === "desktop" || v === "games") {
+    if (
+      v === "phone" ||
+      v === "ipad" ||
+      v === "desktop" ||
+      v === "games" ||
+      v === "watch" ||
+      v === "tv" ||
+      v === "vision"
+    ) {
       set.add(v);
     }
   };

@@ -12,6 +12,7 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - `chrome.list-browser.filter-density` is a required grammar class
 - Eval: `eval/run-check-chrome.mjs` plus pass/fail fixtures
 - Later catalog goal-loop plan: `docs/plans/2026-09-21-hig-catalog-goal-agent.md` (additive; does not replace `requiredIds`)
+- Catalog inventory: `knowledge/catalog.yaml` from Apple's live index (`scripts/sync-hig-catalog.mjs`). Round 1 apply still 12 `requiredIds`. Eval: `eval/run-catalog.mjs`
 
 ## Unreleased
 

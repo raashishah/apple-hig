@@ -51,7 +51,7 @@ Chrome grammar ([`skills/hig/knowledge/chrome/grammar.yaml`](skills/hig/knowledg
 | `chrome.layout.card-grid-home` | Product home is a workspace, not a marketing card grid |
 | `chrome.ive.nested-cards` | Lists/forms are not wrapped in extra card panels |
 
-After apply, `/hig` runs `node skills/hig/scripts/check-chrome.mjs` on the host. P0 hits block PASS. Recipes: [`skills/hig/knowledge/chrome/recipes.md`](skills/hig/knowledge/chrome/recipes.md). Host fonts stay.
+After apply, `/hig` runs `node skills/hig/scripts/check-chrome.mjs` on the host. P0 hits block PASS. Recipes: [`skills/hig/knowledge/chrome/recipes.md`](skills/hig/knowledge/chrome/recipes.md). Host fonts stay. Live Apple article inventory: [`skills/hig/knowledge/catalog.yaml`](skills/hig/knowledge/catalog.yaml) (not the round-1 apply list).
 
 Principles (materials arbitration, list-as-browser, brand veto): [`skills/hig/knowledge/canon.md`](skills/hig/knowledge/canon.md). Optional React mapping (no kit): [`skills/hig-react/SKILL.md`](skills/hig-react/SKILL.md).
 

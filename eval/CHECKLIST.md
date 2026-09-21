@@ -25,6 +25,7 @@ node eval/run-dry.mjs
 node eval/run-chrome-grammar.mjs
 node eval/run-swarm.mjs
 node eval/run-check-chrome.mjs
+node eval/run-catalog.mjs
 ```
 
 - [x] Sparse fixture: preflight passes; mutation open
@@ -37,6 +38,7 @@ node eval/run-check-chrome.mjs
 - [x] `surfaces.yaml` apply SSOT; `requiredIds` stay 12; Duo stays gated
 - [x] Packs + SKILL/review/design wire chrome grammar IDs
 - [x] All chrome rules are `mutationClass: structure` (brand veto does not hide them)
+- [x] `catalog.yaml` tracks the live Apple article index; lists apply on Vue; complications skip on web; `requiredIds` stay 12
 
 ## Swarm / stack (0.4)
 

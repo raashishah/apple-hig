@@ -67,6 +67,7 @@ const results = [];
   const yamlRoots = [
     path.join(skillRoot, "knowledge", "surfaces.yaml"),
     path.join(skillRoot, "knowledge", "registry.yaml"),
+    path.join(skillRoot, "knowledge", "catalog.yaml"),
     path.join(skillRoot, "knowledge", "chrome", "grammar.yaml"),
   ];
   const packDir = path.join(skillRoot, "knowledge", "packs");

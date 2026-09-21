@@ -93,3 +93,5 @@ Compose from `knowledge/packs/`:
 Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Recipes: `knowledge/chrome/recipes.md`. Rubric: `knowledge/chrome/review-rubric.md`. Scanner: `scripts/check-chrome.mjs`.
 
 Deep Apple URLs remain in `knowledge/registry.yaml` for rare leaves. That file is not the apply catalog.
+
+Live Apple article inventory: `knowledge/catalog.yaml` (refresh with `scripts/sync-hig-catalog.mjs`). It does not replace round-1 apply.
