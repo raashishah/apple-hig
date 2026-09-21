@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DETECTORS } from "../knowledge/chrome/detectors.mjs";
+import { applyChromeRecipe } from "./apply-chrome.mjs";
 
 const GENERIC_FAMILIES = new Set([
   "serif",
@@ -1688,6 +1689,284 @@ function scanLaunchBrandBars(files) {
   return out;
 }
 
+const CTA_LABEL = "Add|New|Create|Save|Submit|Done";
+
+function scanDashboardCardGrid(files) {
+  return DETECTORS["chrome.layout.card-grid-home"](files);
+}
+
+function scanListPaneMinWidth(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/data-list-pane|list-browser|ListPane/.test(f.text)) continue;
+    const pane = f.text.match(
+      /<(div|aside|section|nav)\b[^>]*(data-list-pane|list-browser|ListPane)[^>]*>/i,
+    );
+    if (pane && /minWidth|min-width/.test(pane[0])) {
+      out.push(hit(f.path, "list pane min-width"));
+      continue;
+    }
+    if (
+      /(data-list-pane|list-browser|\.list-pane)[^{]{0,80}\{\s*[^}]*(min-width|minWidth)/.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "list pane min-width"));
+    }
+  }
+  return out;
+}
+
+function applyListPaneMinWidth(text) {
+  let next = text.replace(
+    /(<(div|aside|section|nav)\b[^>]*(?:data-list-pane|list-browser|ListPane)[^>]*)(>)/gi,
+    (all, open, _tag, close) => {
+      const stripped = open
+        .replace(/minWidth\s*:\s*["'][^"']*["']\s*,?/g, "")
+        .replace(/min-width\s*:\s*[^;"'\s}]+;?/gi, "");
+      return `${stripped}${close}`;
+    },
+  );
+  next = next.replace(
+    /((?:data-list-pane|list-browser|\.list-pane)[^{]{0,80}\{\s*)([^}]*)(\})/g,
+    (all, open, body, close) => {
+      const stripped = body.replace(/min-width\s*:[^;]+;?/gi, "");
+      return stripped === body ? all : `${open}${stripped}${close}`;
+    },
+  );
+  return next;
+}
+
+function isBottomChrome(text) {
+  return /data-tab-bar|data-bottom-nav|\.tab-bar\b|UITabBar/.test(text);
+}
+
+function scanRelativeBottomNav(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isBottomChrome(f.text)) continue;
+    const scoped = f.text.match(
+      /<(nav|footer|div|header)\b[^>]*(data-tab-bar|data-bottom-nav|tab-bar)[^>]*>/i,
+    );
+    if (scoped && /position:\s*["']?relative["']?/.test(scoped[0])) {
+      out.push(hit(f.path, "relative bottom nav"));
+      continue;
+    }
+    if (
+      /(data-tab-bar|data-bottom-nav|\.tab-bar)[^{]{0,80}\{\s*[^}]*position:\s*relative/.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "relative bottom nav"));
+    }
+  }
+  return out;
+}
+
+function applyRelativeBottomNav(text) {
+  if (!isBottomChrome(text)) return text;
+  let next = text.replace(
+    /(<(nav|footer|div|header)\b[^>]*(?:data-tab-bar|data-bottom-nav|tab-bar)[^>]*)(>)/gi,
+    (all, open, _tag, close) => {
+      const sticky = open
+        .replace(/position:\s*["']relative["']/g, 'position: "sticky"')
+        .replace(/position:\s*relative/g, "position: sticky");
+      return `${sticky}${close}`;
+    },
+  );
+  next = next.replace(
+    /((?:data-tab-bar|data-bottom-nav|\.tab-bar)[^{]{0,80}\{\s*)([^}]*)(\})/g,
+    (all, open, body, close) => {
+      const sticky = body.replace(/position\s*:\s*relative/gi, "position: sticky");
+      return sticky === body ? all : `${open}${sticky}${close}`;
+    },
+  );
+  return next;
+}
+
+function scanCompatibilityLook(files) {
+  const out = [];
+  for (const f of files) {
+    if (/UIDesignRequiresCompatibility/.test(f.text)) {
+      out.push(hit(f.path, "UIDesignRequiresCompatibility"));
+    }
+  }
+  return out;
+}
+
+function applyCompatibilityLook(text) {
+  return text.replace(/^[^\n]*UIDesignRequiresCompatibility[^\n]*\n?/gm, "");
+}
+
+function scanStackedTranslucent(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-stacked-translucent/.test(f.text)) {
+      out.push(hit(f.path, "stacked translucent layers"));
+      continue;
+    }
+    const blurs =
+      f.text.match(/backdrop-filter|backdropFilter|UIBlurEffect|ultraThinMaterial/g) || [];
+    if (
+      blurs.length >= 2 &&
+      /<(header|nav)\b/.test(f.text) &&
+      !/\b(overlay|sheet|dialog|alert|modal|picker|popover)\b/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "stacked translucent layers"));
+    }
+  }
+  return out;
+}
+
+function applyStackedTranslucent(file) {
+  const stripped = file.text.replace(/\s*data-stacked-translucent(?:="[^"]*")?/g, "");
+  return applyChromeRecipe("chrome.materials.fashion-glass", { ...file, text: stripped });
+}
+
+function scanCardGridMasterList(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/data-list-pane|list-browser|ListPane/.test(f.text)) continue;
+    if (/card-grid|dashboard-cards/.test(f.text)) {
+      out.push(hit(f.path, "card grid as master list"));
+      continue;
+    }
+    const cards = f.text.match(/class(Name)?=["'][^"']*\bcard\b/g) || [];
+    if (cards.length >= 3) {
+      out.push(hit(f.path, "card grid as master list"));
+    }
+  }
+  return out;
+}
+
+function applyCardGridMasterList(text) {
+  if (!/data-list-pane|list-browser|ListPane/.test(text)) return text;
+  let next = text.replace(
+    /<(div|section)\b([^>]*\bclass(?:Name)?=["'][^"']*(?:card-grid|dashboard-cards)[^"']*["'][^>]*)>\s*([\s\S]*?)<\/\1>/i,
+    (all, _tag, _attrs, inner) => {
+      const items = [...inner.matchAll(/<(article|div|li)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map(
+        (m) => m[2].trim(),
+      );
+      if (!items.length) return all;
+      return `<ul>\n${items.map((t) => `        <li>${t}</li>`).join("\n")}\n      </ul>`;
+    },
+  );
+  next = next.replace(/\s+className=["']card["']/g, "");
+  next = next.replace(/\s+class=["']card["']/g, "");
+  return next;
+}
+
+function scanCtaOnlyListToolbar(files) {
+  const blob = files.map((f) => f.text).join("\n");
+  if (!/data-detail(?:-pane)?\b/.test(blob)) return [];
+  const ctaRe = new RegExp(`<button\\b[^>]*>\\s*(?:${CTA_LABEL})\\s*</button>`, "i");
+  const detailCta = new RegExp(
+    `data-detail[\\s\\S]{0,1200}<button\\b[^>]*>\\s*(?:${CTA_LABEL})`,
+    "i",
+  );
+  const out = [];
+  for (const f of files) {
+    if (!/data-list-pane/.test(f.text)) continue;
+    const toolbar = f.text.match(
+      /<header\b[^>]*(?:role=["']toolbar["']|toolbar)[^>]*>[\s\S]*?<\/header>/i,
+    );
+    if (!toolbar) continue;
+    if (!ctaRe.test(toolbar[0]) && !/<button\b[^>]*type=["']submit["']/.test(toolbar[0])) {
+      continue;
+    }
+    if (detailCta.test(blob)) continue;
+    out.push(hit(f.path, "primary CTA only in list toolbar"));
+  }
+  return out;
+}
+
+function applyCtaOnlyListToolbar(text) {
+  if (!/data-list-pane/.test(text) || !/data-detail(?:-pane)?\b/.test(text)) return text;
+  const ctaRe = new RegExp(`<button\\b[^>]*>\\s*(?:${CTA_LABEL})\\s*</button>\\s*`, "i");
+  const toolbarRe =
+    /(<header\b[^>]*(?:role=["']toolbar["']|toolbar)[^>]*>)([\s\S]*?)(<\/header>)/i;
+  const tm = text.match(toolbarRe);
+  if (!tm) return text;
+  const btn = tm[2].match(ctaRe);
+  if (!btn) return text;
+  let next = text.replace(
+    toolbarRe,
+    (_, open, body, close) => `${open}${body.replace(ctaRe, "")}${close}`,
+  );
+  next = next.replace(
+    /(<([A-Za-z][\w]*)\b[^>]*data-detail(?:-pane)?\b[^>]*>)(\s*)/,
+    `$1$3${btn[0]}$3`,
+  );
+  return next;
+}
+
+function countSubmitButtons(text) {
+  return [...text.matchAll(/<button\b([^>]*)>/gi)].filter((m) => {
+    const attrs = m[1];
+    if (/\btype=["']button["']/i.test(attrs) || /\btype=["']reset["']/i.test(attrs)) {
+      return false;
+    }
+    return /\btype=["']submit["']/i.test(attrs) || !/\btype=/.test(attrs);
+  }).length;
+}
+
+function scanEqualWeightSubmits(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/data-form-page|<form\b/.test(f.text)) continue;
+    if (countSubmitButtons(f.text) >= 2) {
+      out.push(hit(f.path, "multiple equal-weight submits"));
+    }
+  }
+  return out;
+}
+
+function applyEqualWeightSubmits(text) {
+  if (!/data-form-page|<form\b/.test(text)) return text;
+  let seen = false;
+  return text.replace(/<button\b([^>]*)>/gi, (all, attrs) => {
+    if (/\btype=["']button["']/i.test(attrs) || /\btype=["']reset["']/i.test(attrs)) {
+      return all;
+    }
+    const isSubmit = /\btype=["']submit["']/i.test(attrs) || !/\btype=/.test(attrs);
+    if (!isSubmit) return all;
+    if (!seen) {
+      seen = true;
+      return all;
+    }
+    if (/\btype=["']submit["']/i.test(attrs)) {
+      return all.replace(/\btype=["']submit["']/i, 'type="button"');
+    }
+    return `<button type="button"${attrs}>`;
+  });
+}
+
+function hasTabShell(text) {
+  return /data-tab-bar|role=["']tablist["']|UITabBar|\bTabView\s*\(/.test(text);
+}
+
+function scanMarketingTabShell(files) {
+  const out = [];
+  for (const f of files) {
+    if (!isMarketingFile(f)) continue;
+    if (hasTabShell(f.text)) {
+      out.push(hit(f.path, "marketing landing tab shell"));
+    }
+  }
+  return out;
+}
+
+function applyMarketingTabShell(text, file) {
+  if (!isMarketingFile(file) || !hasTabShell(text)) return text;
+  let next = text.replace(
+    /<(nav|div|footer)\b[^>]*(?:data-tab-bar|role=["']tablist["'])[^>]*>[\s\S]*?<\/\1>\s*/gi,
+    "",
+  );
+  next = next.replace(/\s*data-tab-bar(?:="[^"]*")?/g, "");
+  next = next.replace(/\s*role=["']tablist["']/g, "");
+  return next;
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -1812,6 +2091,26 @@ function scanHeuristic(id, files) {
       return scanLaunchMedia(files);
     case "launch-compatibility-brand-bars":
       return scanLaunchBrandBars(files);
+    case "dashboard-card-grid-home":
+      return scanDashboardCardGrid(files);
+    case "list-pane-min-width-steals-detail":
+      return scanListPaneMinWidth(files);
+    case "relative-bottom-nav-scrolls-away":
+      return scanRelativeBottomNav(files);
+    case "opaque-nav-bar-fills":
+      return scanOpaqueBrandBars(files);
+    case "teach-compatibility-look":
+      return scanCompatibilityLook(files);
+    case "stacked-translucent-layers":
+      return scanStackedTranslucent(files);
+    case "card-grids-as-master-list":
+      return scanCardGridMasterList(files);
+    case "cta-only-in-list-toolbar":
+      return scanCtaOnlyListToolbar(files);
+    case "equal-weight-submits":
+      return scanEqualWeightSubmits(files);
+    case "marketing-landing-tab-shell":
+      return scanMarketingTabShell(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -1944,6 +2243,26 @@ function applyHeuristic(id, file) {
       return applyLaunchMedia(file.text, file);
     case "launch-compatibility-brand-bars":
       return file.text;
+    case "dashboard-card-grid-home":
+      return applyChromeRecipe("chrome.layout.card-grid-home", file);
+    case "list-pane-min-width-steals-detail":
+      return applyListPaneMinWidth(file.text);
+    case "relative-bottom-nav-scrolls-away":
+      return applyRelativeBottomNav(file.text);
+    case "opaque-nav-bar-fills":
+      return applyOpaqueBrandBars(file.text);
+    case "teach-compatibility-look":
+      return applyCompatibilityLook(file.text);
+    case "stacked-translucent-layers":
+      return applyStackedTranslucent(file);
+    case "card-grids-as-master-list":
+      return applyCardGridMasterList(file.text);
+    case "cta-only-in-list-toolbar":
+      return applyCtaOnlyListToolbar(file.text);
+    case "equal-weight-submits":
+      return applyEqualWeightSubmits(file.text);
+    case "marketing-landing-tab-shell":
+      return applyMarketingTabShell(file.text, file);
     default: {
       const _exhaustive = id;
       void _exhaustive;

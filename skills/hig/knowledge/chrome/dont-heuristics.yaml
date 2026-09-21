@@ -124,3 +124,23 @@ heuristics:
     match: Video / sound on launch
   - id: launch-compatibility-brand-bars
     match: UIDesignRequiresCompatibility or custom opaque
+  - id: dashboard-card-grid-home
+    match: Dashboard card grids as the default app home
+  - id: list-pane-min-width-steals-detail
+    match: List pane min-widths that steal detail space
+  - id: relative-bottom-nav-scrolls-away
+    match: position: relative bottom nav that scrolls away
+  - id: opaque-nav-bar-fills
+    match: Custom opaque fills
+  - id: teach-compatibility-look
+    match: Teaching UIDesignRequiresCompatibility
+  - id: stacked-translucent-layers
+    match: Stacking multiple translucent layers until text fails contrast
+  - id: card-grids-as-master-list
+    match: Card grids posing as the master list
+  - id: cta-only-in-list-toolbar
+    match: only primary CTA only in the list toolbar
+  - id: equal-weight-submits
+    match: Multiple equal-weight submits fighting each other
+  - id: marketing-landing-tab-shell
+    match: Turning a marketing landing into an iOS tab shell

@@ -205,6 +205,10 @@ const RECIPES = {
 
 export const MECHANICAL_CHROME_IDS = Object.keys(RECIPES);
 
+export function applyChromeRecipe(id, file) {
+  return applyMechanicalRecipe(id, file);
+}
+
 function applyMechanicalRecipe(id, file) {
   const fn = RECIPES[id];
   if (!fn) {

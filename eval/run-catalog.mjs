@@ -601,7 +601,7 @@ const results = [];
       report.chrome.after.pass === true &&
       report.plan.phase === "catalog" &&
       appliedChrome.length > 0 &&
-      status.topics["lists-and-tables"]?.state === "applied" &&
+      ["applied", "already-compliant"].includes(status.topics["lists-and-tables"]?.state) &&
       orig.includes("card-grid") &&
       !/SF Pro|-apple-system|shadcn/i.test(
         walkSource(dir)
@@ -725,6 +725,13 @@ const results = [];
       catalog.byId["drag-and-drop"]?.dontCoverageComplete === true &&
       catalog.byId["managing-notifications"]?.dontCoverageComplete === true &&
       catalog.byId.launching?.dontCoverageComplete === true &&
+      catalog.byId.layout?.dontCoverageComplete === true &&
+      catalog.byId.materials?.dontCoverageComplete === true &&
+      catalog.byId["lists-and-tables"]?.dontCoverageComplete === true &&
+      catalog.byId["entering-data"]?.dontCoverageComplete === true &&
+      catalog.byId.sidebars?.dontCoverageComplete === true &&
+      (catalog.byId.layout?.dontHeuristicIds || []).includes("dashboard-card-grid-home") &&
+      (catalog.byId["entering-data"]?.dontHeuristicIds || []).includes("equal-weight-submits") &&
       catalog.byId["design-principles"]?.dontCoverageComplete === false &&
       catalog.byId.menus?.dontCoverageComplete === false &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1923,6 +1930,238 @@ const results = [];
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-optional-widget-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-chrome-dont-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-chrome-dont-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-chrome-dont-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "WideList.tsx"),
+      `export function WideList() {
+  return (
+    <div data-list-pane style={{ minWidth: "24rem" }}>
+      <ul><li>Item</li></ul>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "DualSubmit.tsx"),
+      `export function DualSubmit() {
+  return (
+    <form data-form-page>
+      <button type="submit">Save</button>
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "ListCta.tsx"),
+      `export function ListCta() {
+  return (
+    <div>
+      <div data-list-pane>
+        <header role="toolbar">
+          <button type="button">Add</button>
+        </header>
+        <ul><li>Row</li></ul>
+      </div>
+      <div data-detail>
+        <h1>Detail</h1>
+      </div>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Landing.tsx"),
+      `export function LandingPage() {
+  return (
+    <main data-marketing>
+      <h1>Welcome</h1>
+      <nav data-tab-bar role="tablist">
+        <a href="/home">Home</a>
+      </nav>
+    </main>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "StackedGlass.tsx"),
+      `export function StackedChrome() {
+  return (
+    <header data-nav data-stacked-translucent style={{ backdropFilter: "blur(20px)" }}>
+      <nav style={{ backdropFilter: "blur(12px)" }}>Nav</nav>
+    </header>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "Compat.ts"),
+      `export const flags = { UIDesignRequiresCompatibility: true };
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "BottomTabs.tsx"),
+      `export function PhoneTabs() {
+  return (
+    <nav data-tab-bar style={{ position: "relative", bottom: 0 }}>
+      <a href="/a">A</a>
+    </nav>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "MasterCards.tsx"),
+      `export function MasterCards() {
+  return (
+    <div data-list-pane>
+      <div className="card-grid">
+        <article className="card">One</article>
+        <article className="card">Two</article>
+        <article className="card">Three</article>
+      </div>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function SoloListCta() {
+  return (
+    <div data-list-pane>
+      <header role="toolbar">
+        <button type="button">Add</button>
+      </header>
+      <ul><li>Row</li></ul>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "SoloListCta.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const wide = fs.readFileSync(path.join(fixDir, "WideList.tsx"), "utf8");
+    const dual = fs.readFileSync(path.join(fixDir, "DualSubmit.tsx"), "utf8");
+    const cta = fs.readFileSync(path.join(fixDir, "ListCta.tsx"), "utf8");
+    const landing = fs.readFileSync(path.join(fixDir, "Landing.tsx"), "utf8");
+    const stacked = fs.readFileSync(path.join(fixDir, "StackedGlass.tsx"), "utf8");
+    const compat = fs.readFileSync(path.join(fixDir, "Compat.ts"), "utf8");
+    const bottom = fs.readFileSync(path.join(fixDir, "BottomTabs.tsx"), "utf8");
+    const master = fs.readFileSync(path.join(fixDir, "MasterCards.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "SoloListCta.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passLayout: passStatus.topics.layout?.state === "already-compliant",
+      passMaterials: passStatus.topics.materials?.state === "already-compliant",
+      passLists: passStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passSidebars: passStatus.topics.sidebars?.state === "already-compliant",
+      passButtons: passStatus.topics.buttons?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixLayout: fixStatus.topics.layout?.state === "applied",
+      fixMaterials: fixStatus.topics.materials?.state === "applied",
+      fixLists: fixStatus.topics["lists-and-tables"]?.state === "applied",
+      fixForms: fixStatus.topics["entering-data"]?.state === "applied",
+      fixTabs: fixStatus.topics["tab-bars"]?.state === "applied",
+      wideNoMin: !/minWidth/.test(wide),
+      dualOneSubmit: (dual.match(/type=["']submit["']/g) || []).length === 1,
+      dualKeepsSave: /type=["']submit["']>Save/.test(dual),
+      ctaMoved: /data-detail[\s\S]*Add/.test(cta) && !/<header[\s\S]*Add[\s\S]*<\/header>/.test(cta),
+      landingNoTabs: !/data-tab-bar|tablist/.test(landing),
+      stackedClean: !/data-stacked-translucent|backdropFilter/.test(stacked),
+      compatGone: !/UIDesignRequiresCompatibility/.test(compat),
+      bottomSticky: /position:\s*["']sticky["']/.test(bottom) && !/position:\s*["']relative["']/.test(bottom),
+      masterList: /<ul>/.test(master) && !/card-grid/.test(master),
+      holdUnchanged: held === origHold,
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passLayout: passStatus.topics.layout?.state,
+      passPrinciples: passStatus.topics["design-principles"]?.state,
+      fixLayout: fixStatus.topics.layout?.state,
+      fixForms: fixStatus.topics["entering-data"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      wide,
+      dual,
+      cta,
+      landing,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-chrome-backed-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

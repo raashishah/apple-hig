@@ -313,6 +313,7 @@ export function deriveTopicRule(topic, { surfaces, grammar, packCache, heuristic
       if (h) ids.push(h.id);
       else unmatched += 1;
     }
+    derived.dontCount = dont.length;
     if (ids.length) derived.dontHeuristicIds = [...new Set(ids)];
     derived.dontCoverageComplete = dont.length > 0 && unmatched === 0;
   }

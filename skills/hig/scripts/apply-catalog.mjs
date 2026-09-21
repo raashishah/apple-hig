@@ -2,7 +2,8 @@
 /**
  * After chrome P0, account packed catalog topics whose chromeIds are clean
  * and pack Don't code spans that the host does not hit (or that we can strip).
- * Required-surface, search, writing, privacy, branding, icons, images, app-icons, inclusion, and optional-widget prose Don'ts apply when every Don't has a scanner.
+ * Required-surface, search, writing, privacy, branding, icons, images, app-icons, inclusion, optional-widget, and chrome-backed layout/materials/lists/forms/navigation prose Don'ts apply when every Don't has a scanner.
+ * Packs with Don't bullets account through Don't scanners, not clean chromeIds.
  * Optional widget affordances skip when the host has no matching control.
  * Does not inject a kit or rewrite the host typeface.
  * Usage: node apply-catalog.mjs [--cwd host] [--write]
@@ -50,7 +51,12 @@ function accountChromeBacked(open, catalog, chrome) {
   for (const [id, row] of Object.entries(open.topics)) {
     let next = { ...row };
     if (row.state === "pending") {
-      const chromeIds = catalog.byId[id]?.chromeIds || [];
+      const topic = catalog.byId[id];
+      const chromeIds = topic?.chromeIds || [];
+      if ((topic?.dontCount || 0) > 0) {
+        topics[id] = next;
+        continue;
+      }
       if (chromeIds.length && chromeIds.every((cid) => !failIds.has(cid))) {
         const mutated = chromeIds.some((cid) => mutatedIds.has(cid));
         next = {
