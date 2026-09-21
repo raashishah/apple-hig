@@ -568,6 +568,7 @@ function affordanceMissing(need, present) {
     case "chart":
     case "disclosure":
     case "box":
+    case "editmenu":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -808,6 +809,14 @@ export function scanAffordances(files) {
     /\bGroupBox\s*[\({]/.test(blob)
   ) {
     found.push("box");
+  }
+  if (
+    /\bdata-edit-menu\b/.test(blob) ||
+    /\bUIMenuController\b/.test(blob) ||
+    /\bUIEditMenuInteraction\b/.test(blob) ||
+    /\.editMenu\s*\(/.test(blob)
+  ) {
+    found.push("editmenu");
   }
   return found;
 }

@@ -260,3 +260,9 @@ heuristics:
     match: nested boxes
   - id: oversized-box
     match: approaches its containing view
+  - id: custom-edit-menu
+    match: custom menu that presents the same commands
+  - id: inapplicable-edit-commands
+    match: nothing is selected
+  - id: redundant-edit-controls
+    match: same functions as edit menu

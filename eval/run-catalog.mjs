@@ -59,6 +59,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.charts?.affordance === "chart" &&
     surfaces.byId["disclosure-controls"]?.affordance === "disclosure" &&
     surfaces.byId.boxes?.affordance === "box" &&
+    surfaces.byId["edit-menus"]?.affordance === "editmenu" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -428,6 +429,7 @@ const results = [];
     "charting-data",
     "disclosure-controls",
     "boxes",
+    "edit-menus",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -581,6 +583,18 @@ const results = [];
       text: "<fieldset><legend>Name</legend><input /></fieldset>",
     },
   ]);
+  const editMenuOnly = scanAffordances([
+    {
+      path: "Edit.tsx",
+      text: '<div data-edit-menu><button type="button">Look Up</button></div>',
+    },
+  ]);
+  const commandMenuOnly = scanAffordances([
+    {
+      path: "Command.tsx",
+      text: '<div role="menu"><button type="button" role="menuitem">Share</button></div>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -614,6 +628,7 @@ const results = [];
       !passList.includes("chart") &&
       !passList.includes("disclosure") &&
       !passList.includes("box") &&
+      !passList.includes("editmenu") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -636,6 +651,7 @@ const results = [];
       !formOnly.includes("chart") &&
       !formOnly.includes("disclosure") &&
       !formOnly.includes("box") &&
+      !formOnly.includes("editmenu") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -676,6 +692,10 @@ const results = [];
       !cardOnly.includes("box") &&
       !fieldsetOnly.includes("box") &&
       !listOnly.includes("box") &&
+      editMenuOnly.includes("editmenu") &&
+      !editMenuOnly.includes("menu") &&
+      commandMenuOnly.includes("menu") &&
+      !commandMenuOnly.includes("editmenu") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1030,6 +1050,17 @@ const results = [];
       (catalog.byId.boxes?.dontHeuristicIds || []).includes("nested-boxes") &&
       (catalog.byId.boxes?.dontHeuristicIds || []).includes("oversized-box") &&
       catalog.byId.boxes?.pack === "components-boxes.md" &&
+      catalog.byId["edit-menus"]?.dontCoverageComplete === true &&
+      (catalog.byId["edit-menus"]?.dontHeuristicIds || []).includes(
+        "custom-edit-menu",
+      ) &&
+      (catalog.byId["edit-menus"]?.dontHeuristicIds || []).includes(
+        "inapplicable-edit-commands",
+      ) &&
+      (catalog.byId["edit-menus"]?.dontHeuristicIds || []).includes(
+        "redundant-edit-controls",
+      ) &&
+      catalog.byId["edit-menus"]?.pack === "components-edit-menus.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1134,6 +1165,7 @@ const results = [];
       "charting-data",
       "disclosure-controls",
       "boxes",
+      "edit-menus",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -4459,6 +4491,137 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-boxes-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-edit-menus-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-edit-menus-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-edit-menus-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div
+      data-edit-menu
+      data-custom-edit-menu
+      data-edit-no-selection
+      data-redundant-edit-controls
+    >
+      <button type="button">Look Up</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-edit-menu>
+      <button type="button">Cut</button>
+      <button type="button">Copy</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passEditMenus: passStatus.topics["edit-menus"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixEditMenus: fixStatus.topics["edit-menus"]?.state === "applied",
+      editMenuKept: /data-edit-menu/.test(fixed),
+      markersGone:
+        !/data-custom-edit-menu/.test(fixed) &&
+        !/data-edit-no-selection/.test(fixed) &&
+        !/data-redundant-edit-controls/.test(fixed),
+      lookUpKept: />Look Up</.test(fixed),
+      holdUnchanged: held === origHold,
+      holdEditMenus: holdStatus.topics["edit-menus"]?.state === "pending",
+      holdStillCut: />Cut</.test(held) && />Copy</.test(held),
+      holdNotInvented: !/aria-disabled/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passEditMenus: passStatus.topics["edit-menus"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixEditMenus: fixStatus.topics["edit-menus"]?.state,
+      holdEditMenus: holdStatus.topics["edit-menus"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-edit-menus-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

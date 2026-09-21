@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -308,6 +308,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/boxes
     gate: always
     covers: [boxes]
+  - id: edit-menus
+    pack: components-edit-menus.md
+    affordance: editmenu
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/edit-menus
+    gate: always
+    covers: [edit-menus]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets
