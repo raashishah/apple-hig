@@ -312,3 +312,9 @@ heuristics:
     match: more than six tabs
   - id: cross-pane-controls
     match: affect content in another pane
+  - id: continue-when-switched-away
+    match: switch away
+  - id: notify-routine-task
+    match: routine or secondary
+  - id: ignore-primary-audio-interrupt
+    match: primary audio interruption

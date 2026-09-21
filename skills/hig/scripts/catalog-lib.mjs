@@ -578,6 +578,7 @@ function affordanceMissing(need, present) {
     case "focus":
     case "account":
     case "tabview":
+    case "multitask":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -906,6 +907,14 @@ export function scanAffordances(files) {
     ( /role=["']tablist["']/i.test(blob) && /role=["']tabpanel["']/i.test(blob) )
   ) {
     found.push("tabview");
+  }
+  if (
+    /\bdata-multitask\b/.test(blob) ||
+    /\brequestPictureInPicture\s*\(/.test(blob) ||
+    /\bAVPictureInPictureController\b/.test(blob) ||
+    /\bpictureInPictureEnabled\b/.test(blob)
+  ) {
+    found.push("multitask");
   }
   return found;
 }

@@ -4047,6 +4047,62 @@ function applyCrossPaneControls(text) {
   return text.replace(/\s*data-cross-pane(?:="[^"]*")?/g, "");
 }
 
+function hasMultitask(text) {
+  return (
+    /\bdata-multitask\b/.test(text) ||
+    /\brequestPictureInPicture\s*\(/.test(text) ||
+    /\bAVPictureInPictureController\b/.test(text) ||
+    /\bpictureInPictureEnabled\b/.test(text)
+  );
+}
+
+function scanContinueWhenSwitchedAway(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-no-pause-on-background/.test(f.text)) {
+      out.push(hit(f.path, "attention-requiring activity that continues when people switch away"));
+      continue;
+    }
+    if (!hasMultitask(f.text)) continue;
+    if (/\bdata-keep-playing\b/.test(f.text)) {
+      out.push(hit(f.path, "attention-requiring activity that continues when people switch away"));
+    }
+  }
+  return out;
+}
+
+function applyContinueWhenSwitchedAway(text) {
+  return text.replace(/\s*data-no-pause-on-background(?:="[^"]*")?/g, "");
+}
+
+function scanNotifyRoutineTask(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-notify-routine/.test(f.text)) {
+      out.push(hit(f.path, "a notification when a routine or secondary task completes"));
+    }
+  }
+  return out;
+}
+
+function applyNotifyRoutineTask(text) {
+  return text.replace(/\s*data-notify-routine(?:="[^"]*")?/g, "");
+}
+
+function scanIgnorePrimaryAudioInterrupt(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ignore-audio-interrupt/.test(f.text)) {
+      out.push(hit(f.path, "audio that does not pause for a primary audio interruption"));
+    }
+  }
+  return out;
+}
+
+function applyIgnorePrimaryAudioInterrupt(text) {
+  return text.replace(/\s*data-ignore-audio-interrupt(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4374,6 +4430,12 @@ function scanHeuristic(id, files) {
       return scanMoreThanSixTabs(files);
     case "cross-pane-controls":
       return scanCrossPaneControls(files);
+    case "continue-when-switched-away":
+      return scanContinueWhenSwitchedAway(files);
+    case "notify-routine-task":
+      return scanNotifyRoutineTask(files);
+    case "ignore-primary-audio-interrupt":
+      return scanIgnorePrimaryAudioInterrupt(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4694,6 +4756,12 @@ function applyHeuristic(id, file) {
       return applyMoreThanSixTabs(file.text);
     case "cross-pane-controls":
       return applyCrossPaneControls(file.text);
+    case "continue-when-switched-away":
+      return applyContinueWhenSwitchedAway(file.text);
+    case "notify-routine-task":
+      return applyNotifyRoutineTask(file.text);
+    case "ignore-primary-audio-interrupt":
+      return applyIgnorePrimaryAudioInterrupt(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

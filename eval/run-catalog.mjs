@@ -69,6 +69,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["focus-and-selection"]?.affordance === "focus" &&
     surfaces.byId["managing-accounts"]?.affordance === "account" &&
     surfaces.byId["tab-views"]?.affordance === "tabview" &&
+    surfaces.byId.multitasking?.affordance === "multitask" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -448,6 +449,7 @@ const results = [];
     "focus-and-selection",
     "managing-accounts",
     "tab-views",
+    "multitasking",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -751,6 +753,12 @@ const results = [];
       text: '<div role="tablist"><button type="button" role="tab">A</button></div>',
     },
   ]);
+  const multitaskOnly = scanAffordances([
+    {
+      path: "Session.tsx",
+      text: '<div data-multitask><video src="clip.mp4"></video></div>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -794,6 +802,7 @@ const results = [];
       !passList.includes("focus") &&
       !passList.includes("account") &&
       !passList.includes("tabview") &&
+      !passList.includes("multitask") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -826,6 +835,7 @@ const results = [];
       !formOnly.includes("focus") &&
       !formOnly.includes("account") &&
       !formOnly.includes("tabview") &&
+      !formOnly.includes("multitask") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -913,6 +923,10 @@ const results = [];
       !tablistOnly.includes("tabview") &&
       !formOnly.includes("tabview") &&
       !pageOnly.includes("tabview") &&
+      multitaskOnly.includes("multitask") &&
+      !videoOnly.includes("multitask") &&
+      !formOnly.includes("multitask") &&
+      !pageOnly.includes("multitask") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1365,6 +1379,17 @@ const results = [];
         "cross-pane-controls",
       ) &&
       catalog.byId["tab-views"]?.pack === "components-tab-views.md" &&
+      catalog.byId.multitasking?.dontCoverageComplete === true &&
+      (catalog.byId.multitasking?.dontHeuristicIds || []).includes(
+        "continue-when-switched-away",
+      ) &&
+      (catalog.byId.multitasking?.dontHeuristicIds || []).includes(
+        "notify-routine-task",
+      ) &&
+      (catalog.byId.multitasking?.dontHeuristicIds || []).includes(
+        "ignore-primary-audio-interrupt",
+      ) &&
+      catalog.byId.multitasking?.pack === "patterns-multitasking.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1478,6 +1503,7 @@ const results = [];
       "focus-and-selection",
       "managing-accounts",
       "tab-views",
+      "multitasking",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -3575,6 +3601,7 @@ struct OneTorch: ControlWidget {
       passPopup: passStatus.topics["pop-up-buttons"]?.state === "skipped-no-affordance",
       passNotify: passStatus.topics.notifications?.state === "skipped-no-affordance",
       passTabViews: passStatus.topics["tab-views"]?.state === "skipped-no-affordance",
+      passMultitask: passStatus.topics.multitasking?.state === "skipped-no-affordance",
       passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
       remaining: passReport.plan.coverage.remaining > 0,
       destUnchanged,
@@ -6101,6 +6128,138 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-tab-views-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-multitask-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-multitask-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-multitask-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-multitask data-no-pause-on-background data-notify-routine data-ignore-audio-interrupt>
+      <video src="clip.mp4"></video>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-multitask>
+      <video src="clip.mp4" data-keep-playing></video>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passMultitask: passStatus.topics.multitasking?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixMultitask: fixStatus.topics.multitasking?.state === "applied",
+      systemKept:
+        /data-multitask/.test(fixed) && /<video\b/.test(fixed) && /clip\.mp4/.test(fixed),
+      markersGone:
+        !/data-no-pause-on-background/.test(fixed) &&
+        !/data-notify-routine/.test(fixed) &&
+        !/data-ignore-audio-interrupt/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdMultitask: holdStatus.topics.multitasking?.state === "pending",
+      holdStillPlaying:
+        /data-multitask/.test(held) &&
+        /<video\b/.test(held) &&
+        /data-keep-playing/.test(held),
+      holdNotInvented:
+        !/visibilitychange/i.test(held) &&
+        !/document\.hidden/.test(held) &&
+        !/\.pause\s*\(/.test(held) &&
+        !/notification/i.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passMultitask: passStatus.topics.multitasking?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixMultitask: fixStatus.topics.multitasking?.state,
+      holdMultitask: holdStatus.topics.multitasking?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-multitasking-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
