@@ -1,0 +1,34 @@
+# Mechanical Don't scanners for required-surface catalog apply.
+# Match is normalized against pack Don't bullets. Not a topic-id list.
+# Account a topic only when every Don't on it matches a scanner here.
+heuristics:
+  - id: hero-type-in-lists
+    match: Marketing hero type inside dense inventory lists
+  - id: all-caps-long-labels
+    match: All-caps long labels
+  - id: too-many-font-families
+    match: Mixing 5+ unrelated font families
+  - id: rainbow-nav-accents
+    match: Rainbow accents across nav
+  - id: muted-only-labels
+    match: Low-contrast muted text as the only label style
+  - id: glass-tints-on-chrome
+    match: Glass tints replacing solid semantic fills on primary chrome
+    chromeIds:
+      - chrome.materials.fashion-glass
+  - id: hard-black-white-chrome
+    match: Hard-coded #000 / #fff chrome that ignores Dark Mode
+  - id: color-only-error-or-selected
+    match: Color-only error or selected states
+  - id: bounce-on-appear
+    match: Ornamental bounce on menus that merely appeared
+  - id: locked-out-during-motion
+    match: Locked-out UI during transitions
+  - id: motion-without-reduce
+    match: Parallax or large zooms when Reduce Motion is on
+  - id: placeholder-only-label
+    match: Placeholder-as-only-label
+  - id: tiny-critical-type
+    match: Tiny decorative type for critical data
+  - id: color-only-error
+    match: Color-only error states

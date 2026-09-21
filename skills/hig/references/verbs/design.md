@@ -101,7 +101,7 @@ When `check-chrome.mjs` `pass` is true, run:
 node <skill>/scripts/apply-catalog.mjs --cwd <host> --write
 ```
 
-That accounts packed topics whose `chromeIds` are clean (including pack **Chrome gates**) and pack **Don't** code spans. Apply remaining pending `waveTopicIds` (prose-only Don'ts) with the same leased apply workers. Map each catalog topic onto the host’s existing widgets. Do not inject a kit or a missing control. Topics in the plan with `skipped-no-pack` / `skipped-gate` / `n/a-register` / `skipped-no-affordance` / `applied` / `already-compliant` are accounted — do not invent UI for them. Human-only packs (Apple Pay capture, Sign in consent, biometrics) style chrome around system sheets only.
+That accounts packed topics whose `chromeIds` are clean (including pack **Chrome gates**), pack **Don't** code spans, and required-surface prose Don'ts whose every bullet has a mechanical scanner. Apply remaining pending `waveTopicIds` (optional prose-only Don'ts) with the same leased apply workers. Map each catalog topic onto the host’s existing widgets. Do not inject a kit or a missing control. Topics in the plan with `skipped-no-pack` / `skipped-gate` / `n/a-register` / `skipped-no-affordance` / `applied` / `already-compliant` are accounted — do not invent UI for them. Human-only packs (Apple Pay capture, Sign in consent, biometrics) style chrome around system sheets only.
 
 If `done` is false, persist `.hig/catalog-status.yaml`, mark applied topics, and run `plan-catalog.mjs` again. Do not print catalog done after only 12 surfaces.
 

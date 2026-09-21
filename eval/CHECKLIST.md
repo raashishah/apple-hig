@@ -48,6 +48,7 @@ node eval/run-catalog.mjs
 - [x] Mechanical apply clears filter-density and sidebar on a tmp copy of `chrome-antipatterns`; after.fails is empty; committed fixtures stay dirty
 - [x] Catalog apply accounts chrome-backed packed topics on tmp chrome-pass (already-compliant) and tmp chrome-antipatterns (applied after chrome fix); pack-only rows stay pending; remaining is not a frozen integer
 - [x] Pack Chrome gates join catalog chromeIds (buttons/text-fields); pack Don't code spans apply on a tmp host (`scaleX(-1)` / `margin-left`); tab-views stays a title stub; no SF Pro/kit
+- [x] Required-surface prose Don'ts (type/color/motion/a11y) scan/apply/account on tmp chrome-pass and tmp antipattern files; a topic accounts only when every Don't has a scanner; writing/menus stay pending; no SF Pro/kit; remaining is not a frozen integer
 
 ## Swarm / stack (0.4)
 

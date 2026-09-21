@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { loadChromeGrammar } from "./load-chrome-grammar.mjs";
 import { gateMatches, loadSurfaces } from "./load-surfaces.mjs";
+import { loadDontHeuristics, matchHeuristic } from "./dont-heuristics.mjs";
 
 export const CATALOG_SOURCE_URL =
   "https://developer.apple.com/tutorials/data/index/design--human-interface-guidelines";
@@ -254,7 +255,7 @@ function uniqueJoin(parts) {
   return out.join(" ");
 }
 
-export function deriveTopicRule(topic, { surfaces, grammar, packCache }) {
+export function deriveTopicRule(topic, { surfaces, grammar, packCache, heuristics }) {
   const stub = designRule(topic.title);
   const surface = topic.surfaceId ? surfaces?.byId?.[topic.surfaceId] : null;
   const chromeIds = [];
@@ -303,6 +304,18 @@ export function deriveTopicRule(topic, { surfaces, grammar, packCache }) {
   const packForTokens = surface?.pack ? packCache?.[surface.pack] : "";
   const dontTokens = packForTokens ? parseDontCodeTokens(packForTokens) : [];
   if (dontTokens.length) derived.dontTokens = dontTokens;
+  if (packForTokens) {
+    const { dont } = parsePackDoDont(packForTokens);
+    const ids = [];
+    let unmatched = 0;
+    for (const bullet of dont) {
+      const h = matchHeuristic(bullet, heuristics || []);
+      if (h) ids.push(h.id);
+      else unmatched += 1;
+    }
+    if (ids.length) derived.dontHeuristicIds = [...new Set(ids)];
+    derived.dontCoverageComplete = dont.length > 0 && unmatched === 0;
+  }
   return derived;
 }
 
@@ -471,8 +484,9 @@ export function loadCatalog(skillRoot) {
       packCache[surface.pack] = fs.readFileSync(packPath, "utf8");
     }
   }
+  const heuristics = loadDontHeuristics(skillRoot);
   const topics = doc.topics.map((topic) =>
-    deriveTopicRule(topic, { surfaces, grammar, packCache }),
+    deriveTopicRule(topic, { surfaces, grammar, packCache, heuristics }),
   );
   const derived = { ...doc, topics };
   validateCatalog(derived);

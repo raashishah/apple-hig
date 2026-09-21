@@ -27,7 +27,7 @@ Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_lo
 
 ## This PR (#12)
 
-Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Mechanical apply (`apply-chrome.mjs`) for every grammar ID. Catalog apply (`apply-catalog.mjs`) accounts chrome-backed packed topics and pack Don't code spans. Visual any-host Apple-ness is still unproven.
+Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Mechanical apply (`apply-chrome.mjs`) for every grammar ID. Catalog apply (`apply-catalog.mjs`) accounts chrome-backed packed topics, pack Don't code spans, and required-surface prose Don'ts. Visual any-host Apple-ness is still unproven.
 
 ## Additive catalog loop
 
@@ -61,6 +61,7 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 9. Mechanical apply for remaining P1 IDs (filter-density, sidebar). **Landed on this PR.** `apply-chrome.mjs` owns every grammar ID.
 10. Catalog apply accounts chrome-backed packed topics (`apply-catalog.mjs`). **Landed on this PR.** Pack-only pending topics remain.
 11. Pack **Chrome gates** join catalog `chromeIds`; pack **Don't** code spans apply/account. **Landed on this PR.** Prose-only Don'ts stay pending.
+12. Required-surface prose Don't heuristics (type, color, motion, a11y). Account only when every Don't is mechanically checkable. **Landed on this PR.** Optional packed Don'ts stay pending.
 
 ## Non-goals
 
@@ -81,4 +82,4 @@ node eval/run-check-chrome.mjs
 node eval/run-catalog.mjs
 ```
 
-`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family; wave 0 then catalog; remaining 0 is done; brand app-shell rows `n/a-register`; contract does not stop at twelve; missing host widgets are `skipped-no-affordance`; `apply-catalog.mjs` accounts chrome-backed packed topics and pack Don't code spans on tmp hosts without freezing remaining as an integer. `run-check-chrome.mjs`: same P0 FAILs on `chrome-antipatterns-web` and `chrome-antipatterns-swift`; `apply-chrome.mjs --write` on tmp copies of those hosts and of `chrome-antipatterns` clears owned P0s and is a no-op on `chrome-pass`; committed fixtures stay dirty.
+`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family; wave 0 then catalog; remaining 0 is done; brand app-shell rows `n/a-register`; contract does not stop at twelve; missing host widgets are `skipped-no-affordance`; `apply-catalog.mjs` accounts chrome-backed packed topics, pack Don't code spans, and required-surface prose Don'ts on tmp hosts without freezing remaining as an integer. `run-check-chrome.mjs`: same P0 FAILs on `chrome-antipatterns-web` and `chrome-antipatterns-swift`; `apply-chrome.mjs --write` on tmp copies of those hosts and of `chrome-antipatterns` clears owned P0s and is a no-op on `chrome-pass`; committed fixtures stay dirty.

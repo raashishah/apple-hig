@@ -574,6 +574,199 @@ const results = [];
   results.push({ case: "catalog-apply-pack-dont-tokens", ok, ...detail });
 }
 
+{
+  const catalog = loadCatalog(skillRoot);
+  const required = ["typography", "color", "motion", "accessibility"];
+  results.push({
+    case: "required-prose-dont-heuristics-cover",
+    ok:
+      required.every((id) => catalog.byId[id]?.dontCoverageComplete === true) &&
+      (catalog.byId.typography?.dontHeuristicIds || []).includes("hero-type-in-lists") &&
+      (catalog.byId.accessibility?.dontHeuristicIds || []).includes("placeholder-only-label") &&
+      catalog.byId.writing?.dontCoverageComplete !== true &&
+      catalog.byId.menus?.dontCoverageComplete !== true &&
+      loadSurfaces(skillRoot).requiredIds.length === 12,
+    typeIds: catalog.byId.typography?.dontHeuristicIds,
+    writingCovered: catalog.byId.writing?.dontCoverageComplete,
+  });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-catalog-prose-pass-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, dir, { recursive: true });
+    const orig = fs.readFileSync(path.join(src, "CohesiveForm.tsx"), "utf8");
+    const report = applyCatalog({ cwd: dir, skillRoot, register: "product", write: true });
+    const status = parseCatalogStatus(
+      fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const hostText = walkSource(dir)
+      .map((f) => f.text)
+      .join("\n");
+    const required = ["typography", "color", "motion", "accessibility"];
+    ok =
+      report.chrome.pass === true &&
+      required.every((id) =>
+        ["applied", "already-compliant"].includes(status.topics[id]?.state),
+      ) &&
+      status.topics.writing?.state === "pending" &&
+      status.topics.menus?.state === "pending" &&
+      report.plan.coverage.remaining > 0 &&
+      orig.includes("Display name") &&
+      !/SF Pro|-apple-system|shadcn/i.test(hostText);
+    detail = {
+      remaining: report.plan.coverage.remaining,
+      required: Object.fromEntries(required.map((id) => [id, status.topics[id]?.state])),
+      writing: status.topics.writing?.state,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-required-prose-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-catalog-prose-fix-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "BareField.tsx"),
+      'export function BareField() {\n  return <input placeholder="Email address" />;\n}\n',
+    );
+    fs.writeFileSync(
+      path.join(dir, "LoudList.tsx"),
+      `export function LoudList() {
+  return (
+    <div data-list-pane>
+      <h1 style={{ fontSize: 48, textTransform: "uppercase" }}>INVENTORY HERO</h1>
+      <ul><li>Item</li></ul>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(dir, "motion-bounce.css"),
+      ".menu { animation: bounce 400ms; transform: scale(1.2); }\n",
+    );
+    fs.writeFileSync(
+      path.join(dir, "chrome-black.css"),
+      "header { background: #000; color: #fff; }\n",
+    );
+    const report = applyCatalog({ cwd: dir, skillRoot, register: "product", write: true });
+    const status = parseCatalogStatus(
+      fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const field = fs.readFileSync(path.join(dir, "BareField.tsx"), "utf8");
+    const list = fs.readFileSync(path.join(dir, "LoudList.tsx"), "utf8");
+    const motion = fs.readFileSync(path.join(dir, "motion-bounce.css"), "utf8");
+    const chromeCss = fs.readFileSync(path.join(dir, "chrome-black.css"), "utf8");
+    const hostText = walkSource(dir)
+      .map((f) => f.text)
+      .join("\n");
+    ok =
+      report.chrome.pass === true &&
+      status.topics.accessibility?.state === "applied" &&
+      status.topics.typography?.state === "applied" &&
+      status.topics.motion?.state === "applied" &&
+      status.topics.color?.state === "applied" &&
+      /aria-label="Email address"/.test(field) &&
+      /placeholder="Email address"/.test(field) &&
+      !/fontSize:\s*48/.test(list) &&
+      !/textTransform:\s*"uppercase"/.test(list) &&
+      /fontSize:\s*17/.test(list) &&
+      /prefers-reduced-motion/.test(motion) &&
+      !/background:\s*#000/.test(chromeCss) &&
+      status.topics.writing?.state === "pending" &&
+      report.plan.coverage.remaining > 0 &&
+      !/SF Pro|-apple-system|shadcn/i.test(hostText);
+    detail = {
+      remaining: report.plan.coverage.remaining,
+      a11y: status.topics.accessibility?.state,
+      type: status.topics.typography?.state,
+      motion: status.topics.motion?.state,
+      color: status.topics.color?.state,
+      field,
+      list,
+      motionCss: motion,
+      chromeCss,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-required-prose-fixes", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-catalog-prose-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "rainbow-nav.tsx"),
+      `export function RainbowNav() {
+  return (
+    <nav>
+      <a style={{ color: "#e11d48" }}>One</a>
+      <a style={{ color: "#22c55e" }}>Two</a>
+      <a style={{ color: "#3b82f6" }}>Three</a>
+      <a style={{ color: "#f59e0b" }}>Four</a>
+    </nav>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(dir, "many-fonts.css"),
+      `.a { font-family: Recoleta, serif; }
+.b { font-family: Inter, sans-serif; }
+.c { font-family: "Courier New", monospace; }
+.d { font-family: Georgia, serif; }
+.e { font-family: Papyrus, fantasy; }
+`,
+    );
+    const origFonts = fs.readFileSync(path.join(dir, "many-fonts.css"), "utf8");
+    const report = applyCatalog({ cwd: dir, skillRoot, register: "product", write: true });
+    const status = parseCatalogStatus(
+      fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fonts = fs.readFileSync(path.join(dir, "many-fonts.css"), "utf8");
+    const hostText = walkSource(dir)
+      .map((f) => f.text)
+      .join("\n");
+    ok =
+      report.chrome.pass === true &&
+      status.topics.color?.state === "pending" &&
+      status.topics.typography?.state === "pending" &&
+      status.topics.accessibility?.state === "already-compliant" &&
+      fonts === origFonts &&
+      /Recoleta/.test(fonts) &&
+      !/SF Pro|-apple-system|shadcn/i.test(hostText);
+    detail = {
+      color: status.topics.color?.state,
+      type: status.topics.typography?.state,
+      a11y: status.topics.accessibility?.state,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-prose-dont-holds-unfixable", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

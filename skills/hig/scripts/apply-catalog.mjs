@@ -2,6 +2,7 @@
 /**
  * After chrome P0, account packed catalog topics whose chromeIds are clean
  * and pack Don't code spans that the host does not hit (or that we can strip).
+ * Required-surface prose Don'ts apply when every Don't has a scanner.
  * Does not inject a kit or rewrite the host typeface.
  * Usage: node apply-catalog.mjs [--cwd host] [--write]
  */
@@ -19,6 +20,7 @@ import {
   scanAffordances,
   stringifyCatalogStatus,
 } from "./catalog-lib.mjs";
+import { accountRequiredProseDont } from "./dont-heuristics.mjs";
 import { walkSource } from "./check-chrome.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -144,6 +146,20 @@ export function applyCatalog(options = {}) {
     const tokens = pendingDontTokens(topics, catalog);
     const hitTokens = tokens.filter((tok) => blobOf(files).includes(tok));
     const dontApply = applyDontTokensToFiles(files, hitTokens);
+    const afterBlob = blobOf(files);
+    const packNext = accountPackDont(topics, catalog, afterBlob, dontApply.mutatedTokens);
+    topics = packNext.topics;
+    accounted = accounted.concat(packNext.accounted);
+    const failIds = chrome.after.fails.map((f) => f.id);
+    const proseNext = accountRequiredProseDont({
+      topics,
+      catalog,
+      surfaces,
+      files,
+      chromeFailIds: failIds,
+    });
+    topics = proseNext.topics;
+    accounted = accounted.concat(proseNext.accounted);
     if (write) {
       for (const file of files) {
         const abs = path.join(cwd, file.path);
@@ -152,10 +168,6 @@ export function applyCatalog(options = {}) {
         fs.writeFileSync(abs, file.text);
       }
     }
-    const afterBlob = blobOf(files);
-    const packNext = accountPackDont(topics, catalog, afterBlob, dontApply.mutatedTokens);
-    topics = packNext.topics;
-    accounted = accounted.concat(packNext.accounted);
     plan = planGoalLoop({
       catalog,
       surfaces,
