@@ -47,6 +47,8 @@ const results = [];
     designText.includes("check-chrome.mjs") &&
     designText.includes("apply-chrome") &&
     skillText.includes("apply-chrome") &&
+    designText.includes("apply-catalog") &&
+    skillText.includes("apply-catalog") &&
     designText.includes("plan-catalog") &&
     designText.includes("parallel");
   results.push({

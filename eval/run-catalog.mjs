@@ -20,6 +20,7 @@ import {
   selectCatalog,
 } from "../skills/hig/scripts/catalog-lib.mjs";
 import { runPlanCatalog } from "../skills/hig/scripts/plan-catalog.mjs";
+import { applyCatalog } from "../skills/hig/scripts/apply-catalog.mjs";
 import { walkSource } from "../skills/hig/scripts/check-chrome.mjs";
 import { loadSurfaces } from "../skills/hig/scripts/load-surfaces.mjs";
 import { fetchHigIndex } from "../skills/hig/scripts/sync-hig-catalog.mjs";
@@ -414,6 +415,100 @@ const results = [];
     passList,
     cardGrid,
   });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-catalog-pass-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, dir, { recursive: true });
+    const surfaces = loadSurfaces(skillRoot);
+    const catalog = loadCatalog(skillRoot);
+    const open = runPlanCatalog({
+      cwd: dir,
+      skillRoot,
+      chromePass: true,
+      write: false,
+    });
+    const report = applyCatalog({ cwd: dir, skillRoot, register: "product", write: true });
+    const status = parseCatalogStatus(
+      fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const chromeBackedPending = open.waveTopicIds.filter(
+      (id) => (catalog.byId[id]?.chromeIds || []).length > 0,
+    );
+    const accountedIds = new Set(report.accounted.map((row) => row.id));
+    const orig = fs.readFileSync(path.join(src, "CompactListBrowser.tsx"), "utf8");
+    const hostText = walkSource(dir)
+      .map((f) => f.text)
+      .join("\n");
+    const kitOrFont = /SF Pro|San Francisco|-apple-system|shadcn|@radix-ui/i.test(hostText);
+    ok =
+      surfaces.requiredIds.length === 12 &&
+      open.coverage.remaining > 0 &&
+      report.chrome.pass === true &&
+      report.plan.phase === "catalog" &&
+      report.plan.coverage.remaining < open.coverage.remaining &&
+      chromeBackedPending.length > 0 &&
+      chromeBackedPending.every((id) =>
+        ["applied", "already-compliant"].includes(status.topics[id]?.state),
+      ) &&
+      accountedIds.size === chromeBackedPending.length &&
+      orig.includes("aria-label=\"List view\"") &&
+      !kitOrFont;
+    detail = {
+      openRemaining: open.coverage.remaining,
+      afterRemaining: report.plan.coverage.remaining,
+      accounted: report.accounted.length,
+      chromeBackedPending: chromeBackedPending.length,
+      lists: status.topics["lists-and-tables"]?.state,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-accounts-chrome-backed", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-catalog-fail-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-antipatterns");
+    fs.cpSync(src, dir, { recursive: true });
+    const orig = fs.readFileSync(path.join(src, "surfaces", "card-grid-home.tsx"), "utf8");
+    const report = applyCatalog({ cwd: dir, skillRoot, register: "product", write: true });
+    const status = parseCatalogStatus(
+      fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const appliedChrome = report.accounted.filter((row) => row.state === "applied");
+    ok =
+      report.chrome.before.pass === false &&
+      report.chrome.after.pass === true &&
+      report.plan.phase === "catalog" &&
+      appliedChrome.length > 0 &&
+      status.topics["lists-and-tables"]?.state === "applied" &&
+      orig.includes("card-grid") &&
+      !/SF Pro|-apple-system|shadcn/i.test(
+        walkSource(dir)
+          .map((f) => f.text)
+          .join("\n"),
+      );
+    detail = {
+      appliedChrome: appliedChrome.length,
+      lists: status.topics["lists-and-tables"]?.state,
+      remaining: report.plan.coverage.remaining,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-fixes-then-accounts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

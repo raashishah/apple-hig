@@ -98,10 +98,10 @@ Parent agent applies any leftover files that could not be leased. Then run `node
 When `check-chrome.mjs` `pass` is true, run:
 
 ```bash
-node <skill>/scripts/plan-catalog.mjs --chromePass true --write
+node <skill>/scripts/apply-catalog.mjs --cwd <host> --write
 ```
 
-Apply `waveSurfaceIds` with the same leased apply workers. Map each catalog topic onto the host’s existing widgets. Do not inject a kit or a missing control. Topics in the plan with `skipped-no-pack` / `skipped-gate` / `n/a-register` / `skipped-no-affordance` are accounted — do not invent UI for them. Human-only packs (Apple Pay capture, Sign in consent, biometrics) style chrome around system sheets only.
+That accounts packed topics whose `chromeIds` are clean. Apply remaining pending `waveTopicIds` (pack Do/Don't with no chrome ID) with the same leased apply workers. Map each catalog topic onto the host’s existing widgets. Do not inject a kit or a missing control. Topics in the plan with `skipped-no-pack` / `skipped-gate` / `n/a-register` / `skipped-no-affordance` / `applied` / `already-compliant` are accounted — do not invent UI for them. Human-only packs (Apple Pay capture, Sign in consent, biometrics) style chrome around system sheets only.
 
 If `done` is false, persist `.hig/catalog-status.yaml`, mark applied topics, and run `plan-catalog.mjs` again. Do not print catalog done after only 12 surfaces.
 

@@ -46,6 +46,7 @@ node eval/run-catalog.mjs
 - [x] Mechanical apply clears the two dual-stack P0s on tmp copies of the web and Swift antipattern hosts; chrome-pass stays clean; no SF Pro/kit; committed fixtures stay dirty
 - [x] Mechanical apply clears remaining P0 IDs (and nested-cards) on a tmp copy of `chrome-antipatterns`; filter-density and sidebar may remain; committed fixtures stay dirty
 - [x] Mechanical apply clears filter-density and sidebar on a tmp copy of `chrome-antipatterns`; after.fails is empty; committed fixtures stay dirty
+- [x] Catalog apply accounts chrome-backed packed topics on tmp chrome-pass (already-compliant) and tmp chrome-antipatterns (applied after chrome fix); pack-only rows stay pending; remaining is not a frozen integer
 
 ## Swarm / stack (0.4)
 

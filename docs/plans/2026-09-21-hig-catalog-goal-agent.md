@@ -27,7 +27,7 @@ Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_lo
 
 ## This PR (#12)
 
-Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Mechanical apply (`apply-chrome.mjs`) for every grammar ID. Visual any-host Apple-ness is still unproven.
+Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Mechanical apply (`apply-chrome.mjs`) for every grammar ID. Catalog apply (`apply-catalog.mjs`) accounts chrome-backed packed topics. Visual any-host Apple-ness is still unproven.
 
 ## Additive catalog loop
 
@@ -59,6 +59,7 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 7. Mechanical apply for the two dual-stack P0s (`apply-chrome.mjs`) so any model does not have to invent those recipes. **Landed on this PR.**
 8. Mechanical apply for remaining P0 grammar IDs (and `nested-cards`). **Landed on this PR.**
 9. Mechanical apply for remaining P1 IDs (filter-density, sidebar). **Landed on this PR.** `apply-chrome.mjs` owns every grammar ID.
+10. Catalog apply accounts chrome-backed packed topics (`apply-catalog.mjs`). **Landed on this PR.** Pack-only pending topics remain.
 
 ## Non-goals
 
