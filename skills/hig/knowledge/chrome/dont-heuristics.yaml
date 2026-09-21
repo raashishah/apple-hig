@@ -394,3 +394,7 @@ heuristics:
     match: Recolored
   - id: activity-rings-decoration
     match: decoration or branding
+  - id: nfc-contact
+    match: tap or touch
+  - id: nfc-jargon
+    match: NFC tag
