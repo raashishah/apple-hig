@@ -27,7 +27,7 @@ Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_lo
 
 ## This PR (#12)
 
-Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Mechanical apply (`apply-chrome.mjs`) for the two dual-stack P0s. Visual any-host Apple-ness is still unproven.
+Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Mechanical apply (`apply-chrome.mjs`) for solved P0 IDs. P1 still uses recipes. Visual any-host Apple-ness is still unproven.
 
 ## Additive catalog loop
 
@@ -56,7 +56,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 4. U4. `appliesWhen` from host patterns (scan list, form, overlay, chrome), not a framework enum. **Landed on this PR** (`affordance` on `surfaces.yaml`; `skipped-no-affordance`).
 5. U5. Same design FAIL proven on two detected stacks without naming those stacks in the rule. **Landed on this PR** (`chrome-antipatterns-web` + `chrome-antipatterns-swift`).
 6. Catalog `failWhen` / `passWhen` derived at load from `grammar.yaml` + pack Do/Don't. **Landed on this PR.** Unpackaged rows stay stubs.
-7. Mechanical apply for the two dual-stack P0s (`apply-chrome.mjs`) so any model does not have to invent those recipes. **Landed on this PR.** Other grammar IDs still use `recipes.md`.
+7. Mechanical apply for the two dual-stack P0s (`apply-chrome.mjs`) so any model does not have to invent those recipes. **Landed on this PR.**
+8. Mechanical apply for remaining P0 grammar IDs (and `nested-cards`). **Landed on this PR.** Filter-density and sidebar still use `recipes.md`.
 
 ## Non-goals
 
@@ -77,4 +78,4 @@ node eval/run-check-chrome.mjs
 node eval/run-catalog.mjs
 ```
 
-`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family; wave 0 then catalog; remaining 0 is done; brand app-shell rows `n/a-register`; contract does not stop at twelve; missing host widgets are `skipped-no-affordance`. `run-check-chrome.mjs`: same P0 FAILs on `chrome-antipatterns-web` and `chrome-antipatterns-swift`; `apply-chrome.mjs --write` on tmp copies of those hosts clears the two dual-stack P0s and is a no-op on `chrome-pass`; committed fixtures stay dirty.
+`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family; wave 0 then catalog; remaining 0 is done; brand app-shell rows `n/a-register`; contract does not stop at twelve; missing host widgets are `skipped-no-affordance`. `run-check-chrome.mjs`: same P0 FAILs on `chrome-antipatterns-web` and `chrome-antipatterns-swift`; `apply-chrome.mjs --write` on tmp copies of those hosts and of `chrome-antipatterns` clears owned P0s and is a no-op on `chrome-pass`; committed fixtures stay dirty.

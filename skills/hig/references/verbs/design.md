@@ -91,7 +91,7 @@ Launch apply Tasks (`references/agents/apply-worker.md`) only for surfaces with 
 
 **Wave 0 apply leases = `requiredIds` only.** Optional `gate: always` surfaces may audit; do not apply them until `check-chrome.mjs` reports `pass: true` for required chrome.
 
-Parent agent applies any leftover files that could not be leased. Then run `node <skill>/scripts/check-chrome.mjs`. If P0 remains, run `node <skill>/scripts/apply-chrome.mjs --cwd <host> --write` and re-check. Remaining P0s: next chrome round re-applies only failed surfaces using `recipes.md`.
+Parent agent applies any leftover files that could not be leased. Then run `node <skill>/scripts/check-chrome.mjs`. If P0 remains, run `node <skill>/scripts/apply-chrome.mjs --cwd <host> --write` and re-check. Remaining hits: next chrome round re-applies only failed surfaces using `recipes.md`.
 
 #### 3c-2. Catalog waves (after chrome P0)
 

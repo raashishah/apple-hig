@@ -16,6 +16,7 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - Catalog goal loop after chrome P0: `scripts/plan-catalog.mjs` writes `.hig/catalog-status.yaml`. Wave 0 stays `requiredIds`. Then apply remaining packed applicable topics until `remaining` is 0. Brand app-shell rows are `n/a-register`. Watch/TV/Vision skip on web. Pattern `affordance` skips when the host has no matching widget. Same chrome P0 FAILs proven on a web host and a Swift host without naming those stacks in the rule.
 - Catalog `failWhen` / `passWhen` derived at load from `grammar.yaml` + pack Do/Don't (not title stubs, not Apply-in-host). Unpackaged rows stay stubs.
 - Mechanical apply for dual-stack P0s: `scripts/apply-chrome.mjs` (`chrome.view-mode.icons`, `chrome.bars.system-materials`) on a web host and a Swift host; no kit or font rewrite. Other P0s still use `recipes.md`.
+- Mechanical apply for remaining P0 IDs (`toolbar-budget`, `form.column-cohesion`, `fashion-glass`, `card-grid-home`) plus `nested-cards` on tmp copies of `chrome-antipatterns`. Filter-density and sidebar still use `recipes.md`. Committed fixtures stay dirty.
 
 ## Unreleased
 

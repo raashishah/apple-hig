@@ -148,6 +148,44 @@ function kitOrFont(text) {
 }
 
 {
+  const src = path.join(__dirname, "fixtures", "chrome-antipatterns");
+  const dir = copyFixture(src);
+  try {
+    const report = applyChrome({ cwd: dir, skillRoot, register: "product", write: true });
+    const grammar = loadChromeGrammar(skillRoot);
+    const p0Ids = grammar.rules
+      .filter((r) => (r.severity || "P1") === "P0")
+      .map((r) => r.id);
+    const beforeP0 = new Set(
+      report.before.fails.filter((f) => f.severity === "P0").map((f) => f.id),
+    );
+    const afterP0 = report.after.fails.filter((f) => f.severity === "P0").map((f) => f.id);
+    const appliedIds = new Set(report.applied.map((a) => a.id));
+    const orig = fs.readFileSync(path.join(src, "surfaces", "card-grid-home.tsx"), "utf8");
+    const origUnchanged = orig.includes("card-grid");
+    const hostText = walkSource(dir)
+      .map((f) => f.text)
+      .join("\n");
+    results.push({
+      case: "mechanical-apply-clears-remaining-p0",
+      ok:
+        report.before.pass === false &&
+        report.after.pass === true &&
+        afterP0.length === 0 &&
+        p0Ids.every((id) => !beforeP0.has(id) || appliedIds.has(id)) &&
+        origUnchanged &&
+        !kitOrFont(hostText),
+      beforeP0: [...beforeP0],
+      afterP0,
+      applied: [...appliedIds],
+      origUnchanged,
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+{
   const src = path.join(__dirname, "fixtures", "chrome-pass");
   const dir = copyFixture(src);
   try {

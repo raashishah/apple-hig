@@ -2,7 +2,7 @@
 
 Load with `grammar.yaml`. For each `structure:<id>` FAIL, apply the host snippet. Do not invent a kit. Do not paraphrase the FAIL away.
 
-`scripts/apply-chrome.mjs` applies the dual-stack P0 recipes it owns (`chrome.view-mode.icons`, `chrome.bars.system-materials`). Use this file for every other ID.
+`scripts/apply-chrome.mjs` applies the P0 recipes it owns. Use this file for every other ID (including P1).
 
 ## chrome.view-mode.icons
 

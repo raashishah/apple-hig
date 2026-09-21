@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Apply mechanical chrome recipes for solved dual-stack P0 IDs.
+ * Apply mechanical chrome recipes for solved P0 IDs.
  * Does not inject a kit or rewrite the host typeface.
  * Usage: node apply-chrome.mjs [--cwd host] [--write]
  */
@@ -12,11 +12,6 @@ import { checkChrome, walkSource } from "./check-chrome.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultSkillRoot = path.resolve(__dirname, "..");
-
-export const MECHANICAL_CHROME_IDS = [
-  "chrome.view-mode.icons",
-  "chrome.bars.system-materials",
-];
 
 function parseArgs(argv) {
   const out = { cwd: process.cwd(), write: false, skillRoot: defaultSkillRoot };
@@ -32,7 +27,7 @@ function parseArgs(argv) {
 function applyViewModeIcons(file) {
   let text = file.text;
   text = text.replace(
-    /(<button\b[^>]*\brole=["']radio["'][^>]*>)(\s*)(List|Grid|Table|Gallery)(\s*)(<\/button>)/gi,
+    /(<button\b[^>]*>)(\s*)(List|Grid|Table|Gallery)(\s*)(<\/button>)/gi,
     (all, open, pre, word, post, close) => {
       const labeled = /\baria-label=/i.test(open)
         ? open
@@ -51,27 +46,63 @@ function applyViewModeIcons(file) {
   return text;
 }
 
+function applyToolbarBudget(file) {
+  let text = file.text;
+  for (let i = 0; i < 6; i++) {
+    const next = text.replace(
+      /(<div\b[^>]*\bdata-chrome-band=["'][^"']*["'][^>]*>)([\s\S]*?)(<\/div>)(\s*)(<div\b[^>]*\bdata-chrome-band=["'][^"']*["'][^>]*>)([\s\S]*?)(<\/div>)/,
+      (_, open1, body1, _c1, _ws, _open2, body2) => `${open1}${body1}${body2}</div>`,
+    );
+    if (next === text) break;
+    text = next;
+  }
+  return text;
+}
+
+function applyFormColumn(file) {
+  let text = file.text;
+  if (!/data-form-page|data-form-body|<form\b/i.test(text)) return text;
+  const max = text.match(/data-form-body[^>]*maxWidth:\s*["']([^"']+)["']/);
+  text = text.replace(
+    /(<(header)\b[^>]*style=\{\{)([^}]*width:\s*["']100%["'][^}]*)(\}\})/gi,
+    (all, open, _tag, body, close) => {
+      let next = body.replace(/width:\s*["']100%["']\s*,?/g, "");
+      if (max && !/maxWidth/.test(next)) next = `maxWidth: "${max[1]}", ${next}`;
+      return `${open}${next}${close}`;
+    },
+  );
+  text = text.replace(
+    /(<(header)\b[^>]*style=["'])([^"']*width:\s*100%[^"']*)(["'])/gi,
+    (all, open, _tag, body, close) => {
+      let next = body.replace(/width:\s*100%\s*;?/gi, "");
+      if (max && !/max-width/i.test(next)) next = `max-width: ${max[1]}; ${next}`;
+      return `${open}${next}${close}`;
+    },
+  );
+  return text;
+}
+
 function applySystemMaterials(file) {
   let text = file.text;
   text = text.replace(
     /((?:^|,|\n)\s*(?:header|nav|\.tab-bar|\.toolbar|\.sidebar)[^{]*)\{([^}]*)\}/gi,
     (all, sel, body) => {
       const next = body.replace(/background(?:-color)?\s*:\s*#[0-9a-fA-F]{3,8}\s*;?/gi, "");
-      return `${sel}{${next}}`;
+      return next === body ? all : `${sel}{${next}}`;
     },
   );
   text = text.replace(
     /(<(header|nav)\b[^>]*style=\{\{)([^}]*)(\}\})/gi,
     (all, open, _tag, body, close) => {
       const next = body.replace(/background(?:Color)?\s*:\s*["']#[0-9a-fA-F]{3,8}["']\s*,?/gi, "");
-      return `${open}${next}${close}`;
+      return next === body ? all : `${open}${next}${close}`;
     },
   );
   text = text.replace(
     /(<(header|nav)\b[^>]*style=["'])([^"']*)(["'])/gi,
     (all, open, _tag, body, close) => {
       const next = body.replace(/background(?:-color)?\s*:\s*#[0-9a-fA-F]{3,8}\s*;?/gi, "");
-      return `${open}${next}${close}`;
+      return next === body ? all : `${open}${next}${close}`;
     },
   );
   text = text.replace(
@@ -81,18 +112,74 @@ function applySystemMaterials(file) {
   return text;
 }
 
-function applyMechanicalRecipe(id, file) {
-  switch (id) {
-    case "chrome.view-mode.icons":
-      return applyViewModeIcons(file);
-    case "chrome.bars.system-materials":
-      return applySystemMaterials(file);
-    default: {
-      const _exhaustive = id;
-      void _exhaustive;
-      return file.text;
-    }
+function applyFashionGlass(file) {
+  let text = file.text;
+  text = text.replace(/\s*data-fashion-glass(?:="[^"]*")?/g, "");
+  text = text.replace(
+    /(<(header|nav)\b[^>]*style=\{\{)([^}]*)(\}\})/gi,
+    (all, open, _tag, body, close) => {
+      const next = body
+        .replace(/backdropFilter\s*:\s*["'][^"']*["']\s*,?/g, "")
+        .replace(/backdrop-filter\s*:\s*["'][^"']*["']\s*,?/g, "");
+      return next === body ? all : `${open}${next}${close}`;
+    },
+  );
+  text = text.replace(
+    /((?:^|,|\n)\s*(?:header|nav|\.card|main|\.content)[^{]*)\{([^}]*)\}/gi,
+    (all, sel, body) => {
+      const next = body.replace(/backdrop-filter\s*:[^;}]+;?/gi, "");
+      return next === body ? all : `${sel}{${next}}`;
+    },
+  );
+  return text;
+}
+
+function applyCardGridHome(file) {
+  let text = file.text;
+  if (!/data-home|function Home\b|export function Dashboard\b|data-dashboard/.test(text)) {
+    return text;
   }
+  text = text.replace(
+    /<(div|section)\b([^>]*\bclass(?:Name)?=["'][^"']*(?:card-grid|dashboard-cards)[^"']*["'][^>]*)>\s*([\s\S]*?)<\/\1>/i,
+    (all, _tag, _attrs, inner) => {
+      const items = [...inner.matchAll(/<(article|div|li)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) =>
+        m[2].trim(),
+      );
+      if (!items.length) return all;
+      return `<ul>\n${items.map((t) => `        <li>${t}</li>`).join("\n")}\n      </ul>`;
+    },
+  );
+  return text;
+}
+
+function applyNestedCards(file) {
+  let text = file.text;
+  text = text.replace(/\s*data-nested-cards(?:="[^"]*")?/g, "");
+  text = text.replace(/\s+className=["']card["']/g, "");
+  text = text.replace(/\s+class=["']card["']/g, "");
+  return text;
+}
+
+const RECIPES = {
+  "chrome.view-mode.icons": applyViewModeIcons,
+  "chrome.list-browser.toolbar-budget": applyToolbarBudget,
+  "chrome.form.column-cohesion": applyFormColumn,
+  "chrome.bars.system-materials": applySystemMaterials,
+  "chrome.materials.fashion-glass": applyFashionGlass,
+  "chrome.layout.card-grid-home": applyCardGridHome,
+  "chrome.ive.nested-cards": applyNestedCards,
+};
+
+export const MECHANICAL_CHROME_IDS = Object.keys(RECIPES);
+
+function applyMechanicalRecipe(id, file) {
+  const fn = RECIPES[id];
+  if (!fn) {
+    const _exhaustive = id;
+    void _exhaustive;
+    return file.text;
+  }
+  return fn(file);
 }
 
 export function applyChrome(options = {}) {
