@@ -324,3 +324,11 @@ heuristics:
     match: interrupts people while
   - id: pester-rating-requests
     match: pester
+  - id: open-window-as-default
+    match: as default behavior
+  - id: custom-window-frame
+    match: custom window frames
+  - id: call-window-scene
+    match: called a scene
+  - id: critical-window-bottom-bar
+    match: window bottom bar

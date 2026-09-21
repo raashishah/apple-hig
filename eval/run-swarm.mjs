@@ -317,6 +317,7 @@ const results = [];
     surfaces.byId["tab-views"]?.affordance === "tabview" &&
     surfaces.byId.multitasking?.affordance === "multitask" &&
     surfaces.byId["ratings-and-reviews"]?.affordance === "reviewprompt" &&
+    surfaces.byId.windows?.affordance === "appwindow" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

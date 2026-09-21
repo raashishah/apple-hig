@@ -580,6 +580,7 @@ function affordanceMissing(need, present) {
     case "tabview":
     case "multitask":
     case "reviewprompt":
+    case "appwindow":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -924,6 +925,15 @@ export function scanAffordances(files) {
     /\brequestReview\s*\(/.test(blob)
   ) {
     found.push("reviewprompt");
+  }
+  if (
+    /\bdata-window\b/.test(blob) ||
+    /\bdata-app-window\b/.test(blob) ||
+    /\bNSWindow\b/.test(blob) ||
+    /\bNSWindowController\b/.test(blob) ||
+    /\bopenWindow\s*\(/.test(blob)
+  ) {
+    found.push("appwindow");
   }
   return found;
 }

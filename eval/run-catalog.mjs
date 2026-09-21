@@ -71,6 +71,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["tab-views"]?.affordance === "tabview" &&
     surfaces.byId.multitasking?.affordance === "multitask" &&
     surfaces.byId["ratings-and-reviews"]?.affordance === "reviewprompt" &&
+    surfaces.byId.windows?.affordance === "appwindow" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -452,6 +453,7 @@ const results = [];
     "tab-views",
     "multitasking",
     "ratings-and-reviews",
+    "windows",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -773,6 +775,18 @@ const results = [];
       text: "<span>★★★☆☆</span>",
     },
   ]);
+  const appWindowOnly = scanAffordances([
+    {
+      path: "Stage.tsx",
+      text: '<div data-window><button type="button">Title</button></div>',
+    },
+  ]);
+  const uiWindowOnly = scanAffordances([
+    {
+      path: "AppDelegate.swift",
+      text: "var window: UIWindow?",
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -818,6 +832,7 @@ const results = [];
       !passList.includes("tabview") &&
       !passList.includes("multitask") &&
       !passList.includes("reviewprompt") &&
+      !passList.includes("appwindow") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -852,6 +867,7 @@ const results = [];
       !formOnly.includes("tabview") &&
       !formOnly.includes("multitask") &&
       !formOnly.includes("reviewprompt") &&
+      !formOnly.includes("appwindow") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -948,6 +964,11 @@ const results = [];
       !onboardingOnly.includes("reviewprompt") &&
       !formOnly.includes("reviewprompt") &&
       !pageOnly.includes("reviewprompt") &&
+      appWindowOnly.includes("appwindow") &&
+      !uiWindowOnly.includes("appwindow") &&
+      !pageOnly.includes("appwindow") &&
+      !formOnly.includes("appwindow") &&
+      !videoOnly.includes("appwindow") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1422,6 +1443,20 @@ const results = [];
         "pester-rating-requests",
       ) &&
       catalog.byId["ratings-and-reviews"]?.pack === "patterns-ratings-and-reviews.md" &&
+      catalog.byId.windows?.dontCoverageComplete === true &&
+      (catalog.byId.windows?.dontHeuristicIds || []).includes(
+        "open-window-as-default",
+      ) &&
+      (catalog.byId.windows?.dontHeuristicIds || []).includes(
+        "custom-window-frame",
+      ) &&
+      (catalog.byId.windows?.dontHeuristicIds || []).includes(
+        "call-window-scene",
+      ) &&
+      (catalog.byId.windows?.dontHeuristicIds || []).includes(
+        "critical-window-bottom-bar",
+      ) &&
+      catalog.byId.windows?.pack === "components-windows.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1537,6 +1572,7 @@ const results = [];
       "tab-views",
       "multitasking",
       "ratings-and-reviews",
+      "windows",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -3636,6 +3672,7 @@ struct OneTorch: ControlWidget {
       passTabViews: passStatus.topics["tab-views"]?.state === "skipped-no-affordance",
       passMultitask: passStatus.topics.multitasking?.state === "skipped-no-affordance",
       passRatings: passStatus.topics["ratings-and-reviews"]?.state === "skipped-no-affordance",
+      passWindows: passStatus.topics.windows?.state === "skipped-no-affordance",
       passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
       remaining: passReport.plan.coverage.remaining > 0,
       destUnchanged,
@@ -6425,6 +6462,140 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-ratings-and-reviews-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-windows-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-windows-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-windows-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-window data-open-window-default data-custom-window-frame data-call-scene data-critical-bottom-bar>
+      <button type="button">Title</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <footer>
+        <button type="button">Save</button>
+      </footer>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passWindows: passStatus.topics.windows?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixWindows: fixStatus.topics.windows?.state === "applied",
+      systemKept:
+        /data-window/.test(fixed) && />\s*Title\s*</.test(fixed),
+      markersGone:
+        !/data-open-window-default/.test(fixed) &&
+        !/data-custom-window-frame/.test(fixed) &&
+        !/data-call-scene/.test(fixed) &&
+        !/data-critical-bottom-bar/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdWindows: holdStatus.topics.windows?.state === "pending",
+      holdStillSave:
+        /data-window/.test(held) &&
+        /<footer\b/.test(held) &&
+        />\s*Save\s*</.test(held),
+      holdNotInvented:
+        !/inspector/i.test(held) &&
+        !/title bar/i.test(held) &&
+        !/NSWindow/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWindows: passStatus.topics.windows?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixWindows: fixStatus.topics.windows?.state,
+      holdWindows: holdStatus.topics.windows?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-windows-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

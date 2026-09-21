@@ -4168,6 +4168,82 @@ function applyPesterRatingRequests(text) {
   return text.replace(/\s*data-rating-pester(?:="[^"]*")?/g, "");
 }
 
+function hasAppWindow(text) {
+  return (
+    /\bdata-window\b/.test(text) ||
+    /\bdata-app-window\b/.test(text) ||
+    /\bNSWindow\b/.test(text) ||
+    /\bNSWindowController\b/.test(text) ||
+    /\bopenWindow\s*\(/.test(text)
+  );
+}
+
+function scanOpenWindowAsDefault(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-open-window-default/.test(f.text)) {
+      out.push(hit(f.path, "new windows opened as default behavior"));
+    }
+  }
+  return out;
+}
+
+function applyOpenWindowAsDefault(text) {
+  return text.replace(/\s*data-open-window-default(?:="[^"]*")?/g, "");
+}
+
+function scanCustomWindowFrame(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-custom-window-frame/.test(f.text)) {
+      out.push(hit(f.path, "custom window frames or controls that replace the system window"));
+    }
+  }
+  return out;
+}
+
+function applyCustomWindowFrame(text) {
+  return text.replace(/\s*data-custom-window-frame(?:="[^"]*")?/g, "");
+}
+
+function scanCallWindowScene(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-call-scene/.test(f.text)) {
+      out.push(hit(f.path, "a window called a scene in user-facing content"));
+    }
+  }
+  return out;
+}
+
+function applyCallWindowScene(text) {
+  return text.replace(/\s*data-call-scene(?:="[^"]*")?/g, "");
+}
+
+function hasCriticalWindowBottomBar(text) {
+  if (!/<footer\b/i.test(text)) return false;
+  return /\b(Save|Delete|Pay|Submit)\b/.test(text);
+}
+
+function scanCriticalWindowBottomBar(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-critical-bottom-bar/.test(f.text)) {
+      out.push(hit(f.path, "critical information or actions in a window bottom bar"));
+      continue;
+    }
+    if (!hasAppWindow(f.text)) continue;
+    if (hasCriticalWindowBottomBar(f.text)) {
+      out.push(hit(f.path, "critical information or actions in a window bottom bar"));
+    }
+  }
+  return out;
+}
+
+function applyCriticalWindowBottomBar(text) {
+  return text.replace(/\s*data-critical-bottom-bar(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4507,6 +4583,14 @@ function scanHeuristic(id, files) {
       return scanRatingInterruptsTask(files);
     case "pester-rating-requests":
       return scanPesterRatingRequests(files);
+    case "open-window-as-default":
+      return scanOpenWindowAsDefault(files);
+    case "custom-window-frame":
+      return scanCustomWindowFrame(files);
+    case "call-window-scene":
+      return scanCallWindowScene(files);
+    case "critical-window-bottom-bar":
+      return scanCriticalWindowBottomBar(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4839,6 +4923,14 @@ function applyHeuristic(id, file) {
       return applyRatingInterruptsTask(file.text);
     case "pester-rating-requests":
       return applyPesterRatingRequests(file.text);
+    case "open-window-as-default":
+      return applyOpenWindowAsDefault(file.text);
+    case "custom-window-frame":
+      return applyCustomWindowFrame(file.text);
+    case "call-window-scene":
+      return applyCallWindowScene(file.text);
+    case "critical-window-bottom-bar":
+      return applyCriticalWindowBottomBar(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
