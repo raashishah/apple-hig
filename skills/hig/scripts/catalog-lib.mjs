@@ -564,6 +564,7 @@ function affordanceMissing(need, present) {
     case "pagecontrol":
     case "label":
     case "textview":
+    case "imageview":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -774,6 +775,14 @@ export function scanAffordances(files) {
     /<textarea\b/i.test(blob)
   ) {
     found.push("textview");
+  }
+  if (
+    /\bdata-image-view\b/.test(blob) ||
+    /\bUIImageView\b/.test(blob) ||
+    /\bNSImageView\b/.test(blob) ||
+    /\bAsyncImage\s*\(/.test(blob)
+  ) {
+    found.push("imageview");
   }
   return found;
 }

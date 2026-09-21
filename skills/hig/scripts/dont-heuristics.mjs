@@ -3256,6 +3256,65 @@ function applyUnselectableUsefulTextView(text) {
   return text.replace(/\s*data-unselectable-text-view(?:="[^"]*")?/g, "");
 }
 
+function hasImageViewWidget(text) {
+  return (
+    /\bdata-image-view\b/.test(text) ||
+    /\bUIImageView\b/.test(text) ||
+    /\bNSImageView\b/.test(text) ||
+    /\bAsyncImage\s*\(/.test(text)
+  );
+}
+
+function scanImageViewAsButton(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-interactive-image-view/.test(f.text)) {
+      out.push(hit(f.path, "button behaviors on an image view"));
+      continue;
+    }
+    if (!hasImageViewWidget(f.text)) continue;
+    if (
+      /\bon(Click|TapGesture)\b/.test(f.text) ||
+      /role=["']button["']/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "button behaviors on an image view"));
+    }
+  }
+  return out;
+}
+
+function applyImageViewAsButton(text) {
+  return text.replace(/\s*data-interactive-image-view(?:="[^"]*")?/g, "");
+}
+
+function scanImageViewAsIcon(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-icon-image-view/.test(f.text)) {
+      out.push(hit(f.path, "image view for an interface icon"));
+    }
+  }
+  return out;
+}
+
+function applyImageViewAsIcon(text) {
+  return text.replace(/\s*data-icon-image-view(?:="[^"]*")?/g, "");
+}
+
+function scanTextOverlayOnImageView(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-text-on-image-view/.test(f.text)) {
+      out.push(hit(f.path, "overlaying text on an image view"));
+    }
+  }
+  return out;
+}
+
+function applyTextOverlayOnImageView(text) {
+  return text.replace(/\s*data-text-on-image-view(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -3507,6 +3566,12 @@ function scanHeuristic(id, files) {
       return scanShortTextAsField(files);
     case "unselectable-useful-text-view":
       return scanUnselectableUsefulTextView(files);
+    case "image-view-as-button":
+      return scanImageViewAsButton(files);
+    case "image-view-as-icon":
+      return scanImageViewAsIcon(files);
+    case "text-overlay-on-image-view":
+      return scanTextOverlayOnImageView(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -3751,6 +3816,12 @@ function applyHeuristic(id, file) {
       return applyShortTextAsField(file.text);
     case "unselectable-useful-text-view":
       return applyUnselectableUsefulTextView(file.text);
+    case "image-view-as-button":
+      return applyImageViewAsButton(file.text);
+    case "image-view-as-icon":
+      return applyImageViewAsIcon(file.text);
+    case "text-overlay-on-image-view":
+      return applyTextOverlayOnImageView(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

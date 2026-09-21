@@ -301,6 +301,7 @@ const results = [];
     surfaces.byId["page-controls"]?.affordance === "pagecontrol" &&
     surfaces.byId.labels?.affordance === "label" &&
     surfaces.byId["text-views"]?.affordance === "textview" &&
+    surfaces.byId["image-views"]?.affordance === "imageview" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

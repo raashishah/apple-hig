@@ -236,3 +236,9 @@ heuristics:
     match: small amount of text
   - id: unselectable-useful-text-view
     match: useful text-view text people can t copy
+  - id: image-view-as-button
+    match: button behaviors to an image view
+  - id: image-view-as-icon
+    match: image view for an interface icon
+  - id: text-overlay-on-image-view
+    match: overlaying text on an image view

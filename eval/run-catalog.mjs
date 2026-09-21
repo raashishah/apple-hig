@@ -55,6 +55,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["page-controls"]?.affordance === "pagecontrol" &&
     surfaces.byId.labels?.affordance === "label" &&
     surfaces.byId["text-views"]?.affordance === "textview" &&
+    surfaces.byId["image-views"]?.affordance === "imageview" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -419,6 +420,7 @@ const results = [];
     "page-controls",
     "labels",
     "text-views",
+    "image-views",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -533,6 +535,12 @@ const results = [];
   const inputOnly = scanAffordances([
     { path: "Field.tsx", text: '<input name="displayName" />' },
   ]);
+  const imgOnly = scanAffordances([
+    { path: "Hero.tsx", text: '<img alt="Hero" src="/hero.jpg" />' },
+  ]);
+  const imageViewOnly = scanAffordances([
+    { path: "Photo.tsx", text: '<div data-image-view><img alt="" src="/photo.jpg" /></div>' },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -562,6 +570,7 @@ const results = [];
       !passList.includes("pagecontrol") &&
       !passList.includes("label") &&
       !passList.includes("textview") &&
+      !passList.includes("imageview") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -580,6 +589,7 @@ const results = [];
       !formOnly.includes("slider") &&
       !formOnly.includes("label") &&
       !formOnly.includes("textview") &&
+      !formOnly.includes("imageview") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -607,6 +617,8 @@ const results = [];
       !textareaOnly.includes("form") &&
       inputOnly.includes("form") &&
       !inputOnly.includes("textview") &&
+      !imgOnly.includes("imageview") &&
+      imageViewOnly.includes("imageview") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -922,6 +934,17 @@ const results = [];
         "unselectable-useful-text-view",
       ) &&
       catalog.byId["text-views"]?.pack === "components-text-views.md" &&
+      catalog.byId["image-views"]?.dontCoverageComplete === true &&
+      (catalog.byId["image-views"]?.dontHeuristicIds || []).includes(
+        "image-view-as-button",
+      ) &&
+      (catalog.byId["image-views"]?.dontHeuristicIds || []).includes(
+        "image-view-as-icon",
+      ) &&
+      (catalog.byId["image-views"]?.dontHeuristicIds || []).includes(
+        "text-overlay-on-image-view",
+      ) &&
+      catalog.byId["image-views"]?.pack === "components-image-views.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1021,6 +1044,7 @@ const results = [];
       "page-controls",
       "labels",
       "text-views",
+      "image-views",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -3819,6 +3843,135 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-text-views-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-image-views-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-image-views-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-image-views-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div
+      data-image-view
+      data-interactive-image-view
+      data-icon-image-view
+      data-text-on-image-view
+    >
+      <img alt="" src="/photo.jpg" />
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-image-view onClick={() => {}}>
+      <img alt="" src="/photo.jpg" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passImageViews: passStatus.topics["image-views"]?.state === "skipped-no-affordance",
+      passImages: passStatus.topics.images?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixImageViews: fixStatus.topics["image-views"]?.state === "applied",
+      imageViewKept: /data-image-view/.test(fixed) && /<img\b/.test(fixed),
+      markersGone:
+        !/data-interactive-image-view/.test(fixed) &&
+        !/data-icon-image-view/.test(fixed) &&
+        !/data-text-on-image-view/.test(fixed),
+      notButton: !/<button\b/i.test(fixed),
+      holdUnchanged: held === origHold,
+      holdImageViews: holdStatus.topics["image-views"]?.state === "pending",
+      holdNotButton: !/<button\b/i.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passImageViews: passStatus.topics["image-views"]?.state,
+      passImages: passStatus.topics.images?.state,
+      fixImageViews: fixStatus.topics["image-views"]?.state,
+      holdImageViews: holdStatus.topics["image-views"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-image-views-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
