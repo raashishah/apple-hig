@@ -591,6 +591,7 @@ function affordanceMissing(need, present) {
     case "snippet":
     case "genai":
     case "alwayson":
+    case "shareplay":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1023,6 +1024,14 @@ export function scanAffordances(files) {
     /\bsupportsAlwaysOnDisplay\b/.test(blob)
   ) {
     found.push("alwayson");
+  }
+  if (
+    /\bdata-shareplay\b/.test(blob) ||
+    /\bGroupActivity\b/.test(blob) ||
+    /\bGroupSession\b/.test(blob) ||
+    /\bActivitySharingView\b/.test(blob)
+  ) {
+    found.push("shareplay");
   }
   return found;
 }

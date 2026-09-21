@@ -378,3 +378,7 @@ heuristics:
     match: Sensitive information
   - id: always-on-stop-motion
     match: stops instantly
+  - id: shareplay-adjective
+    match: paired with an adjective
+  - id: shareplay-inflected
+    match: SharePlayed

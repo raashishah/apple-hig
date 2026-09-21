@@ -81,6 +81,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.snippets?.affordance === "snippet" &&
     surfaces.byId["generative-ai"]?.affordance === "genai" &&
     surfaces.byId["always-on"]?.affordance === "alwayson" &&
+    surfaces.byId.shareplay?.affordance === "shareplay" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -472,6 +473,7 @@ const results = [];
     "snippets",
     "generative-ai",
     "always-on",
+    "shareplay",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -847,6 +849,12 @@ const results = [];
       text: ".hero { opacity: 0.4; }",
     },
   ]);
+  const shareplayOnly = scanAffordances([
+    {
+      path: "Watch.tsx",
+      text: '<div data-shareplay><button type="button">Join</button></div>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -1054,6 +1062,12 @@ const results = [];
       !formOnly.includes("alwayson") &&
       !passList.includes("alwayson") &&
       !pageOnly.includes("alwayson") &&
+      shareplayOnly.includes("shareplay") &&
+      !shareWordOnly.includes("shareplay") &&
+      !activityOnly.includes("shareplay") &&
+      !formOnly.includes("shareplay") &&
+      !passList.includes("shareplay") &&
+      !pageOnly.includes("shareplay") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1634,6 +1648,15 @@ const results = [];
       ) &&
       catalog.byId["always-on"]?.pack === "tech-always-on.md" &&
       catalog.byId["always-on"]?.appliesWhen === "always" &&
+      catalog.byId.shareplay?.dontCoverageComplete === true &&
+      (catalog.byId.shareplay?.dontHeuristicIds || []).includes(
+        "shareplay-adjective",
+      ) &&
+      (catalog.byId.shareplay?.dontHeuristicIds || []).includes(
+        "shareplay-inflected",
+      ) &&
+      catalog.byId.shareplay?.pack === "tech-shareplay.md" &&
+      catalog.byId.shareplay?.appliesWhen === "always" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1759,6 +1782,7 @@ const results = [];
       "snippets",
       "generative-ai",
       "always-on",
+      "shareplay",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -7985,6 +8009,139 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-always-on-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-shareplay-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-shareplay-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-shareplay-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-shareplay data-shareplay-adjective data-shareplay-inflected>
+      <button type="button">Join</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-shareplay>
+      Join Spatial SharePlay
+      <button type="button">Join</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passShareplay:
+        passStatus.topics.shareplay?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixShareplay: fixStatus.topics.shareplay?.state === "applied",
+      systemKept:
+        /data-shareplay/.test(fixed) && />\s*Join\s*</.test(fixed),
+      markersGone:
+        !/data-shareplay-adjective/.test(fixed) &&
+        !/data-shareplay-inflected/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdShareplay: holdStatus.topics.shareplay?.state === "pending",
+      holdStillAdjective:
+        /data-shareplay/.test(held) &&
+        /Spatial SharePlay/.test(held) &&
+        /Join/.test(held),
+      holdNotInvented:
+        !/GroupActivity/.test(held) &&
+        !/GroupSession/.test(held) &&
+        !/ActivitySharingView/.test(held) &&
+        !/FaceTime/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passShareplay: passStatus.topics.shareplay?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixShareplay: fixStatus.topics.shareplay?.state,
+      holdShareplay: holdStatus.topics.shareplay?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-shareplay-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
