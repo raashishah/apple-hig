@@ -334,6 +334,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "haptic",
     "airplay",
     "gyro",
+    "quickaction",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

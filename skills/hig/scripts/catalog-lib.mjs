@@ -586,6 +586,7 @@ function affordanceMissing(need, present) {
     case "haptic":
     case "airplay":
     case "gyro":
+    case "quickaction":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -982,6 +983,14 @@ export function scanAffordances(files) {
     /\bstartGyroUpdates\b/.test(blob)
   ) {
     found.push("gyro");
+  }
+  if (
+    /\bdata-quick-action\b/.test(blob) ||
+    /\bUIApplicationShortcutItem\b/.test(blob) ||
+    /\bUIMutableApplicationShortcutItem\b/.test(blob) ||
+    /\bUIApplicationShortcutItems\b/.test(blob)
+  ) {
+    found.push("quickaction");
   }
   return found;
 }

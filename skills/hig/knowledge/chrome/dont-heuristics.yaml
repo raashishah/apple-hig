@@ -358,3 +358,7 @@ heuristics:
     match: no tangible benefit
   - id: motion-direct-ui
     match: directly manipulate the interface
+  - id: quick-action-app-name
+    match: App name or extra copy
+  - id: quick-action-emoji
+    match: emoji used in place

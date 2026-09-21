@@ -76,6 +76,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["playing-haptics"]?.affordance === "haptic" &&
     surfaces.byId.airplay?.affordance === "airplay" &&
     surfaces.byId["gyro-and-accelerometer"]?.affordance === "gyro" &&
+    surfaces.byId["home-screen-quick-actions"]?.affordance === "quickaction" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -462,6 +463,7 @@ const results = [];
     "playing-haptics",
     "airplay",
     "gyro-and-accelerometer",
+    "home-screen-quick-actions",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1513,6 +1515,15 @@ const results = [];
       ) &&
       catalog.byId["gyro-and-accelerometer"]?.pack ===
         "inputs-gyro-and-accelerometer.md" &&
+      catalog.byId["home-screen-quick-actions"]?.dontCoverageComplete === true &&
+      (catalog.byId["home-screen-quick-actions"]?.dontHeuristicIds || []).includes(
+        "quick-action-app-name",
+      ) &&
+      (catalog.byId["home-screen-quick-actions"]?.dontHeuristicIds || []).includes(
+        "quick-action-emoji",
+      ) &&
+      catalog.byId["home-screen-quick-actions"]?.pack ===
+        "patterns-home-screen-quick-actions.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1633,6 +1644,7 @@ const results = [];
       "playing-haptics",
       "airplay",
       "gyro-and-accelerometer",
+      "home-screen-quick-actions",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -7187,6 +7199,141 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-gyro-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-quick-actions-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-quick-actions-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-quick-actions-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-quick-action data-quick-action-app-name data-quick-action-emoji>
+      <button type="button">Inbox</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-quick-action>
+      <button type="button">Inbox \u{1F4E5}</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passQuick:
+        passStatus.topics["home-screen-quick-actions"]?.state ===
+        "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixQuick:
+        fixStatus.topics["home-screen-quick-actions"]?.state === "applied",
+      systemKept:
+        /data-quick-action/.test(fixed) && />\s*Inbox\s*</.test(fixed),
+      markersGone:
+        !/data-quick-action-app-name/.test(fixed) &&
+        !/data-quick-action-emoji/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdQuick:
+        holdStatus.topics["home-screen-quick-actions"]?.state === "pending",
+      holdStillEmoji:
+        /data-quick-action/.test(held) &&
+        /Inbox/.test(held) &&
+        /\p{Extended_Pictographic}/u.test(held),
+      holdNotInvented:
+        !/UIApplicationShortcutIcon/.test(held) &&
+        !/SF Symbol/i.test(held) &&
+        !/symbolName/.test(held) &&
+        !/square\.and\.pencil/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passQuick: passStatus.topics["home-screen-quick-actions"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixQuick: fixStatus.topics["home-screen-quick-actions"]?.state,
+      holdQuick: holdStatus.topics["home-screen-quick-actions"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-quick-actions-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
