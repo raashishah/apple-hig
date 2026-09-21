@@ -593,6 +593,7 @@ function affordanceMissing(need, present) {
     case "alwayson":
     case "shareplay":
     case "nearby":
+    case "activityring":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1043,6 +1044,13 @@ export function scanAffordances(files) {
     /\bNearbyInteraction\b/.test(blob)
   ) {
     found.push("nearby");
+  }
+  if (
+    /\bdata-activity-rings\b/.test(blob) ||
+    /\bHKActivityRingView\b/.test(blob) ||
+    /\bWKInterfaceActivityRing\b/.test(blob)
+  ) {
+    found.push("activityring");
   }
   return found;
 }

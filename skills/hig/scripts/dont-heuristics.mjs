@@ -4942,6 +4942,91 @@ function applyNearbyPortraitInstruction(text) {
   return text.replace(/\s*data-nearby-portrait(?:="[^"]*")?/g, "");
 }
 
+function hasActivityRings(text) {
+  return (
+    /\bdata-activity-rings\b/.test(text) ||
+    /\bHKActivityRingView\b/.test(text) ||
+    /\bWKInterfaceActivityRing\b/.test(text)
+  );
+}
+
+function hasActivityRingsOtherDataCopy(text) {
+  return (
+    /other types of data/i.test(text) ||
+    /\b(sales|revenue) ring\b/i.test(text)
+  );
+}
+
+function hasActivityRingsMultiPersonCopy(text) {
+  return /more than one person/i.test(text);
+}
+
+function scanActivityRingsOtherData(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-activity-rings-other/.test(f.text)) {
+      out.push(hit(f.path, "activity rings used for other types of data"));
+      continue;
+    }
+    if (!hasActivityRings(f.text)) continue;
+    if (hasActivityRingsOtherDataCopy(f.text)) {
+      out.push(hit(f.path, "activity rings used for other types of data"));
+    }
+  }
+  return out;
+}
+
+function applyActivityRingsOtherData(text) {
+  return text.replace(/\s*data-activity-rings-other(?:="[^"]*")?/g, "");
+}
+
+function scanActivityRingsMultiPerson(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-activity-rings-multi/.test(f.text)) {
+      out.push(hit(f.path, "activity rings used for more than one person"));
+      continue;
+    }
+    if (!hasActivityRings(f.text)) continue;
+    if (hasActivityRingsMultiPersonCopy(f.text)) {
+      out.push(hit(f.path, "activity rings used for more than one person"));
+    }
+  }
+  return out;
+}
+
+function applyActivityRingsMultiPerson(text) {
+  return text.replace(/\s*data-activity-rings-multi(?:="[^"]*")?/g, "");
+}
+
+function scanActivityRingsRecolor(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-activity-rings-recolor/.test(f.text)) {
+      out.push(hit(f.path, "recolored activity rings"));
+    }
+  }
+  return out;
+}
+
+function applyActivityRingsRecolor(text) {
+  return text.replace(/\s*data-activity-rings-recolor(?:="[^"]*")?/g, "");
+}
+
+function scanActivityRingsDecoration(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-activity-rings-decor/.test(f.text)) {
+      out.push(hit(f.path, "activity rings used for decoration or branding"));
+    }
+  }
+  return out;
+}
+
+function applyActivityRingsDecoration(text) {
+  return text.replace(/\s*data-activity-rings-decor(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -5343,6 +5428,14 @@ function scanHeuristic(id, files) {
       return scanNearbyOnlyWay(files);
     case "nearby-portrait-instruction":
       return scanNearbyPortraitInstruction(files);
+    case "activity-rings-other-data":
+      return scanActivityRingsOtherData(files);
+    case "activity-rings-multi-person":
+      return scanActivityRingsMultiPerson(files);
+    case "activity-rings-recolor":
+      return scanActivityRingsRecolor(files);
+    case "activity-rings-decoration":
+      return scanActivityRingsDecoration(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -5737,6 +5830,14 @@ function applyHeuristic(id, file) {
       return applyNearbyOnlyWay(file.text);
     case "nearby-portrait-instruction":
       return applyNearbyPortraitInstruction(file.text);
+    case "activity-rings-other-data":
+      return applyActivityRingsOtherData(file.text);
+    case "activity-rings-multi-person":
+      return applyActivityRingsMultiPerson(file.text);
+    case "activity-rings-recolor":
+      return applyActivityRingsRecolor(file.text);
+    case "activity-rings-decoration":
+      return applyActivityRingsDecoration(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

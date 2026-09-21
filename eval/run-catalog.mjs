@@ -83,6 +83,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["always-on"]?.affordance === "alwayson" &&
     surfaces.byId.shareplay?.affordance === "shareplay" &&
     surfaces.byId["nearby-interactions"]?.affordance === "nearby" &&
+    surfaces.byId["activity-rings"]?.affordance === "activityring" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -476,6 +477,7 @@ const results = [];
     "always-on",
     "shareplay",
     "nearby-interactions",
+    "activity-rings",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -869,6 +871,18 @@ const results = [];
       text: "<p>Find nearby friends.</p>",
     },
   ]);
+  const activityRingsOnly = scanAffordances([
+    {
+      path: "Move.tsx",
+      text: '<div data-activity-rings><button type="button">Move</button></div>',
+    },
+  ]);
+  const cssCircleOnly = scanAffordances([
+    {
+      path: "Circle.css",
+      text: ".ring { border-radius: 50%; }",
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -1089,6 +1103,12 @@ const results = [];
       !formOnly.includes("nearby") &&
       !passList.includes("nearby") &&
       !pageOnly.includes("nearby") &&
+      activityRingsOnly.includes("activityring") &&
+      !cssCircleOnly.includes("activityring") &&
+      !progressOnly.includes("activityring") &&
+      !formOnly.includes("activityring") &&
+      !passList.includes("activityring") &&
+      !pageOnly.includes("activityring") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1688,6 +1708,21 @@ const results = [];
       catalog.byId["nearby-interactions"]?.pack ===
         "inputs-nearby-interactions.md" &&
       catalog.byId["nearby-interactions"]?.appliesWhen === "always" &&
+      catalog.byId["activity-rings"]?.dontCoverageComplete === true &&
+      (catalog.byId["activity-rings"]?.dontHeuristicIds || []).includes(
+        "activity-rings-other-data",
+      ) &&
+      (catalog.byId["activity-rings"]?.dontHeuristicIds || []).includes(
+        "activity-rings-multi-person",
+      ) &&
+      (catalog.byId["activity-rings"]?.dontHeuristicIds || []).includes(
+        "activity-rings-recolor",
+      ) &&
+      (catalog.byId["activity-rings"]?.dontHeuristicIds || []).includes(
+        "activity-rings-decoration",
+      ) &&
+      catalog.byId["activity-rings"]?.pack === "patterns-activity-rings.md" &&
+      catalog.byId["activity-rings"]?.appliesWhen === "always" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1815,6 +1850,7 @@ const results = [];
       "always-on",
       "shareplay",
       "nearby-interactions",
+      "activity-rings",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -8308,6 +8344,139 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-nearby-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rings-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rings-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rings-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-activity-rings data-activity-rings-other data-activity-rings-multi data-activity-rings-recolor data-activity-rings-decor>
+      <button type="button">Move</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-activity-rings>
+      Showing sales, other types of data
+      <button type="button">Move</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passRings:
+        passStatus.topics["activity-rings"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixRings: fixStatus.topics["activity-rings"]?.state === "applied",
+      systemKept:
+        /data-activity-rings/.test(fixed) && />\s*Move\s*</.test(fixed),
+      markersGone:
+        !/data-activity-rings-other/.test(fixed) &&
+        !/data-activity-rings-multi/.test(fixed) &&
+        !/data-activity-rings-recolor/.test(fixed) &&
+        !/data-activity-rings-decor/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdRings: holdStatus.topics["activity-rings"]?.state === "pending",
+      holdStillOther:
+        /data-activity-rings/.test(held) &&
+        /other types of data/.test(held) &&
+        /Move/.test(held),
+      holdNotInvented:
+        !/HKActivityRingView/.test(held) &&
+        !/WKInterfaceActivityRing/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passRings: passStatus.topics["activity-rings"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixRings: fixStatus.topics["activity-rings"]?.state,
+      holdRings: holdStatus.topics["activity-rings"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-activity-rings-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

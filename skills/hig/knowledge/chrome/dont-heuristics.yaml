@@ -386,3 +386,11 @@ heuristics:
     match: only way to perform a task
   - id: nearby-portrait-instruction
     match: hold the device in portrait
+  - id: activity-rings-other-data
+    match: other types of data
+  - id: activity-rings-multi-person
+    match: more than one person
+  - id: activity-rings-recolor
+    match: Recolored
+  - id: activity-rings-decoration
+    match: decoration or branding
