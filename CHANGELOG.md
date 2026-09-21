@@ -14,6 +14,7 @@ Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
 - Later catalog goal-loop plan: `docs/plans/2026-09-21-hig-catalog-goal-agent.md` (additive; does not replace `requiredIds`)
 - Catalog inventory: `knowledge/catalog.yaml` from Apple's live index (`scripts/sync-hig-catalog.mjs`). Round 1 apply still 12 `requiredIds`. Eval: `eval/run-catalog.mjs`
 - Catalog goal loop after chrome P0: `scripts/plan-catalog.mjs` writes `.hig/catalog-status.yaml`. Wave 0 stays `requiredIds`. Then apply remaining packed applicable topics until `remaining` is 0. Brand app-shell rows are `n/a-register`. Watch/TV/Vision skip on web. Pattern `affordance` skips when the host has no matching widget. Same chrome P0 FAILs proven on a web host and a Swift host without naming those stacks in the rule.
+- Catalog `failWhen` / `passWhen` derived at load from `grammar.yaml` + pack Do/Don't (not title stubs, not Apply-in-host). Unpackaged rows stay stubs.
 
 ## Unreleased
 

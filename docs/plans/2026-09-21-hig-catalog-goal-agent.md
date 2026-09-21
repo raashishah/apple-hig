@@ -27,7 +27,7 @@ Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_lo
 
 ## This PR (#12)
 
-Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Visual any-host Apple-ness is still unproven.
+Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Catalog `failWhen` derived at load from grammar + pack Do/Don't. Visual any-host Apple-ness is still unproven.
 
 ## Additive catalog loop
 
@@ -55,6 +55,7 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 3. U3. Host fonts already left alone on #12. Keep that.
 4. U4. `appliesWhen` from host patterns (scan list, form, overlay, chrome), not a framework enum. **Landed on this PR** (`affordance` on `surfaces.yaml`; `skipped-no-affordance`).
 5. U5. Same design FAIL proven on two detected stacks without naming those stacks in the rule. **Landed on this PR** (`chrome-antipatterns-web` + `chrome-antipatterns-swift`).
+6. Catalog `failWhen` / `passWhen` derived at load from `grammar.yaml` + pack Do/Don't. **Landed on this PR.** Unpackaged rows stay stubs.
 
 ## Non-goals
 

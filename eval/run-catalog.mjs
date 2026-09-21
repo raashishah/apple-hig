@@ -9,8 +9,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  CATALOG_FRAME_OR_FONT,
   CATALOG_SOURCE_URL,
   extractArticles,
+  isTitleStub,
   loadCatalog,
   parseCatalogStatus,
   planGoalLoop,
@@ -25,8 +27,7 @@ import { fetchHigIndex } from "../skills/hig/scripts/sync-hig-catalog.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.resolve(__dirname, "..");
 const skillRoot = path.join(pluginRoot, "skills", "hig");
-const FRAME_OR_FONT =
-  /\b(SwiftUI|UIKit|React|Flutter|Vue|Angular|Svelte|SF Pro|San Francisco|-apple-system)\b/i;
+const FRAME_OR_FONT = CATALOG_FRAME_OR_FONT;
 
 function surfacesHavePatternAffordances(root) {
   const surfaces = loadSurfaces(root);
@@ -125,6 +126,46 @@ const results = [];
     case: "rules-are-design-not-framework",
     ok: hits.length === 0,
     hits: hits.map((t) => t.id),
+  });
+}
+
+{
+  const catalog = loadCatalog(skillRoot);
+  const lists = catalog.byId["lists-and-tables"];
+  const type = catalog.byId.typography;
+  const layout = catalog.byId.layout;
+  const stub = catalog.byId["tab-views"];
+  const planned = planGoalLoop({
+    catalog,
+    surfaces: loadSurfaces(skillRoot),
+    preflight: {
+      platform: "unknown",
+      capabilities: [],
+      register: "product",
+    },
+    chromePass: true,
+  });
+  results.push({
+    case: "derived-rules-from-pack-and-grammar",
+    ok:
+      Boolean(lists) &&
+      Boolean(type) &&
+      Boolean(layout) &&
+      Boolean(stub) &&
+      !isTitleStub(lists) &&
+      !isTitleStub(type) &&
+      !isTitleStub(layout) &&
+      isTitleStub(stub) &&
+      /Card grids posing as the master list/i.test(lists.failWhen) &&
+      /Marketing hero type inside dense inventory lists/i.test(type.failWhen) &&
+      (lists.chromeIds || []).includes("chrome.view-mode.icons") &&
+      (layout.chromeIds || []).includes("chrome.layout.card-grid-home") &&
+      !/SF Pro/i.test(type.failWhen + type.passWhen) &&
+      planned.topics["lists-and-tables"]?.failWhen === lists.failWhen,
+    listsStub: isTitleStub(lists),
+    typeStub: isTitleStub(type),
+    unpackagedStub: isTitleStub(stub),
+    listChrome: lists?.chromeIds,
   });
 }
 

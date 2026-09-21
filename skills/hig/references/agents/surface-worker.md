@@ -24,7 +24,7 @@ Write `.hig/swarm/<surfaceId>.md`:
 
 1. Apple rule (cite URL)
 2. What the host does today (files + evidence)
-3. Gaps vs the pack checklist and chrome `failWhen` lines (`structure:<id>` when matched)
+3. Gaps vs the pack checklist, derived catalog `failWhen`, and chrome `failWhen` lines (`structure:<id>` when matched)
 4. Proposed in-place edits (smallest change, host controls/tokens)
 5. File touch list (paths you would edit in apply)
 6. Conflicts for the synthesizer

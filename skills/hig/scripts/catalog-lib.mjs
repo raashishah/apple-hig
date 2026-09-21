@@ -5,7 +5,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { gateMatches } from "./load-surfaces.mjs";
+import { loadChromeGrammar } from "./load-chrome-grammar.mjs";
+import { gateMatches, loadSurfaces } from "./load-surfaces.mjs";
 
 export const CATALOG_SOURCE_URL =
   "https://developer.apple.com/tutorials/data/index/design--human-interface-guidelines";
@@ -133,11 +134,103 @@ export function inferAppliesWhen(slug, surface) {
   return "always";
 }
 
+export const CATALOG_FRAME_OR_FONT =
+  /\b(SwiftUI|UIKit|React|Flutter|Vue|Angular|Svelte|SF Pro|San Francisco|-apple-system)\b/i;
+
 export function designRule(title) {
   return {
     failWhen: `When this topic applies, the host UI does not follow Apple's ${title} design rule.`,
     passWhen: `When this topic applies, the host follows Apple's ${title} design rule on existing widgets without changing the typeface or injecting a kit.`,
   };
+}
+
+export function isTitleStub(topic) {
+  if (!topic?.title || !topic?.failWhen) return false;
+  return topic.failWhen === designRule(topic.title).failWhen;
+}
+
+export function parsePackDoDont(text) {
+  const doBullets = [];
+  const dontBullets = [];
+  let mode = null;
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim();
+    if (/^##\s+Don't\b/i.test(line)) {
+      mode = "dont";
+      continue;
+    }
+    if (/^##\s+Do\b/i.test(line)) {
+      mode = "do";
+      continue;
+    }
+    if (/^##\s+/.test(line)) {
+      mode = null;
+      continue;
+    }
+    const bullet = line.match(/^-\s+(.+)$/);
+    if (!mode || !bullet) continue;
+    const item = bullet[1].replace(/\s+/g, " ").trim();
+    if (!item || item.startsWith("[ ]") || item.startsWith("[x]")) continue;
+    if (CATALOG_FRAME_OR_FONT.test(item)) continue;
+    if (/\b(web-css|brand-veto|fixture)\b/i.test(item)) continue;
+    if (mode === "do") doBullets.push(item);
+    else dontBullets.push(item);
+  }
+  return { do: doBullets, dont: dontBullets };
+}
+
+function uniqueJoin(parts) {
+  const seen = new Set();
+  const out = [];
+  for (const part of parts) {
+    const text = String(part || "").replace(/\s+/g, " ").trim();
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    out.push(text);
+  }
+  return out.join(" ");
+}
+
+export function deriveTopicRule(topic, { surfaces, grammar, packCache }) {
+  const stub = designRule(topic.title);
+  const surface = topic.surfaceId ? surfaces?.byId?.[topic.surfaceId] : null;
+  const chromeIds = [];
+  const failParts = [];
+  const passParts = [];
+
+  if (surface?.pack && grammar) {
+    const stem = String(surface.pack).replace(/\.md$/, "");
+    const fromPack = grammar.byPack?.[stem] || [];
+    for (const id of fromPack) {
+      const rule = grammar.byId?.[id];
+      if (!rule) continue;
+      chromeIds.push(id);
+      failParts.push(rule.failWhen);
+      passParts.push(rule.passWhen);
+    }
+    for (const rule of grammar.rules || []) {
+      if (slugFromPath(rule.appleUrl) !== topic.id) continue;
+      if (chromeIds.includes(rule.id)) continue;
+      chromeIds.push(rule.id);
+      failParts.push(rule.failWhen);
+      passParts.push(rule.passWhen);
+    }
+    const packText = packCache?.[surface.pack];
+    if (packText) {
+      const { do: doBullets, dont } = parsePackDoDont(packText);
+      failParts.push(...dont);
+      passParts.push(...doBullets);
+    }
+  }
+
+  const failWhen = failParts.length ? uniqueJoin(failParts) : stub.failWhen;
+  let passWhen = passParts.length ? uniqueJoin(passParts) : stub.passWhen;
+  if (!/typeface|injecting a kit/i.test(passWhen)) {
+    passWhen = `${passWhen} Host typeface stays. Do not inject a kit.`;
+  }
+  const derived = { ...topic, failWhen, passWhen };
+  if (chromeIds.length) derived.chromeIds = [...new Set(chromeIds)];
+  return derived;
 }
 
 export function surfaceIndex(surfaces) {
@@ -294,8 +387,24 @@ export function loadCatalog(skillRoot) {
   }
   const doc = parseCatalog(fs.readFileSync(catalogPath, "utf8"));
   validateCatalog(doc);
-  const byId = Object.fromEntries(doc.topics.map((t) => [t.id, t]));
-  return { ...doc, byId, catalogPath, count: doc.topics.length };
+  const surfaces = loadSurfaces(skillRoot);
+  const grammar = loadChromeGrammar(skillRoot);
+  const packDir = path.join(skillRoot, "knowledge", "packs");
+  const packCache = {};
+  for (const surface of surfaces.surfaces || []) {
+    if (!surface.pack || packCache[surface.pack]) continue;
+    const packPath = path.join(packDir, surface.pack);
+    if (fs.existsSync(packPath)) {
+      packCache[surface.pack] = fs.readFileSync(packPath, "utf8");
+    }
+  }
+  const topics = doc.topics.map((topic) =>
+    deriveTopicRule(topic, { surfaces, grammar, packCache }),
+  );
+  const derived = { ...doc, topics };
+  validateCatalog(derived);
+  const byId = Object.fromEntries(topics.map((t) => [t.id, t]));
+  return { ...derived, byId, catalogPath, count: topics.length };
 }
 
 const BRAND_NA = new Set(["tab-bars", "tab-views", "split-views", "status-bars"]);
@@ -419,11 +528,17 @@ export function planGoalLoop({ catalog, surfaces, preflight, chromePass, status 
     const prev = status?.topics?.[topic.id];
     const surface = topic.surfaceId ? bySurface[topic.surfaceId] : null;
     const state = inferTopicState(topic, applicableIds, preflight, prev?.state, surface);
-    topics[topic.id] = {
+    const row = {
       state,
       surfaceId: topic.surfaceId || null,
       pack: topic.pack || null,
     };
+    if (state === "pending") {
+      row.failWhen = topic.failWhen;
+      row.passWhen = topic.passWhen;
+      if (topic.chromeIds?.length) row.chromeIds = topic.chromeIds;
+    }
+    topics[topic.id] = row;
   }
 
   const pendingTopics = catalog.topics.filter((t) => topics[t.id].state === "pending");

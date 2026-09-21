@@ -42,6 +42,7 @@ node eval/run-catalog.mjs
 - [x] Goal loop: wave 0 is `requiredIds`; after chrome P0 remaining packed catalog topics apply; done when `remaining` is 0; brand app-shell catalog rows are `n/a-register`
 - [x] Host-pattern affordance: list/form/overlay/chrome skip when the widget is absent; collection/card grids still count as list
 - [x] Same chrome P0 FAIL on a web host and a Swift host; grammar `failWhen` / `passWhen` do not name frameworks
+- [x] Packed catalog topics derive `failWhen` from grammar + pack Do/Don't at load; unpackaged rows stay stubs; no SF Pro / framework names
 
 ## Swarm / stack (0.4)
 
