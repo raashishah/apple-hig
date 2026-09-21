@@ -587,6 +587,7 @@ function affordanceMissing(need, present) {
     case "airplay":
     case "gyro":
     case "quickaction":
+    case "liveviewing":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -991,6 +992,9 @@ export function scanAffordances(files) {
     /\bUIApplicationShortcutItems\b/.test(blob)
   ) {
     found.push("quickaction");
+  }
+  if (/\bdata-live-viewing\b/.test(blob)) {
+    found.push("liveviewing");
   }
   return found;
 }

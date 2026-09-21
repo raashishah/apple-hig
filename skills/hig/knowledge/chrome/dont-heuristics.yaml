@@ -362,3 +362,7 @@ heuristics:
     match: App name or extra copy
   - id: quick-action-emoji
     match: emoji used in place
+  - id: live-unmarked-vod
+    match: not distinguished from video-on-demand
+  - id: live-audio-after-leave
+    match: leaving the live tab

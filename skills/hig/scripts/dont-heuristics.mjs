@@ -4584,6 +4584,64 @@ function applyQuickActionEmoji(text) {
   return text.replace(/\s*data-quick-action-emoji(?:="[^"]*")?/g, "");
 }
 
+function hasLiveViewing(text) {
+  return /\bdata-live-viewing\b/.test(text);
+}
+
+function hasVodCopy(text) {
+  return (
+    /\bVOD\b/.test(text) ||
+    /video-on-demand/i.test(text) ||
+    /\bon[\s-]demand\b/i.test(text)
+  );
+}
+
+function hasLiveBadge(text) {
+  return (
+    /\bdata-live-badge\b/.test(text) ||
+    />\s*Live\s*</.test(text) ||
+    /aria-label=["']Live["']/i.test(text) ||
+    /\blive-badge\b/i.test(text)
+  );
+}
+
+function scanLiveUnmarkedVod(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-live-unmarked/.test(f.text)) {
+      out.push(
+        hit(f.path, "live content that is not distinguished from video-on-demand"),
+      );
+      continue;
+    }
+    if (!hasLiveViewing(f.text)) continue;
+    if (hasVodCopy(f.text) && !hasLiveBadge(f.text)) {
+      out.push(
+        hit(f.path, "live content that is not distinguished from video-on-demand"),
+      );
+    }
+  }
+  return out;
+}
+
+function applyLiveUnmarkedVod(text) {
+  return text.replace(/\s*data-live-unmarked(?:="[^"]*")?/g, "");
+}
+
+function scanLiveAudioAfterLeave(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-live-audio-after-leave/.test(f.text)) {
+      out.push(hit(f.path, "audio that continues after leaving the live tab"));
+    }
+  }
+  return out;
+}
+
+function applyLiveAudioAfterLeave(text) {
+  return text.replace(/\s*data-live-audio-after-leave(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4961,6 +5019,10 @@ function scanHeuristic(id, files) {
       return scanQuickActionAppName(files);
     case "quick-action-emoji":
       return scanQuickActionEmoji(files);
+    case "live-unmarked-vod":
+      return scanLiveUnmarkedVod(files);
+    case "live-audio-after-leave":
+      return scanLiveAudioAfterLeave(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -5331,6 +5393,10 @@ function applyHeuristic(id, file) {
       return applyQuickActionAppName(file.text);
     case "quick-action-emoji":
       return applyQuickActionEmoji(file.text);
+    case "live-unmarked-vod":
+      return applyLiveUnmarkedVod(file.text);
+    case "live-audio-after-leave":
+      return applyLiveAudioAfterLeave(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

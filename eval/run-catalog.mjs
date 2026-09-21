@@ -77,6 +77,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.airplay?.affordance === "airplay" &&
     surfaces.byId["gyro-and-accelerometer"]?.affordance === "gyro" &&
     surfaces.byId["home-screen-quick-actions"]?.affordance === "quickaction" &&
+    surfaces.byId["live-viewing-apps"]?.affordance === "liveviewing" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -464,6 +465,7 @@ const results = [];
     "airplay",
     "gyro-and-accelerometer",
     "home-screen-quick-actions",
+    "live-viewing-apps",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -797,6 +799,12 @@ const results = [];
       text: "var window: UIWindow?",
     },
   ]);
+  const liveViewingOnly = scanAffordances([
+    {
+      path: "Live.tsx",
+      text: '<div data-live-viewing><button type="button">Watch</button></div>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -979,6 +987,13 @@ const results = [];
       !pageOnly.includes("appwindow") &&
       !formOnly.includes("appwindow") &&
       !videoOnly.includes("appwindow") &&
+      liveViewingOnly.includes("liveviewing") &&
+      !liveViewingOnly.includes("videoplayer") &&
+      !videoOnly.includes("liveviewing") &&
+      !shareWordOnly.includes("liveviewing") &&
+      !formOnly.includes("liveviewing") &&
+      !passList.includes("liveviewing") &&
+      !pageOnly.includes("liveviewing") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1524,6 +1539,15 @@ const results = [];
       ) &&
       catalog.byId["home-screen-quick-actions"]?.pack ===
         "patterns-home-screen-quick-actions.md" &&
+      catalog.byId["live-viewing-apps"]?.dontCoverageComplete === true &&
+      (catalog.byId["live-viewing-apps"]?.dontHeuristicIds || []).includes(
+        "live-unmarked-vod",
+      ) &&
+      (catalog.byId["live-viewing-apps"]?.dontHeuristicIds || []).includes(
+        "live-audio-after-leave",
+      ) &&
+      catalog.byId["live-viewing-apps"]?.pack ===
+        "patterns-live-viewing-apps.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1645,6 +1669,7 @@ const results = [];
       "airplay",
       "gyro-and-accelerometer",
       "home-screen-quick-actions",
+      "live-viewing-apps",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -7334,6 +7359,144 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-quick-actions-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-live-viewing-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-live-viewing-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-live-viewing-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-live-viewing data-live-unmarked data-live-audio-after-leave>
+      <button type="button">Watch</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-live-viewing>
+      <button type="button">Watch</button>
+      <span>On demand</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passLive:
+        passStatus.topics["live-viewing-apps"]?.state ===
+        "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixLive:
+        fixStatus.topics["live-viewing-apps"]?.state === "applied",
+      systemKept:
+        /data-live-viewing/.test(fixed) && />\s*Watch\s*</.test(fixed),
+      markersGone:
+        !/data-live-unmarked/.test(fixed) &&
+        !/data-live-audio-after-leave/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdLive:
+        holdStatus.topics["live-viewing-apps"]?.state === "pending",
+      holdStillVod:
+        /data-live-viewing/.test(held) &&
+        /Watch/.test(held) &&
+        /On demand/.test(held),
+      holdNotInvented:
+        !/data-live-badge/.test(held) &&
+        !/>\s*Live\s*</.test(held) &&
+        !/Watch Now/.test(held) &&
+        !/EPG/i.test(held) &&
+        !/electronic program/i.test(held) &&
+        !/visibilitychange/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passLive: passStatus.topics["live-viewing-apps"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixLive: fixStatus.topics["live-viewing-apps"]?.state,
+      holdLive: holdStatus.topics["live-viewing-apps"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-live-viewing-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
