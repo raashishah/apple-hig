@@ -346,3 +346,11 @@ heuristics:
     match: Overused haptics
   - id: haptic-not-optional
     match: no way to turn them off
+  - id: stop-airplay-on-background
+    match: backgrounds or the device locks
+  - id: interrupt-other-playback
+    match: Interrupting another app's playback
+  - id: auto-mirror-airplay
+    match: Automatic mirroring
+  - id: stream-background-loop
+    match: background loops or in-app-only

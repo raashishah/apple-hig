@@ -74,6 +74,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.windows?.affordance === "appwindow" &&
     surfaces.byId["playing-video"]?.affordance === "videoplayer" &&
     surfaces.byId["playing-haptics"]?.affordance === "haptic" &&
+    surfaces.byId.airplay?.affordance === "airplay" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -458,6 +459,7 @@ const results = [];
     "windows",
     "playing-video",
     "playing-haptics",
+    "airplay",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1486,6 +1488,20 @@ const results = [];
         "haptic-not-optional",
       ) &&
       catalog.byId["playing-haptics"]?.pack === "patterns-playing-haptics.md" &&
+      catalog.byId.airplay?.dontCoverageComplete === true &&
+      (catalog.byId.airplay?.dontHeuristicIds || []).includes(
+        "stop-airplay-on-background",
+      ) &&
+      (catalog.byId.airplay?.dontHeuristicIds || []).includes(
+        "interrupt-other-playback",
+      ) &&
+      (catalog.byId.airplay?.dontHeuristicIds || []).includes(
+        "auto-mirror-airplay",
+      ) &&
+      (catalog.byId.airplay?.dontHeuristicIds || []).includes(
+        "stream-background-loop",
+      ) &&
+      catalog.byId.airplay?.pack === "tech-airplay.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1604,6 +1620,7 @@ const results = [];
       "windows",
       "playing-video",
       "playing-haptics",
+      "airplay",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -6892,6 +6909,141 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-playing-haptics-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-airplay-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-airplay-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-airplay-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-airplay data-airplay-stop-on-background data-interrupt-airplay data-auto-mirror data-airplay-background-loop>
+      <button type="button">Stream</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-airplay>
+      <video autoPlay />
+      <button type="button">Stream</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passAirplay: passStatus.topics.airplay?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixAirplay: fixStatus.topics.airplay?.state === "applied",
+      systemKept:
+        /data-airplay/.test(fixed) && />\s*Stream\s*</.test(fixed),
+      markersGone:
+        !/data-airplay-stop-on-background/.test(fixed) &&
+        !/data-interrupt-airplay/.test(fixed) &&
+        !/data-auto-mirror/.test(fixed) &&
+        !/data-airplay-background-loop/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAirplay: holdStatus.topics.airplay?.state === "pending",
+      holdStillAutoplay:
+        /data-airplay/.test(held) &&
+        /<video\b[^>]*\bautoPlay\b/i.test(held) &&
+        />\s*Stream\s*</.test(held),
+      holdNotInvented:
+        !/ambient/i.test(held) &&
+        !/AVRoutePickerView/.test(held) &&
+        !/AirPlayButton/.test(held) &&
+        !/keep-playing/i.test(held) &&
+        !/usesExternalPlayback/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAirplay: passStatus.topics.airplay?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixAirplay: fixStatus.topics.airplay?.state,
+      holdAirplay: holdStatus.topics.airplay?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-airplay-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

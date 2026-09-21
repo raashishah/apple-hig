@@ -4383,6 +4383,91 @@ function applyHapticNotOptional(text) {
   return text.replace(/\s*data-haptic-required(?:="[^"]*")?/g, "");
 }
 
+function hasAirplay(text) {
+  return (
+    /\bdata-airplay\b/.test(text) ||
+    /\bAVRoutePickerView\b/.test(text) ||
+    /\bAirPlayButton\b/.test(text) ||
+    /\ballowsAirPlayVideo\b/.test(text) ||
+    /\bisAirPlayVideoActive\b/.test(text) ||
+    /\ballowsExternalPlayback\b/.test(text)
+  );
+}
+
+function scanStopAirplayOnBackground(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-airplay-stop-on-background/.test(f.text)) {
+      out.push(
+        hit(
+          f.path,
+          "airplay playback that stops when the app backgrounds or the device locks",
+        ),
+      );
+    }
+  }
+  return out;
+}
+
+function applyStopAirplayOnBackground(text) {
+  return text.replace(/\s*data-airplay-stop-on-background(?:="[^"]*")?/g, "");
+}
+
+function hasAutoplayVideo(text) {
+  return /<video\b[^>]*\bautoPlay\b/i.test(text);
+}
+
+function scanInterruptOtherPlayback(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-interrupt-airplay/.test(f.text)) {
+      out.push(
+        hit(f.path, "interrupting another app's playback with non-immersive content"),
+      );
+      continue;
+    }
+    if (!hasAirplay(f.text)) continue;
+    if (hasAutoplayVideo(f.text)) {
+      out.push(
+        hit(f.path, "interrupting another app's playback with non-immersive content"),
+      );
+    }
+  }
+  return out;
+}
+
+function applyInterruptOtherPlayback(text) {
+  return text.replace(/\s*data-interrupt-airplay(?:="[^"]*")?/g, "");
+}
+
+function scanAutoMirrorAirplay(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-auto-mirror/.test(f.text)) {
+      out.push(hit(f.path, "automatic mirroring without an explicit choice"));
+    }
+  }
+  return out;
+}
+
+function applyAutoMirrorAirplay(text) {
+  return text.replace(/\s*data-auto-mirror(?:="[^"]*")?/g, "");
+}
+
+function scanStreamBackgroundLoop(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-airplay-background-loop/.test(f.text)) {
+      out.push(hit(f.path, "streaming background loops or in-app-only clips"));
+    }
+  }
+  return out;
+}
+
+function applyStreamBackgroundLoop(text) {
+  return text.replace(/\s*data-airplay-background-loop(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4744,6 +4829,14 @@ function scanHeuristic(id, files) {
       return scanOverusedHaptics(files);
     case "haptic-not-optional":
       return scanHapticNotOptional(files);
+    case "stop-airplay-on-background":
+      return scanStopAirplayOnBackground(files);
+    case "interrupt-other-playback":
+      return scanInterruptOtherPlayback(files);
+    case "auto-mirror-airplay":
+      return scanAutoMirrorAirplay(files);
+    case "stream-background-loop":
+      return scanStreamBackgroundLoop(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -5098,6 +5191,14 @@ function applyHeuristic(id, file) {
       return applyOverusedHaptics(file.text);
     case "haptic-not-optional":
       return applyHapticNotOptional(file.text);
+    case "stop-airplay-on-background":
+      return applyStopAirplayOnBackground(file.text);
+    case "interrupt-other-playback":
+      return applyInterruptOtherPlayback(file.text);
+    case "auto-mirror-airplay":
+      return applyAutoMirrorAirplay(file.text);
+    case "stream-background-loop":
+      return applyStreamBackgroundLoop(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

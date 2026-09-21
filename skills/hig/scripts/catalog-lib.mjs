@@ -584,6 +584,7 @@ function affordanceMissing(need, present) {
     case "appwindow":
     case "videoplayer":
     case "haptic":
+    case "airplay":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -958,6 +959,16 @@ export function scanAffordances(files) {
     /\bsensoryFeedback\b/.test(blob)
   ) {
     found.push("haptic");
+  }
+  if (
+    /\bdata-airplay\b/.test(blob) ||
+    /\bAVRoutePickerView\b/.test(blob) ||
+    /\bAirPlayButton\b/.test(blob) ||
+    /\ballowsAirPlayVideo\b/.test(blob) ||
+    /\bisAirPlayVideoActive\b/.test(blob) ||
+    /\ballowsExternalPlayback\b/.test(blob)
+  ) {
+    found.push("airplay");
   }
   return found;
 }
