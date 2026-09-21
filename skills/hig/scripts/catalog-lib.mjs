@@ -570,6 +570,7 @@ function affordanceMissing(need, present) {
     case "box":
     case "editmenu":
     case "help":
+    case "webview":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -829,6 +830,14 @@ export function scanAffordances(files) {
     /\.help\s*\(/.test(blob)
   ) {
     found.push("help");
+  }
+  if (
+    /\bdata-web-view\b/.test(blob) ||
+    /<iframe\b/i.test(blob) ||
+    /\bWKWebView\b/.test(blob) ||
+    /\bWebView\s*\(/.test(blob)
+  ) {
+    found.push("webview");
   }
   return found;
 }

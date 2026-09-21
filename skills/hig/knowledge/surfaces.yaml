@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -320,6 +320,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/offering-help
     gate: always
     covers: [offering-help]
+  - id: web-views
+    pack: components-web-views.md
+    affordance: webview
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/web-views
+    gate: always
+    covers: [web-views]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

@@ -61,6 +61,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.boxes?.affordance === "box" &&
     surfaces.byId["edit-menus"]?.affordance === "editmenu" &&
     surfaces.byId["offering-help"]?.affordance === "help" &&
+    surfaces.byId["web-views"]?.affordance === "webview" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -432,6 +433,7 @@ const results = [];
     "boxes",
     "edit-menus",
     "offering-help",
+    "web-views",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -615,6 +617,18 @@ const results = [];
       text: "<div data-onboarding><p>Welcome</p></div>",
     },
   ]);
+  const iframeOnly = scanAffordances([
+    {
+      path: "Embed.tsx",
+      text: '<iframe src="https://example.com" title="Article"></iframe>',
+    },
+  ]);
+  const pageOnly = scanAffordances([
+    {
+      path: "index.html",
+      text: "<html><body><p>Hello</p></body></html>",
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -650,6 +664,7 @@ const results = [];
       !passList.includes("box") &&
       !passList.includes("editmenu") &&
       !passList.includes("help") &&
+      !passList.includes("webview") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -674,6 +689,7 @@ const results = [];
       !formOnly.includes("box") &&
       !formOnly.includes("editmenu") &&
       !formOnly.includes("help") &&
+      !formOnly.includes("webview") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -723,6 +739,9 @@ const results = [];
       !titledButton.includes("help") &&
       onboardingOnly.includes("onboarding") &&
       !onboardingOnly.includes("help") &&
+      iframeOnly.includes("webview") &&
+      !pageOnly.includes("webview") &&
+      !helpOnly.includes("webview") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1099,6 +1118,14 @@ const results = [];
         "promotional-tip",
       ) &&
       catalog.byId["offering-help"]?.pack === "components-offering-help.md" &&
+      catalog.byId["web-views"]?.dontCoverageComplete === true &&
+      (catalog.byId["web-views"]?.dontHeuristicIds || []).includes(
+        "missing-web-view-back-forward",
+      ) &&
+      (catalog.byId["web-views"]?.dontHeuristicIds || []).includes(
+        "safari-replica-web-view",
+      ) &&
+      catalog.byId["web-views"]?.pack === "components-web-views.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1205,6 +1232,7 @@ const results = [];
       "boxes",
       "edit-menus",
       "offering-help",
+      "web-views",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -4789,6 +4817,135 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-offering-help-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-web-views-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-web-views-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-web-views-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <iframe
+      data-web-view
+      data-no-web-back-forward
+      data-safari-replica
+      src="https://example.com"
+      title="Article"
+    />
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <iframe
+      data-web-view
+      data-web-view-multipage
+      src="https://example.com"
+      title="Article"
+    />
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passWebViews: passStatus.topics["web-views"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixWebViews: fixStatus.topics["web-views"]?.state === "applied",
+      webViewKept: /data-web-view/.test(fixed) && /<iframe/.test(fixed),
+      markersGone:
+        !/data-no-web-back-forward/.test(fixed) && !/data-safari-replica/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdWebViews: holdStatus.topics["web-views"]?.state === "pending",
+      holdStillIframe: /<iframe/.test(held) && /data-web-view-multipage/.test(held),
+      holdNotInvented: !/\bBack\b/.test(held) && !/\bForward\b/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWebViews: passStatus.topics["web-views"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixWebViews: fixStatus.topics["web-views"]?.state,
+      holdWebViews: holdStatus.topics["web-views"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-web-views-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

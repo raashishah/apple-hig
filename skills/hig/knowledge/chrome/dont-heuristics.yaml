@@ -272,3 +272,7 @@ heuristics:
     match: standard components
   - id: promotional-tip
     match: promotional content
+  - id: missing-web-view-back-forward
+    match: forward and back
+  - id: safari-replica-web-view
+    match: replicates safari

@@ -3622,6 +3622,60 @@ function applyPromotionalTip(text) {
   return text.replace(/\s*data-promotional-tip(?:="[^"]*")?/g, "");
 }
 
+function hasWebView(text) {
+  return (
+    /\bdata-web-view\b/.test(text) ||
+    /<iframe\b/i.test(text) ||
+    /\bWKWebView\b/.test(text) ||
+    /\bWebView\s*\(/.test(text)
+  );
+}
+
+function hasWebViewBackForward(text) {
+  return (
+    /\b(goBack|goForward|canGoBack|canGoForward|allowsBackForwardNavigationGestures)\b/.test(
+      text,
+    ) ||
+    (/\bBack\b/.test(text) && /\bForward\b/.test(text))
+  );
+}
+
+function scanMissingWebViewBackForward(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-no-web-back-forward/.test(f.text)) {
+      out.push(hit(f.path, "multi-page web view without forward and back"));
+      continue;
+    }
+    if (!hasWebView(f.text)) continue;
+    if (
+      /\bdata-web-view-multipage\b/.test(f.text) &&
+      !hasWebViewBackForward(f.text)
+    ) {
+      out.push(hit(f.path, "multi-page web view without forward and back"));
+    }
+  }
+  return out;
+}
+
+function applyMissingWebViewBackForward(text) {
+  return text.replace(/\s*data-no-web-back-forward(?:="[^"]*")?/g, "");
+}
+
+function scanSafariReplicaWebView(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-safari-replica/.test(f.text)) {
+      out.push(hit(f.path, "a web view that replicates Safari"));
+    }
+  }
+  return out;
+}
+
+function applySafariReplicaWebView(text) {
+  return text.replace(/\s*data-safari-replica(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -3909,6 +3963,10 @@ function scanHeuristic(id, files) {
       return scanStandardComponentHelp(files);
     case "promotional-tip":
       return scanPromotionalTip(files);
+    case "missing-web-view-back-forward":
+      return scanMissingWebViewBackForward(files);
+    case "safari-replica-web-view":
+      return scanSafariReplicaWebView(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4189,6 +4247,10 @@ function applyHeuristic(id, file) {
       return applyStandardComponentHelp(file.text);
     case "promotional-tip":
       return applyPromotionalTip(file.text);
+    case "missing-web-view-back-forward":
+      return applyMissingWebViewBackForward(file.text);
+    case "safari-replica-web-view":
+      return applySafariReplicaWebView(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
