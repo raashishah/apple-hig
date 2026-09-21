@@ -567,6 +567,7 @@ function affordanceMissing(need, present) {
     case "imageview":
     case "chart":
     case "disclosure":
+    case "box":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -800,6 +801,13 @@ export function scanAffordances(files) {
     /BezelStyle\.(disclosure|pushDisclosure)/.test(blob)
   ) {
     found.push("disclosure");
+  }
+  if (
+    /\bdata-box\b/.test(blob) ||
+    /\bNSBox\b/.test(blob) ||
+    /\bGroupBox\s*[\({]/.test(blob)
+  ) {
+    found.push("box");
   }
   return found;
 }

@@ -256,3 +256,7 @@ heuristics:
     match: without a descriptive label
   - id: advanced-details-unhidden
     match: hiding them until they re relevant
+  - id: nested-boxes
+    match: nested boxes
+  - id: oversized-box
+    match: approaches its containing view

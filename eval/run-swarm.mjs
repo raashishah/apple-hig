@@ -304,6 +304,7 @@ const results = [];
     surfaces.byId["image-views"]?.affordance === "imageview" &&
     surfaces.byId.charts?.affordance === "chart" &&
     surfaces.byId["disclosure-controls"]?.affordance === "disclosure" &&
+    surfaces.byId.boxes?.affordance === "box" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;
