@@ -90,6 +90,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["id-verifier"]?.affordance === "idverifier" &&
     surfaces.byId["apple-in-app-purchase"]?.affordance === "iap" &&
     surfaces.byId.maps?.affordance === "map" &&
+    surfaces.byId.homekit?.affordance === "homekit" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -490,6 +491,7 @@ const results = [];
     "id-verifier",
     "apple-in-app-purchase",
     "maps",
+    "homekit",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1937,6 +1939,14 @@ const results = [];
       catalog.byId.maps?.pack === "tech-maps.md" &&
       catalog.byId.maps?.appliesWhen === "always" &&
       catalog.byId.carplay?.pack === "tech-cluster-carplay-maps.md" &&
+      catalog.byId.homekit?.dontCoverageComplete === true &&
+      (catalog.byId.homekit?.dontHeuristicIds || []).includes("hk-company-name") &&
+      (catalog.byId.homekit?.dontHeuristicIds || []).includes("hk-overwrite-db") &&
+      (catalog.byId.homekit?.dontHeuristicIds || []).includes("hk-dup-settings") &&
+      (catalog.byId.homekit?.dontHeuristicIds || []).includes("hk-cover-camera") &&
+      catalog.byId.homekit?.pack === "tech-homekit.md" &&
+      catalog.byId.homekit?.appliesWhen === "always" &&
+      catalog.byId.icloud?.pack === "tech-cluster-icloud-shareplay.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -2071,6 +2081,7 @@ const results = [];
       "id-verifier",
       "apple-in-app-purchase",
       "maps",
+      "homekit",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -9479,6 +9490,139 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-maps-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-homekit-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-homekit-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-homekit-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-homekit data-hk-company-name data-hk-overwrite-db data-hk-dup-settings data-hk-cover-camera>
+      <button type="button">Accessory settings</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-homekit>
+      Acme Corp is suggested as a Siri service name.
+      <button type="button">Accessory settings</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passHomekit: passStatus.topics.homekit?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixHomekit: fixStatus.topics.homekit?.state === "applied",
+      systemKept:
+        /\bdata-homekit\b/.test(fixed) && />\s*Accessory settings\s*</.test(fixed),
+      markersGone:
+        !/data-hk-company-name/.test(fixed) &&
+        !/data-hk-overwrite-db/.test(fixed) &&
+        !/data-hk-dup-settings/.test(fixed) &&
+        !/data-hk-cover-camera/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdHomekit: holdStatus.topics.homekit?.state === "pending",
+      holdStillName:
+        /\bdata-homekit\b/.test(held) &&
+        /Acme Corp is suggested as a Siri service name/.test(held) &&
+        /Accessory settings/.test(held),
+      holdNotInvented:
+        !/HMHomeManager/.test(held) &&
+        !/\bHMAccessory\b/.test(held) &&
+        !/\bHMHome\b/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passHomekit: passStatus.topics.homekit?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixHomekit: fixStatus.topics.homekit?.state,
+      holdHomekit: holdStatus.topics.homekit?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-homekit-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -600,6 +600,7 @@ function affordanceMissing(need, present) {
     case "idverifier":
     case "iap":
     case "map":
+    case "homekit":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1107,6 +1108,14 @@ export function scanAffordances(files) {
     /\bmapkit\.Map\b/.test(blob)
   ) {
     found.push("map");
+  }
+  if (
+    /\bdata-homekit\b/.test(blob) ||
+    /\bHMHomeManager\b/.test(blob) ||
+    /\bHMAccessory\b/.test(blob) ||
+    /\bHMHome\b/.test(blob)
+  ) {
+    found.push("homekit");
   }
   return found;
 }

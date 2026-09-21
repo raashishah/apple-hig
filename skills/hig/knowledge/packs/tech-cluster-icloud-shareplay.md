@@ -8,7 +8,7 @@
 - [iCloud](https://developer.apple.com/design/human-interface-guidelines/icloud)
 - [SharePlay](https://developer.apple.com/design/human-interface-guidelines/shareplay)
 - [AirPlay](https://developer.apple.com/design/human-interface-guidelines/airplay)
-- [HomeKit](https://developer.apple.com/design/human-interface-guidelines/homekit)
+- [HomeKit](https://developer.apple.com/design/human-interface-guidelines/homekit) (dedicated `homekit` surface attaches by appleUrl)
 
 ## Apply stance
 

@@ -420,3 +420,11 @@ heuristics:
     match: Maps legal link
   - id: map-replica-apple
     match: replicates Apple Maps
+  - id: hk-company-name
+    match: Company names
+  - id: hk-overwrite-db
+    match: HomeKit database
+  - id: hk-dup-settings
+    match: Duplicate home settings
+  - id: hk-cover-camera
+    match: Camera images blocked

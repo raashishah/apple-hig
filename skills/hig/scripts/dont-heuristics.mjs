@@ -5449,6 +5449,114 @@ function applyMapReplicaApple(text) {
   return text.replace(/\s*data-mapkit-replica(?:="[^"]*")?/g, "");
 }
 
+function hasHomekit(text) {
+  return (
+    /\bdata-homekit\b/.test(text) ||
+    /\bHMHomeManager\b/.test(text) ||
+    /\bHMAccessory\b/.test(text) ||
+    /\bHMHome\b/.test(text)
+  );
+}
+
+function hasHkCompanyNameCopy(text) {
+  return (
+    (/company names?/i.test(text) && /service names?/i.test(text)) ||
+    (/model numbers?/i.test(text) && /service names?/i.test(text)) ||
+    /suggested as a siri service name/i.test(text)
+  );
+}
+
+function hasHkOverwriteCopy(text) {
+  return /overwrite/i.test(text) && /homekit database/i.test(text);
+}
+
+function hasHkDupSettingsCopy(text) {
+  return /duplicate/i.test(text) && /home settings/i.test(text);
+}
+
+function hasHkCoverCameraCopy(text) {
+  return (
+    (/block/i.test(text) && /camera images?/i.test(text)) ||
+    (/cover/i.test(text) && /camera(?:'s)? images?/i.test(text))
+  );
+}
+
+function scanHkCompanyName(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hk-company-name/.test(f.text)) {
+      out.push(hit(f.path, "company names or model numbers as siri service names"));
+      continue;
+    }
+    if (!hasHomekit(f.text)) continue;
+    if (hasHkCompanyNameCopy(f.text)) {
+      out.push(hit(f.path, "company names or model numbers as siri service names"));
+    }
+  }
+  return out;
+}
+
+function applyHkCompanyName(text) {
+  return text.replace(/\s*data-hk-company-name(?:="[^"]*")?/g, "");
+}
+
+function scanHkOverwriteDb(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hk-overwrite-db/.test(f.text)) {
+      out.push(hit(f.path, "homekit database overwritten without direction"));
+      continue;
+    }
+    if (!hasHomekit(f.text)) continue;
+    if (hasHkOverwriteCopy(f.text)) {
+      out.push(hit(f.path, "homekit database overwritten without direction"));
+    }
+  }
+  return out;
+}
+
+function applyHkOverwriteDb(text) {
+  return text.replace(/\s*data-hk-overwrite-db(?:="[^"]*")?/g, "");
+}
+
+function scanHkDupSettings(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hk-dup-settings/.test(f.text)) {
+      out.push(hit(f.path, "duplicate home settings"));
+      continue;
+    }
+    if (!hasHomekit(f.text)) continue;
+    if (hasHkDupSettingsCopy(f.text)) {
+      out.push(hit(f.path, "duplicate home settings"));
+    }
+  }
+  return out;
+}
+
+function applyHkDupSettings(text) {
+  return text.replace(/\s*data-hk-dup-settings(?:="[^"]*")?/g, "");
+}
+
+function scanHkCoverCamera(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hk-cover-camera/.test(f.text)) {
+      out.push(hit(f.path, "camera images blocked"));
+      continue;
+    }
+    if (!hasHomekit(f.text)) continue;
+    if (hasHkCoverCameraCopy(f.text)) {
+      out.push(hit(f.path, "camera images blocked"));
+    }
+  }
+  return out;
+}
+
+function applyHkCoverCamera(text) {
+  return text.replace(/\s*data-hk-cover-camera(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -5884,6 +5992,14 @@ function scanHeuristic(id, files) {
       return scanMapCoverLegal(files);
     case "map-replica-apple":
       return scanMapReplicaApple(files);
+    case "hk-company-name":
+      return scanHkCompanyName(files);
+    case "hk-overwrite-db":
+      return scanHkOverwriteDb(files);
+    case "hk-dup-settings":
+      return scanHkDupSettings(files);
+    case "hk-cover-camera":
+      return scanHkCoverCamera(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -6312,6 +6428,14 @@ function applyHeuristic(id, file) {
       return applyMapCoverLegal(file.text);
     case "map-replica-apple":
       return applyMapReplicaApple(file.text);
+    case "hk-company-name":
+      return applyHkCompanyName(file.text);
+    case "hk-overwrite-db":
+      return applyHkOverwriteDb(file.text);
+    case "hk-dup-settings":
+      return applyHkDupSettings(file.text);
+    case "hk-cover-camera":
+      return applyHkCoverCamera(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
