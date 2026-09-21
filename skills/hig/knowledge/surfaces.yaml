@@ -5,7 +5,8 @@ version: 1
 # affordance (optional): host widget class for catalog-phase skip.
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
-# loading | feedback | onboarding | drag | settings | undo.
+# loading | feedback | onboarding | drag | settings | undo | slider |
+# scroll | popover | collection | pagecontrol | label | textview.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -275,6 +276,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/labels
     gate: always
     covers: [labels]
+  - id: text-views
+    pack: components-text-views.md
+    affordance: textview
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/text-views
+    gate: always
+    covers: [text-views]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

@@ -232,3 +232,7 @@ heuristics:
     match: large amount of text
   - id: unselectable-useful-label
     match: useful label text people can t copy
+  - id: short-text-as-field
+    match: small amount of text
+  - id: unselectable-useful-text-view
+    match: useful text-view text people can t copy

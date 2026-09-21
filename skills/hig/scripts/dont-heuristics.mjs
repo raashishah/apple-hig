@@ -3200,6 +3200,62 @@ function applyUnselectableUsefulLabel(text) {
   return text.replace(/\s*data-unselectable-label(?:="[^"]*")?/g, "");
 }
 
+function hasTextViewWidget(text) {
+  return (
+    /\bdata-text-view\b/.test(text) ||
+    /\bUITextView\b/.test(text) ||
+    /\bNSTextView\b/.test(text) ||
+    /\bTextEditor\s*\(/.test(text) ||
+    /<textarea\b/i.test(text)
+  );
+}
+
+function scanShortTextAsField(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-short-text-view/.test(f.text)) {
+      out.push(hit(f.path, "text view for a small amount of text"));
+      continue;
+    }
+    if (!hasTextViewWidget(f.text)) continue;
+    if (
+      /<textarea\b[^>]*(rows\s*=\s*["']?1["']?|rows\s*=\s*\{\s*1\s*\})/i.test(
+        f.text,
+      ) ||
+      /(maximumNumberOfLines|numberOfLines)\s*=\s*1/.test(f.text)
+    ) {
+      out.push(hit(f.path, "text view for a small amount of text"));
+    }
+  }
+  return out;
+}
+
+function applyShortTextAsField(text) {
+  return text.replace(/\s*data-short-text-view(?:="[^"]*")?/g, "");
+}
+
+function scanUnselectableUsefulTextView(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-unselectable-text-view/.test(f.text)) {
+      out.push(hit(f.path, "useful text-view text people can't copy"));
+      continue;
+    }
+    if (!hasTextViewWidget(f.text)) continue;
+    if (
+      /(user-select\s*:\s*none|userSelect\s*:\s*["']none["'])/.test(f.text) &&
+      /\b(error|serial|IP|address)\b/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "useful text-view text people can't copy"));
+    }
+  }
+  return out;
+}
+
+function applyUnselectableUsefulTextView(text) {
+  return text.replace(/\s*data-unselectable-text-view(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -3447,6 +3503,10 @@ function scanHeuristic(id, files) {
       return scanLongLabelAsTextView(files);
     case "unselectable-useful-label":
       return scanUnselectableUsefulLabel(files);
+    case "short-text-as-field":
+      return scanShortTextAsField(files);
+    case "unselectable-useful-text-view":
+      return scanUnselectableUsefulTextView(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -3687,6 +3747,10 @@ function applyHeuristic(id, file) {
       return applyLongLabelAsTextView(file.text);
     case "unselectable-useful-label":
       return applyUnselectableUsefulLabel(file.text);
+    case "short-text-as-field":
+      return applyShortTextAsField(file.text);
+    case "unselectable-useful-text-view":
+      return applyUnselectableUsefulTextView(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

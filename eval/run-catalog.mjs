@@ -54,6 +54,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.collections?.affordance === "collection" &&
     surfaces.byId["page-controls"]?.affordance === "pagecontrol" &&
     surfaces.byId.labels?.affordance === "label" &&
+    surfaces.byId["text-views"]?.affordance === "textview" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -417,6 +418,7 @@ const results = [];
     "collections",
     "page-controls",
     "labels",
+    "text-views",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -525,6 +527,12 @@ const results = [];
   const staticLabel = scanAffordances([
     { path: "Caption.tsx", text: "<p data-label>Inbox</p>" },
   ]);
+  const textareaOnly = scanAffordances([
+    { path: "Notes.tsx", text: "<textarea name=\"bio\"></textarea>" },
+  ]);
+  const inputOnly = scanAffordances([
+    { path: "Field.tsx", text: '<input name="displayName" />' },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -553,6 +561,7 @@ const results = [];
       !passList.includes("collection") &&
       !passList.includes("pagecontrol") &&
       !passList.includes("label") &&
+      !passList.includes("textview") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -570,6 +579,7 @@ const results = [];
       !formOnly.includes("undo") &&
       !formOnly.includes("slider") &&
       !formOnly.includes("label") &&
+      !formOnly.includes("textview") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -591,6 +601,12 @@ const results = [];
       !numberedPages.includes("pagecontrol") &&
       !ariaOnly.includes("label") &&
       staticLabel.includes("label") &&
+      !staticLabel.includes("textview") &&
+      textareaOnly.includes("textview") &&
+      !textareaOnly.includes("label") &&
+      !textareaOnly.includes("form") &&
+      inputOnly.includes("form") &&
+      !inputOnly.includes("textview") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -898,6 +914,14 @@ const results = [];
         "unselectable-useful-label",
       ) &&
       catalog.byId.labels?.pack === "components-labels.md" &&
+      catalog.byId["text-views"]?.dontCoverageComplete === true &&
+      (catalog.byId["text-views"]?.dontHeuristicIds || []).includes(
+        "short-text-as-field",
+      ) &&
+      (catalog.byId["text-views"]?.dontHeuristicIds || []).includes(
+        "unselectable-useful-text-view",
+      ) &&
+      catalog.byId["text-views"]?.pack === "components-text-views.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -996,6 +1020,7 @@ const results = [];
       "collections",
       "page-controls",
       "labels",
+      "text-views",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -3664,6 +3689,136 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-labels-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-text-views-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-text-views-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-text-views-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <textarea
+      data-text-view
+      data-short-text-view
+      data-unselectable-text-view
+    >
+      Notes
+    </textarea>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <textarea rows="1">Name</textarea>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const inputKept = /<input\b/.test(
+      fs.readFileSync(path.join(passDir, "CohesiveForm.tsx"), "utf8"),
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passTextViews: passStatus.topics["text-views"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passLabels: passStatus.topics.labels?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      inputKept,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixTextViews: fixStatus.topics["text-views"]?.state === "applied",
+      textViewKept: /<textarea\b/.test(fixed) && /data-text-view/.test(fixed),
+      markersGone:
+        !/data-short-text-view/.test(fixed) &&
+        !/data-unselectable-text-view/.test(fixed),
+      notField: !/<input\b/i.test(fixed) && !/<label\b/i.test(fixed),
+      holdUnchanged: held === origHold,
+      holdTextViews: holdStatus.topics["text-views"]?.state === "pending",
+      holdNotField: !/<input\b/i.test(held) && !/<label\b/i.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passTextViews: passStatus.topics["text-views"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixTextViews: fixStatus.topics["text-views"]?.state,
+      holdTextViews: holdStatus.topics["text-views"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-text-views-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

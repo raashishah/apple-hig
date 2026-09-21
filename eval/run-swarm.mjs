@@ -300,6 +300,7 @@ const results = [];
     surfaces.byId.collections?.affordance === "collection" &&
     surfaces.byId["page-controls"]?.affordance === "pagecontrol" &&
     surfaces.byId.labels?.affordance === "label" &&
+    surfaces.byId["text-views"]?.affordance === "textview" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

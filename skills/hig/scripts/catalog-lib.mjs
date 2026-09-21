@@ -563,6 +563,7 @@ function affordanceMissing(need, present) {
     case "collection":
     case "pagecontrol":
     case "label":
+    case "textview":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -764,6 +765,15 @@ export function scanAffordances(files) {
     /\bLabel\s*\(/.test(blob)
   ) {
     found.push("label");
+  }
+  if (
+    /\bdata-text-view\b/.test(blob) ||
+    /\bUITextView\b/.test(blob) ||
+    /\bNSTextView\b/.test(blob) ||
+    /\bTextEditor\s*\(/.test(blob) ||
+    /<textarea\b/i.test(blob)
+  ) {
+    found.push("textview");
   }
   return found;
 }
