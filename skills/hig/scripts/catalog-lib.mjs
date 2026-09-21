@@ -592,6 +592,7 @@ function affordanceMissing(need, present) {
     case "genai":
     case "alwayson":
     case "shareplay":
+    case "nearby":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1032,6 +1033,16 @@ export function scanAffordances(files) {
     /\bActivitySharingView\b/.test(blob)
   ) {
     found.push("shareplay");
+  }
+  if (
+    /\bdata-nearby\b/.test(blob) ||
+    /\bNISession\b/.test(blob) ||
+    /\bNINearbyPeerConfiguration\b/.test(blob) ||
+    /\bNINearbyObject\b/.test(blob) ||
+    /\bNIDiscoveryToken\b/.test(blob) ||
+    /\bNearbyInteraction\b/.test(blob)
+  ) {
+    found.push("nearby");
   }
   return found;
 }

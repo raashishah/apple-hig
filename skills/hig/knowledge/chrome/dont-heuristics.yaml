@@ -382,3 +382,7 @@ heuristics:
     match: paired with an adjective
   - id: shareplay-inflected
     match: SharePlayed
+  - id: nearby-only-way
+    match: only way to perform a task
+  - id: nearby-portrait-instruction
+    match: hold the device in portrait

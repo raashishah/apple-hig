@@ -340,6 +340,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "genai",
     "alwayson",
     "shareplay",
+    "nearby",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

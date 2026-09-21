@@ -82,6 +82,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["generative-ai"]?.affordance === "genai" &&
     surfaces.byId["always-on"]?.affordance === "alwayson" &&
     surfaces.byId.shareplay?.affordance === "shareplay" &&
+    surfaces.byId["nearby-interactions"]?.affordance === "nearby" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -474,6 +475,7 @@ const results = [];
     "generative-ai",
     "always-on",
     "shareplay",
+    "nearby-interactions",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -855,6 +857,18 @@ const results = [];
       text: '<div data-shareplay><button type="button">Join</button></div>',
     },
   ]);
+  const nearbyOnly = scanAffordances([
+    {
+      path: "Pair.tsx",
+      text: '<div data-nearby><button type="button">Transfer</button></div>',
+    },
+  ]);
+  const nearbyWordOnly = scanAffordances([
+    {
+      path: "Friends.tsx",
+      text: "<p>Find nearby friends.</p>",
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -1068,6 +1082,13 @@ const results = [];
       !formOnly.includes("shareplay") &&
       !passList.includes("shareplay") &&
       !pageOnly.includes("shareplay") &&
+      nearbyOnly.includes("nearby") &&
+      !nearbyWordOnly.includes("nearby") &&
+      !shareWordOnly.includes("nearby") &&
+      !activityOnly.includes("nearby") &&
+      !formOnly.includes("nearby") &&
+      !passList.includes("nearby") &&
+      !pageOnly.includes("nearby") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1657,6 +1678,16 @@ const results = [];
       ) &&
       catalog.byId.shareplay?.pack === "tech-shareplay.md" &&
       catalog.byId.shareplay?.appliesWhen === "always" &&
+      catalog.byId["nearby-interactions"]?.dontCoverageComplete === true &&
+      (catalog.byId["nearby-interactions"]?.dontHeuristicIds || []).includes(
+        "nearby-only-way",
+      ) &&
+      (catalog.byId["nearby-interactions"]?.dontHeuristicIds || []).includes(
+        "nearby-portrait-instruction",
+      ) &&
+      catalog.byId["nearby-interactions"]?.pack ===
+        "inputs-nearby-interactions.md" &&
+      catalog.byId["nearby-interactions"]?.appliesWhen === "always" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1783,6 +1814,7 @@ const results = [];
       "generative-ai",
       "always-on",
       "shareplay",
+      "nearby-interactions",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -8142,6 +8174,140 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-shareplay-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nearby-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nearby-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nearby-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-nearby data-nearby-only data-nearby-portrait>
+      <button type="button">Transfer</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-nearby>
+      Bring devices close — the only way to transfer a song
+      <button type="button">Transfer</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passNearby:
+        passStatus.topics["nearby-interactions"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixNearby: fixStatus.topics["nearby-interactions"]?.state === "applied",
+      systemKept:
+        /data-nearby/.test(fixed) && />\s*Transfer\s*</.test(fixed),
+      markersGone:
+        !/data-nearby-only/.test(fixed) &&
+        !/data-nearby-portrait/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdNearby: holdStatus.topics["nearby-interactions"]?.state === "pending",
+      holdStillOnlyWay:
+        /data-nearby/.test(held) &&
+        /the only way to transfer/.test(held) &&
+        /Transfer/.test(held),
+      holdNotInvented:
+        !/NISession/.test(held) &&
+        !/NINearbyObject/.test(held) &&
+        !/NINearbyPeerConfiguration/.test(held) &&
+        !/NearbyInteraction/.test(held) &&
+        !/NIDiscoveryToken/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passNearby: passStatus.topics["nearby-interactions"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixNearby: fixStatus.topics["nearby-interactions"]?.state,
+      holdNearby: holdStatus.topics["nearby-interactions"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-nearby-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
