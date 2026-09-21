@@ -14,9 +14,11 @@ import {
   loadCatalog,
   parseCatalogStatus,
   planGoalLoop,
+  scanAffordances,
   selectCatalog,
 } from "../skills/hig/scripts/catalog-lib.mjs";
 import { runPlanCatalog } from "../skills/hig/scripts/plan-catalog.mjs";
+import { walkSource } from "../skills/hig/scripts/check-chrome.mjs";
 import { loadSurfaces } from "../skills/hig/scripts/load-surfaces.mjs";
 import { fetchHigIndex } from "../skills/hig/scripts/sync-hig-catalog.mjs";
 
@@ -25,6 +27,18 @@ const pluginRoot = path.resolve(__dirname, "..");
 const skillRoot = path.join(pluginRoot, "skills", "hig");
 const FRAME_OR_FONT =
   /\b(SwiftUI|UIKit|React|Flutter|Vue|Angular|Svelte|SF Pro|San Francisco|-apple-system)\b/i;
+
+function surfacesHavePatternAffordances(root) {
+  const surfaces = loadSurfaces(root);
+  return (
+    surfaces.byId.navigation?.affordance === "chrome" &&
+    surfaces.byId["lists-split"]?.affordance === "list" &&
+    surfaces.byId.sheets?.affordance === "overlay" &&
+    surfaces.byId.forms?.affordance === "form" &&
+    !surfaces.byId.layout?.affordance &&
+    surfaces.requiredIds.length === 12
+  );
+}
 
 const results = [];
 
@@ -290,6 +304,75 @@ const results = [];
     fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "plan-catalog-writes-status", ok, ...detail });
+}
+
+{
+  const catalog = loadCatalog(skillRoot);
+  const surfaces = loadSurfaces(skillRoot);
+  const base = {
+    platform: "unknown",
+    capabilities: [],
+    stack: { kind: "vue", family: "web" },
+    register: "product",
+  };
+  const empty = planGoalLoop({
+    catalog,
+    surfaces,
+    preflight: { ...base, affordances: [] },
+    chromePass: true,
+  });
+  const listed = planGoalLoop({
+    catalog,
+    surfaces,
+    preflight: { ...base, affordances: ["list"] },
+    chromePass: true,
+  });
+  const wave0Empty = planGoalLoop({
+    catalog,
+    surfaces,
+    preflight: { ...base, affordances: [] },
+    chromePass: false,
+  });
+  results.push({
+    case: "host-affordance-skips-missing-widgets",
+    ok:
+      empty.topics["lists-and-tables"]?.state === "skipped-no-affordance" &&
+      empty.topics.sheets?.state === "skipped-no-affordance" &&
+      empty.topics["entering-data"]?.state === "skipped-no-affordance" &&
+      empty.topics["tab-bars"]?.state === "skipped-no-affordance" &&
+      empty.topics.layout?.state === "pending" &&
+      listed.topics["lists-and-tables"]?.state === "pending" &&
+      listed.topics.sheets?.state === "skipped-no-affordance" &&
+      wave0Empty.waveSurfaceIds.join(",") === surfaces.requiredIds.join(",") &&
+      wave0Empty.phase === "chrome",
+    emptyLists: empty.topics["lists-and-tables"]?.state,
+    listedLists: listed.topics["lists-and-tables"]?.state,
+    layout: empty.topics.layout?.state,
+  });
+}
+
+{
+  const webCss = scanAffordances(
+    walkSource(path.join(pluginRoot, "eval", "fixtures", "web-css")),
+  );
+  const passList = scanAffordances(
+    walkSource(path.join(pluginRoot, "eval", "fixtures", "chrome-pass")),
+  );
+  const cardGrid = scanAffordances(
+    walkSource(path.join(pluginRoot, "eval", "fixtures", "chrome-antipatterns")),
+  );
+  results.push({
+    case: "affordance-scan-is-widget-not-word",
+    ok:
+      webCss.includes("chrome") &&
+      !webCss.includes("list") &&
+      passList.includes("list") &&
+      cardGrid.includes("list") &&
+      surfacesHavePatternAffordances(skillRoot),
+    webCss,
+    passList,
+    cardGrid,
+  });
 }
 
 const failed = results.filter((r) => !r.ok);

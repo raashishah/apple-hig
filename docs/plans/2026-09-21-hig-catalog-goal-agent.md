@@ -27,7 +27,7 @@ Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_lo
 
 ## This PR (#12)
 
-Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. Visual any-host Apple-ness is still unproven.
+Mechanical chrome gate + recipes. Host fonts stay (no SF Pro / `-apple-system` rewrite as success). Framework-agnostic design rules map onto the host stack. Any-model round 1 remains the 12 `requiredIds`. U1 catalog inventory (`knowledge/catalog.yaml`) is additive and is not the apply SSOT. U2 goal loop (`scripts/plan-catalog.mjs`) runs after chrome P0: remaining packed applicable topics, persist `.hig/catalog-status.yaml`, stop when remaining is 0. U4 host-pattern skip (`skipped-no-affordance`). U5 same chrome P0 on web + Swift hosts. Visual any-host Apple-ness is still unproven.
 
 ## Additive catalog loop
 
@@ -53,8 +53,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 1. U1. Ingest live Apple index → derived catalog records. Eval tracks the index, not a number. **Landed on this PR.**
 2. U2. Goal loop **after** wave-0 `requiredIds`. Applicable set is extra work, not a replacement stop condition. **Landed on this PR** (`plan-catalog.mjs` + `eval/run-catalog.mjs` loop cases).
 3. U3. Host fonts already left alone on #12. Keep that.
-4. U4. `appliesWhen` from host patterns (scan list, form, overlay, platform), not a framework enum.
-5. U5. Same design FAIL proven on two detected stacks without naming those stacks in the rule.
+4. U4. `appliesWhen` from host patterns (scan list, form, overlay, chrome), not a framework enum. **Landed on this PR** (`affordance` on `surfaces.yaml`; `skipped-no-affordance`).
+5. U5. Same design FAIL proven on two detected stacks without naming those stacks in the rule. **Landed on this PR** (`chrome-antipatterns-web` + `chrome-antipatterns-swift`).
 
 ## Non-goals
 
@@ -75,4 +75,4 @@ node eval/run-check-chrome.mjs
 node eval/run-catalog.mjs
 ```
 
-`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family; wave 0 then catalog; remaining 0 is done; brand app-shell rows `n/a-register`; contract does not stop at twelve.
+`run-swarm.mjs` still requires `requiredIds.length === 12` and Duo off that list. Dry eval: no `appleTypeDefault` / `type_default=apple`. `run-catalog.mjs`: live-index diff with no expected integer; list host applicable for Lists; web host not applicable for complications; fail if a topic `passWhen` names a framework or a font family; wave 0 then catalog; remaining 0 is done; brand app-shell rows `n/a-register`; contract does not stop at twelve; missing host widgets are `skipped-no-affordance`. `run-check-chrome.mjs`: same P0 FAILs on `chrome-antipatterns-web` and `chrome-antipatterns-swift`.

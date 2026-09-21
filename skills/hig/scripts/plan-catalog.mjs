@@ -14,8 +14,10 @@ import {
   loadCatalog,
   parseCatalogStatus,
   planGoalLoop,
+  scanAffordances,
   stringifyCatalogStatus,
 } from "./catalog-lib.mjs";
+import { walkSource } from "./check-chrome.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultSkillRoot = path.resolve(__dirname, "..");
@@ -40,10 +42,12 @@ export function runPlanCatalog({ cwd, skillRoot, chromePass, write }) {
   const status = fs.existsSync(statusPath)
     ? parseCatalogStatus(fs.readFileSync(statusPath, "utf8"))
     : null;
+  const files = walkSource(cwd);
+  const affordances = scanAffordances(files);
   const plan = planGoalLoop({
     catalog,
     surfaces,
-    preflight,
+    preflight: { ...preflight, affordances },
     chromePass: Boolean(chromePass),
     status,
   });
@@ -51,7 +55,12 @@ export function runPlanCatalog({ cwd, skillRoot, chromePass, write }) {
     fs.mkdirSync(path.join(cwd, ".hig"), { recursive: true });
     fs.writeFileSync(statusPath, stringifyCatalogStatus(plan, { chromePass }));
   }
-  return { ...plan, statusPath: path.relative(cwd, statusPath), stopLine: preflight.stopLine };
+  return {
+    ...plan,
+    affordances,
+    statusPath: path.relative(cwd, statusPath),
+    stopLine: preflight.stopLine,
+  };
 }
 
 function main() {

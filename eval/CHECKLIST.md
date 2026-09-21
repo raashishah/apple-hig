@@ -40,6 +40,8 @@ node eval/run-catalog.mjs
 - [x] All chrome rules are `mutationClass: structure` (brand veto does not hide them)
 - [x] `catalog.yaml` tracks the live Apple article index; lists apply on Vue; complications skip on web; `requiredIds` stay 12
 - [x] Goal loop: wave 0 is `requiredIds`; after chrome P0 remaining packed catalog topics apply; done when `remaining` is 0; brand app-shell catalog rows are `n/a-register`
+- [x] Host-pattern affordance: list/form/overlay/chrome skip when the widget is absent; collection/card grids still count as list
+- [x] Same chrome P0 FAIL on a web host and a Swift host; grammar `failWhen` / `passWhen` do not name frameworks
 
 ## Swarm / stack (0.4)
 

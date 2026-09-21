@@ -185,6 +185,20 @@ const results = [];
   });
 }
 
+{
+  const grammar = loadChromeGrammar(skillRoot);
+  const FRAME_OR_FONT =
+    /\b(SwiftUI|UIKit|React|Flutter|Vue|Angular|Svelte|SF Pro|San Francisco|-apple-system)\b/i;
+  const hits = grammar.rules.filter((r) =>
+    FRAME_OR_FONT.test(`${r.failWhen} ${r.passWhen}`),
+  );
+  results.push({
+    case: "grammar-rules-are-design-not-framework",
+    ok: hits.length === 0,
+    hits: hits.map((r) => r.id),
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

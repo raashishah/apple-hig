@@ -54,7 +54,7 @@ Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
 3. After each apply round, run `node <skill>/scripts/check-chrome.mjs` on the host and consume the JSON.
 4. If `pass` is false (any P0 in `fails[]`), you may **not** print `HIG_CHROME` PASS. Fix from `knowledge/chrome/recipes.md` and re-check.
 5. Apply using `knowledge/chrome/recipes.md` in the host language. No kit injection.
-6. When chrome P0 is clean, run `node <skill>/scripts/plan-catalog.mjs --chromePass true --write` and apply remaining `waveSurfaceIds` (applicable catalog topics that have a pack/`surfaceId`). Skip unmatched Watch/TV/Vision. Topics with no pack are `skipped-no-pack`, not injected. A 12-surface lease is not catalog done.
+6. When chrome P0 is clean, run `node <skill>/scripts/plan-catalog.mjs --chromePass true --write` and apply remaining `waveSurfaceIds` (applicable catalog topics that have a pack/`surfaceId`). Skip unmatched Watch/TV/Vision. Topics with no pack are `skipped-no-pack`, not injected. Pattern surfaces with an `affordance` (`list` / `form` / `overlay` / `chrome`) are `skipped-no-affordance` when the host has no matching widget — do not invent one. Collection/card grids count as `list`. A 12-surface lease is not catalog done.
 7. Catalog done when chrome P0 is clean and `remaining` is 0 (every catalog row is terminal). Chrome retries use a 3-round cap; catalog waves continue until accounted or the user stops. Persist `.hig/catalog-status.yaml`. Print `HIG_CATALOG` from the plan JSON (loaded/applicable/remaining are data, not a frozen pass integer).
 
 ## Shared laws

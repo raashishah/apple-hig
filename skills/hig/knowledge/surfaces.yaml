@@ -2,6 +2,9 @@ version: 1
 # Parallel swarm surfaces for /hig. Each id maps to one agent + pack + Apple URL.
 # Orchestrator fans these out after preflight. Agents apply HIG in the host stack
 # (SwiftUI / UIKit / CSS / other) — they do not inject a React component kit.
+# affordance (optional): host widget class for catalog-phase skip
+# (list | form | overlay | chrome). Foundations omit it and still apply.
+# list includes collection/card grids so a card-grid home still gets lists.
 
 surfaces:
   - id: layout
@@ -38,6 +41,7 @@ surfaces:
     covers: [buttons, toggles, fields, segmented, hit-targets]
   - id: navigation
     pack: patterns-navigation.md
+    affordance: chrome
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/tab-bars
     also:
       - https://developer.apple.com/design/human-interface-guidelines/sidebars
@@ -45,12 +49,14 @@ surfaces:
     covers: [location, bars, tabs, sidebar-collapse]
   - id: lists-split
     pack: patterns-lists-detail.md
+    affordance: list
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/lists-and-tables
     also:
       - https://developer.apple.com/design/human-interface-guidelines/split-views
     covers: [list-browser, detail-title, split-views]
   - id: sheets
     pack: patterns-sheets.md
+    affordance: overlay
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/sheets
     also:
       - https://developer.apple.com/design/human-interface-guidelines/alerts
@@ -61,6 +67,7 @@ surfaces:
     covers: [sheets, alerts, dimming, dismiss, action-sheets]
   - id: forms
     pack: patterns-forms.md
+    affordance: form
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/entering-data
     also:
       - https://developer.apple.com/design/human-interface-guidelines/text-fields

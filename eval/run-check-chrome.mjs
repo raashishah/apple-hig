@@ -7,6 +7,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkChrome } from "../skills/hig/scripts/check-chrome.mjs";
+import { loadContext } from "../skills/hig/scripts/load-context.mjs";
+import { loadChromeGrammar } from "../skills/hig/scripts/load-chrome-grammar.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.resolve(__dirname, "..");
@@ -44,6 +46,39 @@ const results = [];
     p0Ids,
     fails: report.fails,
     filesScanned: report.filesScanned,
+  });
+}
+
+{
+  const webDir = path.join(__dirname, "fixtures", "chrome-antipatterns-web");
+  const swiftDir = path.join(__dirname, "fixtures", "chrome-antipatterns-swift");
+  const webExpected = JSON.parse(fs.readFileSync(path.join(webDir, "expected.json"), "utf8"));
+  const swiftExpected = JSON.parse(fs.readFileSync(path.join(swiftDir, "expected.json"), "utf8"));
+  const web = checkChrome({ cwd: webDir, skillRoot, register: "product" });
+  const native = checkChrome({ cwd: swiftDir, skillRoot, register: "product" });
+  const webCtx = loadContext(webDir);
+  const nativeCtx = loadContext(swiftDir);
+  const webIds = new Set(web.fails.map((f) => f.id));
+  const nativeIds = new Set(native.fails.map((f) => f.id));
+  const shared = webExpected.filter((id) => webIds.has(id) && nativeIds.has(id));
+  const grammar = loadChromeGrammar(skillRoot);
+  const p0Shared = shared.filter((id) => grammar.byId[id]?.severity === "P0");
+  const kindsDiffer =
+    webCtx.stack.supported &&
+    nativeCtx.stack.supported &&
+    webCtx.stack.kind !== nativeCtx.stack.kind;
+  results.push({
+    case: "same-fail-on-web-and-swift",
+    ok:
+      p0Shared.length >= 2 &&
+      webExpected.every((id) => webIds.has(id)) &&
+      swiftExpected.every((id) => nativeIds.has(id)) &&
+      kindsDiffer,
+    p0Shared,
+    webKind: webCtx.stack.kind,
+    nativeKind: nativeCtx.stack.kind,
+    webFound: [...webIds],
+    nativeFound: [...nativeIds],
   });
 }
 

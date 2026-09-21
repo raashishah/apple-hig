@@ -147,6 +147,7 @@ function parseSurfacesYaml(text) {
         covers: [],
         compose: [],
         gate: null,
+        affordance: null,
       };
       surfaces.push(current);
       inAlso = false;
@@ -183,6 +184,14 @@ function parseSurfacesYaml(text) {
     const gate = line.match(/^\s{4}gate:\s*(.+)\s*$/);
     if (gate) {
       current.gate = gate[1].trim();
+      inAlso = false;
+      inCovers = false;
+      inCompose = false;
+      continue;
+    }
+    const affordance = line.match(/^\s{4}affordance:\s*(.+)\s*$/);
+    if (affordance) {
+      current.affordance = affordance[1].trim();
       inAlso = false;
       inCovers = false;
       inCompose = false;
@@ -281,9 +290,13 @@ export function loadSurfaces(skillRoot, options = {}) {
     throw new Error(`surfaces.yaml missing required ids: ${missing.join(", ")}`);
   }
   const requiredSet = new Set(parsed.requiredIds);
+  const allowedAffordance = new Set(["list", "form", "overlay", "chrome"]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {
       throw new Error(`capability-gated ${s.id} must not sit on requiredIds`);
+    }
+    if (s.affordance && !allowedAffordance.has(s.affordance)) {
+      throw new Error(`surface ${s.id} has unknown affordance: ${s.affordance}`);
     }
   }
   const toCheck =

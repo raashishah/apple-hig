@@ -307,6 +307,7 @@ export function catalogStateIsTerminal(state) {
     case "skipped-gate":
     case "skipped-no-pack":
     case "n/a-register":
+    case "skipped-no-affordance":
       return true;
     case "pending":
       return false;
@@ -326,6 +327,7 @@ function countStates(topics) {
     "skipped-gate": 0,
     "skipped-no-pack": 0,
     "n/a-register": 0,
+    "skipped-no-affordance": 0,
   };
   for (const row of Object.values(topics)) {
     const key = row.state;
@@ -335,11 +337,75 @@ function countStates(topics) {
   return counts;
 }
 
-function inferTopicState(topic, applicableIds, preflight, prevState) {
+function affordanceMissing(need, present) {
+  switch (need) {
+    case "list":
+    case "form":
+    case "overlay":
+    case "chrome":
+      return !present.includes(need);
+    default: {
+      const _exhaustive = need;
+      void _exhaustive;
+      return false;
+    }
+  }
+}
+
+export function scanAffordances(files) {
+  const blob = (files || []).map((f) => String(f.text || "")).join("\n");
+  const found = [];
+  if (
+    /<(ul|ol|table)\b/i.test(blob) ||
+    /role=["']list["']/i.test(blob) ||
+    /data-list-pane/.test(blob) ||
+    /\bList\s*[\({]/.test(blob) ||
+    /\bLazy(Column|VGrid|HGrid)\b/.test(blob) ||
+    /\b(ListView|RecyclerView)\b/.test(blob) ||
+    /card-grid|dashboard-cards/.test(blob) ||
+    /data-home[\s\S]{0,500}\bcard\b/i.test(blob)
+  ) {
+    found.push("list");
+  }
+  if (
+    /<form\b/i.test(blob) ||
+    /data-form-page/.test(blob) ||
+    /<input\b/i.test(blob) ||
+    /\b(TextField|SecureField|TextEditor)\s*\(/.test(blob)
+  ) {
+    found.push("form");
+  }
+  if (
+    /<(dialog)\b/i.test(blob) ||
+    /role=["'](dialog|alertdialog)["']/i.test(blob) ||
+    /\.sheet\s*\(/.test(blob) ||
+    /\bconfirmationDialog\s*\(/.test(blob) ||
+    /\bUIAlertController\b/.test(blob)
+  ) {
+    found.push("overlay");
+  }
+  if (
+    /<(nav|header)\b/i.test(blob) ||
+    /data-nav|data-sidebar/.test(blob) ||
+    /\b(NavigationSplitView|NavigationStack|NavigationView|TabView)\b/.test(blob) ||
+    /\b(UINavigationBar|UITabBar|UIToolbar)\b/.test(blob)
+  ) {
+    found.push("chrome");
+  }
+  return found;
+}
+
+function inferTopicState(topic, applicableIds, preflight, prevState, surface) {
   if (catalogStateIsTerminal(prevState)) return prevState;
   if (!applicableIds.has(topic.id)) return "skipped-gate";
   if (preflight?.register === "brand" && BRAND_NA.has(topic.id)) return "n/a-register";
   if (!topic.pack && !topic.surfaceId) return "skipped-no-pack";
+  if (Array.isArray(preflight?.affordances)) {
+    const need = surface?.affordance;
+    if (need && affordanceMissing(need, preflight.affordances)) {
+      return "skipped-no-affordance";
+    }
+  }
   return "pending";
 }
 
@@ -348,9 +414,11 @@ export function planGoalLoop({ catalog, surfaces, preflight, chromePass, status 
   const applicableIds = new Set(applicable.map((t) => t.id));
   const requiredIds = [...(surfaces.requiredIds || [])];
   const topics = {};
+  const bySurface = surfaces?.byId || {};
   for (const topic of catalog.topics) {
     const prev = status?.topics?.[topic.id];
-    const state = inferTopicState(topic, applicableIds, preflight, prev?.state);
+    const surface = topic.surfaceId ? bySurface[topic.surfaceId] : null;
+    const state = inferTopicState(topic, applicableIds, preflight, prev?.state, surface);
     topics[topic.id] = {
       state,
       surfaceId: topic.surfaceId || null,

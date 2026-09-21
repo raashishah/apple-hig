@@ -278,6 +278,24 @@ const results = [];
   });
 }
 
+{
+  const surfaces = loadSurfaces(skillRoot);
+  const ok =
+    surfaces.requiredIds.length === 12 &&
+    surfaces.byId.navigation?.affordance === "chrome" &&
+    surfaces.byId["lists-split"]?.affordance === "list" &&
+    surfaces.byId.sheets?.affordance === "overlay" &&
+    surfaces.byId.forms?.affordance === "form" &&
+    !surfaces.byId.layout?.affordance &&
+    !surfaces.byId.typography?.affordance;
+  results.push({
+    case: "pattern-affordances-not-foundations",
+    ok,
+    requiredCount: surfaces.requiredIds.length,
+    lists: surfaces.byId["lists-split"]?.affordance,
+  });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

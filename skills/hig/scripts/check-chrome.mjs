@@ -60,7 +60,7 @@ function skipDir(name, cwd) {
   return !cwd.replace(/\\/g, "/").includes("/eval/fixtures/");
 }
 
-function walkSource(cwd, maxFiles = 400) {
+export function walkSource(cwd, maxFiles = 400) {
   const files = [];
   function walk(dir, depth) {
     if (files.length >= maxFiles || depth > 6) return;
