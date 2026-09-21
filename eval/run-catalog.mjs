@@ -770,6 +770,18 @@ const results = [];
       catalog.byId["action-sheets"]?.dontCoverageComplete === true &&
       catalog.byId.modality?.dontCoverageComplete === true &&
       (catalog.byId.sheets?.dontHeuristicIds || []).includes("nested-modal-stacks") &&
+      catalog.byId["dark-mode"]?.dontCoverageComplete === true &&
+      catalog.byId["sf-symbols"]?.dontCoverageComplete === true &&
+      catalog.byId["context-menus"]?.dontCoverageComplete === true &&
+      catalog.byId["pull-down-buttons"]?.dontCoverageComplete === true &&
+      catalog.byId["pop-up-buttons"]?.dontCoverageComplete === true &&
+      catalog.byId.notifications?.dontCoverageComplete === true &&
+      catalog.byId["dark-mode"]?.pack === "foundations-color.md" &&
+      catalog.byId["sf-symbols"]?.pack === "foundations-icons.md" &&
+      catalog.byId["context-menus"]?.pack === "components-menus.md" &&
+      catalog.byId.notifications?.pack === "patterns-notifications.md" &&
+      isTitleStub(catalog.byId["tab-views"]) &&
+      isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
       (catalog.byId.searching?.dontHeuristicIds || []).includes("hide-only-path-behind-search") &&
@@ -2890,6 +2902,98 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-nested-modal-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-composed-also-pass-"));
+  const menuDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-composed-also-menu-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, menuDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(menuDir, "AppMenu.tsx"),
+      `export function AppMenu() {
+  return (
+    <div role="menu">
+      <button type="button" role="menuitem">Share</button>
+      <button type="button" role="menuitem">Copy</button>
+    </div>
+  );
+}
+`,
+    );
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const menuReport = applyCatalog({
+      cwd: menuDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const menuStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(menuDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const hostText = [...walkSource(passDir), ...walkSource(menuDir)]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      menuChrome: menuReport.chrome.pass === true,
+      passDark: passStatus.topics["dark-mode"]?.state === "already-compliant",
+      passSymbols: passStatus.topics["sf-symbols"]?.state === "already-compliant",
+      passContext: passStatus.topics["context-menus"]?.state === "skipped-no-affordance",
+      passPull: passStatus.topics["pull-down-buttons"]?.state === "skipped-no-affordance",
+      passPopup: passStatus.topics["pop-up-buttons"]?.state === "skipped-no-affordance",
+      passNotify: passStatus.topics.notifications?.state === "skipped-no-affordance",
+      passTabViews: passStatus.topics["tab-views"]?.state === "skipped-no-pack",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      menuContext: menuStatus.topics["context-menus"]?.state === "already-compliant",
+      menuPull: menuStatus.topics["pull-down-buttons"]?.state === "already-compliant",
+      menuPopup: menuStatus.topics["pop-up-buttons"]?.state === "already-compliant",
+      menuMenus: menuStatus.topics.menus?.state === "already-compliant",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passDark: passStatus.topics["dark-mode"]?.state,
+      passContext: passStatus.topics["context-menus"]?.state,
+      menuContext: menuStatus.topics["context-menus"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(menuDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-composed-also-urls", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

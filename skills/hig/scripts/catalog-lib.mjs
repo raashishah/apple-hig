@@ -255,9 +255,12 @@ function uniqueJoin(parts) {
   return out.join(" ");
 }
 
-export function deriveTopicRule(topic, { surfaces, grammar, packCache, heuristics }) {
+export function deriveTopicRule(topic, { surfaces, grammar, packCache, heuristics, bySlug }) {
   const stub = designRule(topic.title);
-  const surface = topic.surfaceId ? surfaces?.byId?.[topic.surfaceId] : null;
+  const index = bySlug || surfaceIndex(surfaces);
+  const surface =
+    index.get(topic.id) ||
+    (topic.surfaceId ? surfaces?.byId?.[topic.surfaceId] : null);
   const chromeIds = [];
   const failParts = [];
   const passParts = [];
@@ -300,6 +303,8 @@ export function deriveTopicRule(topic, { surfaces, grammar, packCache, heuristic
     passWhen = `${passWhen} Host typeface stays. Do not inject a kit.`;
   }
   const derived = { ...topic, failWhen, passWhen };
+  if (surface?.id) derived.surfaceId = surface.id;
+  if (surface?.pack) derived.pack = surface.pack;
   if (chromeIds.length) derived.chromeIds = [...new Set(chromeIds)];
   const packForTokens = surface?.pack ? packCache?.[surface.pack] : "";
   const dontTokens = packForTokens ? parseDontCodeTokens(packForTokens) : [];
@@ -486,8 +491,9 @@ export function loadCatalog(skillRoot) {
     }
   }
   const heuristics = loadDontHeuristics(skillRoot);
+  const bySlug = surfaceIndex(surfaces);
   const topics = doc.topics.map((topic) =>
-    deriveTopicRule(topic, { surfaces, grammar, packCache, heuristics }),
+    deriveTopicRule(topic, { surfaces, grammar, packCache, heuristics, bySlug }),
   );
   const derived = { ...doc, topics };
   validateCatalog(derived);
