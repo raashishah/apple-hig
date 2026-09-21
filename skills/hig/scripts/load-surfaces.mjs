@@ -315,6 +315,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "textview",
     "imageview",
     "chart",
+    "disclosure",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

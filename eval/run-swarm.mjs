@@ -303,6 +303,7 @@ const results = [];
     surfaces.byId["text-views"]?.affordance === "textview" &&
     surfaces.byId["image-views"]?.affordance === "imageview" &&
     surfaces.byId.charts?.affordance === "chart" &&
+    surfaces.byId["disclosure-controls"]?.affordance === "disclosure" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

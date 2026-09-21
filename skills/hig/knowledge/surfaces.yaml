@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -296,6 +296,12 @@ surfaces:
       - https://developer.apple.com/design/human-interface-guidelines/charting-data
     gate: always
     covers: [charts, charting-data]
+  - id: disclosure-controls
+    pack: components-disclosure-controls.md
+    affordance: disclosure
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/disclosure-controls
+    gate: always
+    covers: [disclosure-controls]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

@@ -250,3 +250,9 @@ heuristics:
     match: should be a table or list
   - id: overcrowded-chart
     match: too much data
+  - id: extra-disclosure-button
+    match: more than one disclosure button
+  - id: unlabeled-disclosure-triangle
+    match: without a descriptive label
+  - id: advanced-details-unhidden
+    match: hiding them until they re relevant

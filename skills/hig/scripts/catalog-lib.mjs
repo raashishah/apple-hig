@@ -566,6 +566,7 @@ function affordanceMissing(need, present) {
     case "textview":
     case "imageview":
     case "chart":
+    case "disclosure":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -791,6 +792,14 @@ export function scanAffordances(files) {
     /\b(BarMark|LineMark|PointMark|AreaMark|RectMark|RuleMark)\b/.test(blob)
   ) {
     found.push("chart");
+  }
+  if (
+    /\bdata-disclosure\b/.test(blob) ||
+    /<details\b/i.test(blob) ||
+    /\bDisclosureGroup\s*\(/.test(blob) ||
+    /BezelStyle\.(disclosure|pushDisclosure)/.test(blob)
+  ) {
+    found.push("disclosure");
   }
   return found;
 }
