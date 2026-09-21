@@ -579,6 +579,7 @@ function affordanceMissing(need, present) {
     case "account":
     case "tabview":
     case "multitask":
+    case "reviewprompt":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -915,6 +916,14 @@ export function scanAffordances(files) {
     /\bpictureInPictureEnabled\b/.test(blob)
   ) {
     found.push("multitask");
+  }
+  if (
+    /\bdata-rating-prompt\b/.test(blob) ||
+    /\bRequestReviewAction\b/.test(blob) ||
+    /\bSKStoreReviewController\b/.test(blob) ||
+    /\brequestReview\s*\(/.test(blob)
+  ) {
+    found.push("reviewprompt");
   }
   return found;
 }

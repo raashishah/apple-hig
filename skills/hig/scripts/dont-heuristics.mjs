@@ -4103,6 +4103,71 @@ function applyIgnorePrimaryAudioInterrupt(text) {
   return text.replace(/\s*data-ignore-audio-interrupt(?:="[^"]*")?/g, "");
 }
 
+function hasReviewPrompt(text) {
+  return (
+    /\bdata-rating-prompt\b/.test(text) ||
+    /\bRequestReviewAction\b/.test(text) ||
+    /\bSKStoreReviewController\b/.test(text) ||
+    /\brequestReview\s*\(/.test(text)
+  );
+}
+
+function countReviewRequests(text) {
+  return (String(text).match(/\brequestReview\s*\(/g) || []).length;
+}
+
+function scanRatingOnFirstLaunch(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-rating-first-launch/.test(f.text)) {
+      out.push(hit(f.path, "a rating request on first launch or during onboarding"));
+      continue;
+    }
+    if (!hasReviewPrompt(f.text)) continue;
+    if (/\bdata-first-launch\b/.test(f.text)) {
+      out.push(hit(f.path, "a rating request on first launch or during onboarding"));
+    }
+  }
+  return out;
+}
+
+function applyRatingOnFirstLaunch(text) {
+  return text.replace(/\s*data-rating-first-launch(?:="[^"]*")?/g, "");
+}
+
+function scanRatingInterruptsTask(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-rating-interrupt/.test(f.text)) {
+      out.push(hit(f.path, "a rating request that interrupts people while they perform a task"));
+    }
+  }
+  return out;
+}
+
+function applyRatingInterruptsTask(text) {
+  return text.replace(/\s*data-rating-interrupt(?:="[^"]*")?/g, "");
+}
+
+function scanPesterRatingRequests(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-rating-pester/.test(f.text)) {
+      out.push(hit(f.path, "repeated rating requests that pester people"));
+      continue;
+    }
+    if (!hasReviewPrompt(f.text)) continue;
+    if (countReviewRequests(f.text) > 1) {
+      out.push(hit(f.path, "repeated rating requests that pester people"));
+    }
+  }
+  return out;
+}
+
+function applyPesterRatingRequests(text) {
+  return text.replace(/\s*data-rating-pester(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4436,6 +4501,12 @@ function scanHeuristic(id, files) {
       return scanNotifyRoutineTask(files);
     case "ignore-primary-audio-interrupt":
       return scanIgnorePrimaryAudioInterrupt(files);
+    case "rating-on-first-launch":
+      return scanRatingOnFirstLaunch(files);
+    case "rating-interrupts-task":
+      return scanRatingInterruptsTask(files);
+    case "pester-rating-requests":
+      return scanPesterRatingRequests(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4762,6 +4833,12 @@ function applyHeuristic(id, file) {
       return applyNotifyRoutineTask(file.text);
     case "ignore-primary-audio-interrupt":
       return applyIgnorePrimaryAudioInterrupt(file.text);
+    case "rating-on-first-launch":
+      return applyRatingOnFirstLaunch(file.text);
+    case "rating-interrupts-task":
+      return applyRatingInterruptsTask(file.text);
+    case "pester-rating-requests":
+      return applyPesterRatingRequests(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

@@ -318,3 +318,9 @@ heuristics:
     match: routine or secondary
   - id: ignore-primary-audio-interrupt
     match: primary audio interruption
+  - id: rating-on-first-launch
+    match: first launch or during onboarding
+  - id: rating-interrupts-task
+    match: interrupts people while
+  - id: pester-rating-requests
+    match: pester
