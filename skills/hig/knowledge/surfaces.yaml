@@ -239,6 +239,24 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/progress-indicators
     gate: always
     covers: [progress]
+  - id: sliders
+    pack: components-sliders.md
+    affordance: slider
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/sliders
+    gate: always
+    covers: [sliders]
+  - id: scroll-views
+    pack: components-scroll-views.md
+    affordance: scroll
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/scroll-views
+    gate: always
+    covers: [scroll-views]
+  - id: popovers
+    pack: components-popovers.md
+    affordance: popover
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/popovers
+    gate: always
+    covers: [popovers]
   - id: widgets
     pack: system-widgets.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/widgets

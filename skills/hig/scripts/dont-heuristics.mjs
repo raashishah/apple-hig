@@ -2727,6 +2727,224 @@ function applyNestedModalStacks(text) {
   return text.replace(/\s*data-nested-modal(?:="[^"]*")?/g, "");
 }
 
+function overflowAxisFromHint(hint) {
+  const h = String(hint || "");
+  if (
+    /overflow-x(?:-auto|-scroll)\b/i.test(h) ||
+    /overflow-x\s*:\s*(auto|scroll)/i.test(h) ||
+    /overflowX\s*:\s*["'](auto|scroll)["']/i.test(h)
+  ) {
+    return "x";
+  }
+  if (
+    /overflow-y(?:-auto|-scroll)\b/i.test(h) ||
+    /overflow-y\s*:\s*(auto|scroll)/i.test(h) ||
+    /overflowY\s*:\s*["'](auto|scroll)["']/i.test(h)
+  ) {
+    return "y";
+  }
+  if (
+    /\boverflow-(?:auto|scroll)\b/i.test(h) ||
+    /(?:^|[^-])overflow\s*:\s*(auto|scroll)/i.test(h) ||
+    /overflow\s*:\s*["'](auto|scroll)["']/i.test(h)
+  ) {
+    return "both";
+  }
+  return null;
+}
+
+function axesOverlap(a, b) {
+  if (!a || !b) return false;
+  if (a === "both" || b === "both") return true;
+  return a === b;
+}
+
+function tagOverflowAxis(open) {
+  const style = /style=["']([^"']*)["']/i.exec(open);
+  const cls = /class(Name)?=["']([^"']*)["']/i.exec(open);
+  return overflowAxisFromHint(`${style ? style[1] : ""} ${cls ? cls[2] : ""} ${open}`);
+}
+
+function innerAfterOpen(text, tag, start) {
+  let i = start;
+  let depth = 1;
+  const reopen = new RegExp(`<${tag}\\b`, "gi");
+  const close = new RegExp(`</${tag}\\s*>`, "gi");
+  while (depth > 0 && i < text.length) {
+    reopen.lastIndex = i;
+    close.lastIndex = i;
+    const nOpen = reopen.exec(text);
+    const nClose = close.exec(text);
+    if (!nClose) return text.slice(start, Math.min(text.length, start + 4000));
+    if (nOpen && nOpen.index < nClose.index) {
+      depth += 1;
+      i = nOpen.index + nOpen[0].length;
+    } else {
+      depth -= 1;
+      i = nClose.index + nClose[0].length;
+    }
+  }
+  return text.slice(start, i);
+}
+
+function hasNestedSameAxisOverflow(text) {
+  const re = /<([A-Za-z][\w]*)\b[^>]*>/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const tag = m[1];
+    if (/^(html|body)$/i.test(tag)) continue;
+    const axis = tagOverflowAxis(m[0]);
+    if (!axis) continue;
+    const inner = innerAfterOpen(text, tag, m.index + m[0].length);
+    const innerRe = /<([A-Za-z][\w]*)\b[^>]*>/g;
+    let im;
+    while ((im = innerRe.exec(inner))) {
+      if (/^(html|body)$/i.test(im[1])) continue;
+      const iaxis = tagOverflowAxis(im[0]);
+      if (axesOverlap(axis, iaxis)) return true;
+    }
+  }
+  return false;
+}
+
+function nestedScrollViewSameAxis(text) {
+  const re =
+    /ScrollView((?:\(\s*\.(horizontal|vertical)\s*\))?)\s*\{[\s\S]{0,2500}?ScrollView((?:\(\s*\.(horizontal|vertical)\s*\))?)\s*\{/;
+  const m = re.exec(text);
+  if (!m) return false;
+  const a = /horizontal/.test(m[1] || "") ? "x" : "y";
+  const b = /horizontal/.test(m[3] || "") ? "x" : "y";
+  return a === b;
+}
+
+function scanSliderAsVolume(files) {
+  const out = [];
+  for (const f of files) {
+    if (/\b(MPVolumeView|VolumeView)\b/.test(f.text)) continue;
+    if (/data-volume-slider/.test(f.text)) {
+      out.push(hit(f.path, "slider to adjust audio volume"));
+      continue;
+    }
+    const opens = f.text.match(/<input\b[^>]*>/gi) || [];
+    if (opens.some((t) => /type=["']range["']/i.test(t) && /volume/i.test(t))) {
+      out.push(hit(f.path, "slider to adjust audio volume"));
+      continue;
+    }
+    if (
+      /<(input|div)[^>]*(role=["']slider["']|type=["']range["'])[^>]*volume/i.test(f.text) ||
+      /<(input|div)[^>]*volume[^>]*(role=["']slider["']|type=["']range["'])/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "slider to adjust audio volume"));
+      continue;
+    }
+    if (/Slider\s*\([\s\S]{0,200}?volume/i.test(f.text)) {
+      out.push(hit(f.path, "slider to adjust audio volume"));
+      continue;
+    }
+    if (/\b(UISlider|NSSlider)\b/.test(f.text) && /volume/i.test(f.text)) {
+      out.push(hit(f.path, "slider to adjust audio volume"));
+    }
+  }
+  return out;
+}
+
+function applySliderAsVolume(text) {
+  return text.replace(/\s*data-volume-slider(?:="[^"]*")?/g, "");
+}
+
+function scanNestedSameAxisScroll(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nested-same-axis-scroll/.test(f.text)) {
+      out.push(hit(f.path, "nested same-axis scroll"));
+      continue;
+    }
+    if (nestedScrollViewSameAxis(f.text) || hasNestedSameAxisOverflow(f.text)) {
+      out.push(hit(f.path, "nested same-axis scroll"));
+    }
+  }
+  return out;
+}
+
+function applyNestedSameAxisScroll(text) {
+  return text.replace(/\s*data-nested-same-axis-scroll(?:="[^"]*")?/g, "");
+}
+
+function hasNestedPopoverTags(text) {
+  return blocksWithAttr(text, "popover").some((b) => {
+    const inner = b.text.replace(/^<[^>]+>/, "");
+    return /<[A-Za-z][\w]*\b[^>]*\spopover(?:\s|=|\/|>)/i.test(inner);
+  });
+}
+
+function scanCascadePopover(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nested-popover/.test(f.text)) {
+      out.push(hit(f.path, "cascade popovers"));
+      continue;
+    }
+    if (hasNestedPopoverTags(f.text)) {
+      out.push(hit(f.path, "cascade popovers"));
+      continue;
+    }
+    if (/\.popover\s*\([\s\S]{0,1500}?\.popover\s*\(/.test(f.text)) {
+      out.push(hit(f.path, "cascade popovers"));
+    }
+  }
+  return out;
+}
+
+function applyCascadePopover(text) {
+  return text.replace(/\s*data-nested-popover(?:="[^"]*")?/g, "");
+}
+
+function scanPopoverAsWarning(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-popover-warning/.test(f.text)) {
+      out.push(hit(f.path, "popover as warning"));
+      continue;
+    }
+    const blocks = [
+      ...blocksWithAttr(f.text, "popover"),
+      ...blocksWithAttr(f.text, "data-popover"),
+    ];
+    if (
+      blocks.some((b) =>
+        /role=["']alertdialog["']|<h[1-6][^>]*>\s*warning\b/i.test(b.text),
+      )
+    ) {
+      out.push(hit(f.path, "popover as warning"));
+    }
+  }
+  return out;
+}
+
+function applyPopoverAsWarning(text) {
+  return text.replace(/\s*data-popover-warning(?:="[^"]*")?/g, "");
+}
+
+function scanPopoverOnCompact(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-popover-compact/.test(f.text)) {
+      out.push(hit(f.path, "popover on compact"));
+      continue;
+    }
+    if (/\.presentationCompactAdaptation\(\s*\.popover\s*\)/.test(f.text)) {
+      out.push(hit(f.path, "popover on compact"));
+    }
+  }
+  return out;
+}
+
+function applyPopoverOnCompact(text) {
+  return text
+    .replace(/\s*data-popover-compact(?:="[^"]*")?/g, "")
+    .replace(/\s*\.presentationCompactAdaptation\(\s*\.popover\s*\)/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -2944,6 +3162,16 @@ function scanHeuristic(id, files) {
       return scanDirAutoOnLocaleRoot(files);
     case "nested-modal-stacks":
       return scanNestedModalStacks(files);
+    case "slider-as-volume":
+      return scanSliderAsVolume(files);
+    case "nested-same-axis-scroll":
+      return scanNestedSameAxisScroll(files);
+    case "cascade-popover":
+      return scanCascadePopover(files);
+    case "popover-as-warning":
+      return scanPopoverAsWarning(files);
+    case "popover-on-compact":
+      return scanPopoverOnCompact(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -3154,6 +3382,16 @@ function applyHeuristic(id, file) {
       return applyDirAutoOnLocaleRoot(file.text);
     case "nested-modal-stacks":
       return applyNestedModalStacks(file.text);
+    case "slider-as-volume":
+      return applySliderAsVolume(file.text);
+    case "nested-same-axis-scroll":
+      return applyNestedSameAxisScroll(file.text);
+    case "cascade-popover":
+      return applyCascadePopover(file.text);
+    case "popover-as-warning":
+      return applyPopoverAsWarning(file.text);
+    case "popover-on-compact":
+      return applyPopoverOnCompact(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

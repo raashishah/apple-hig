@@ -202,3 +202,13 @@ heuristics:
     match: dir=auto on html or the locale root
   - id: nested-modal-stacks
     match: Nested modal stacks
+  - id: slider-as-volume
+    match: slider to adjust audio volume
+  - id: nested-same-axis-scroll
+    match: scroll view inside another scroll view
+  - id: cascade-popover
+    match: cascade or hierarchy of popovers
+  - id: popover-as-warning
+    match: popover to show a warning
+  - id: popover-on-compact
+    match: displaying popovers in compact

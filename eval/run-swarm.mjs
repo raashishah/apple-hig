@@ -294,6 +294,9 @@ const results = [];
     surfaces.byId.search?.affordance === "search" &&
     surfaces.byId.settings?.affordance === "settings" &&
     surfaces.byId.undo?.affordance === "undo" &&
+    surfaces.byId.sliders?.affordance === "slider" &&
+    surfaces.byId["scroll-views"]?.affordance === "scroll" &&
+    surfaces.byId.popovers?.affordance === "popover" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.typography?.affordance &&
     !surfaces.byId.writing?.affordance;

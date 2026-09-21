@@ -557,6 +557,9 @@ function affordanceMissing(need, present) {
     case "drag":
     case "settings":
     case "undo":
+    case "slider":
+    case "scroll":
+    case "popover":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -712,7 +715,99 @@ export function scanAffordances(files) {
   ) {
     found.push("undo");
   }
+  if (
+    /type=["']range["']/i.test(blob) ||
+    /role=["']slider["']/i.test(blob) ||
+    /\bSlider\s*\(/.test(blob) ||
+    /\b(UISlider|NSSlider)\b/.test(blob) ||
+    /data-(volume-)?slider/.test(blob)
+  ) {
+    found.push("slider");
+  }
+  if (hasScrollWidget(blob)) {
+    found.push("scroll");
+  }
+  if (
+    /<[A-Za-z][\w]*\b[^>]*\spopover(?:\s|=|\/|>)/i.test(blob) ||
+    /popover=["']/i.test(blob) ||
+    /popovertarget=/i.test(blob) ||
+    /data-popover/.test(blob) ||
+    /\.popover\s*\(/.test(blob) ||
+    /\b(UIPopoverPresentationController|NSPopover)\b/.test(blob)
+  ) {
+    found.push("popover");
+  }
   return found;
+}
+
+function isDocumentScrollSelector(sel) {
+  const parts = String(sel || "")
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .split(",")
+    .map((p) => p.trim().split(/\s+/).pop() || "")
+    .filter(Boolean);
+  if (!parts.length) return false;
+  return parts.every((p) => /^(html|body|:root|#root|#__next|#app)$/i.test(p));
+}
+
+function overflowAxisFromHint(hint) {
+  const h = String(hint || "");
+  if (
+    /overflow-x(?:-auto|-scroll)\b/i.test(h) ||
+    /overflow-x\s*:\s*(auto|scroll)/i.test(h) ||
+    /overflowX\s*:\s*["'](auto|scroll)["']/i.test(h)
+  ) {
+    return "x";
+  }
+  if (
+    /overflow-y(?:-auto|-scroll)\b/i.test(h) ||
+    /overflow-y\s*:\s*(auto|scroll)/i.test(h) ||
+    /overflowY\s*:\s*["'](auto|scroll)["']/i.test(h)
+  ) {
+    return "y";
+  }
+  if (
+    /\boverflow-(?:auto|scroll)\b/i.test(h) ||
+    /(?:^|[^-])overflow\s*:\s*(auto|scroll)/i.test(h) ||
+    /overflow\s*:\s*["'](auto|scroll)["']/i.test(h)
+  ) {
+    return "both";
+  }
+  return null;
+}
+
+function hasScrollWidget(blob) {
+  const text = String(blob || "");
+  if (/\bScrollView\s*[\({]/.test(text)) return true;
+  if (/\b(UIScrollView|NSScrollView)\b/.test(text)) return true;
+  if (/data-scroll-view|data-nested-same-axis-scroll/.test(text)) return true;
+  const tagRe = /<([A-Za-z][\w]*)\b([^>]*)>/g;
+  let m;
+  while ((m = tagRe.exec(text))) {
+    const tag = m[1];
+    const attrs = m[2] || "";
+    if (/^(html|body)$/i.test(tag)) continue;
+    const style = /style=["']([^"']*)["']/i.exec(attrs);
+    const cls = /class(Name)?=["']([^"']*)["']/i.exec(attrs);
+    const hint = `${style ? style[1] : ""} ${cls ? cls[2] : ""} ${attrs}`;
+    if (
+      !/(?:overflow(?:-(?:x|y))?)\s*:\s*(auto|scroll)/i.test(hint) &&
+      !/\boverflow-(?:x-|y-)?(?:auto|scroll)\b/.test(hint) &&
+      !/overflow(?:X|Y)?\s*:\s*["'](auto|scroll)["']/i.test(hint)
+    ) {
+      continue;
+    }
+    if (overflowAxisFromHint(hint)) return true;
+  }
+  const cssRe = /([^{]+)\{([^}]*)\}/g;
+  while ((m = cssRe.exec(text))) {
+    const sel = m[1];
+    const body = m[2];
+    if (!/overflow(?:-(?:x|y))?\s*:\s*(auto|scroll)/i.test(body)) continue;
+    if (isDocumentScrollSelector(sel)) continue;
+    return true;
+  }
+  return false;
 }
 
 function inferTopicState(topic, applicableIds, preflight, prevState, surface) {

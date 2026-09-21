@@ -48,6 +48,9 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["drag-and-drop"]?.affordance === "drag" &&
     surfaces.byId.settings?.affordance === "settings" &&
     surfaces.byId.undo?.affordance === "undo" &&
+    surfaces.byId.sliders?.affordance === "slider" &&
+    surfaces.byId["scroll-views"]?.affordance === "scroll" &&
+    surfaces.byId.popovers?.affordance === "popover" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -405,6 +408,9 @@ const results = [];
     "drag-and-drop",
     "settings",
     "undo-and-redo",
+    "sliders",
+    "scroll-views",
+    "popovers",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -480,6 +486,21 @@ const results = [];
   const cancelOnly = scanAffordances([
     { path: "Form.tsx", text: '<button type="button">Cancel</button>' },
   ]);
+  const rangeOnly = scanAffordances([
+    { path: "Bright.tsx", text: '<input type="range" min="0" max="100" />' },
+  ]);
+  const bodyOverflow = scanAffordances([
+    { path: "page.css", text: "html, body { overflow-y: auto; }\n" },
+  ]);
+  const paneOverflow = scanAffordances([
+    { path: "Pane.tsx", text: '<div className="overflow-y-auto">More</div>' },
+  ]);
+  const dialogOnly = scanAffordances([
+    { path: "Sheet.tsx", text: "<dialog open>Share</dialog>" },
+  ]);
+  const popoverOnly = scanAffordances([
+    { path: "Tip.tsx", text: '<div popover="auto">Share</div>' },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -502,10 +523,14 @@ const results = [];
       !passList.includes("drag") &&
       !passList.includes("settings") &&
       !passList.includes("undo") &&
+      !passList.includes("slider") &&
+      !passList.includes("scroll") &&
+      !passList.includes("popover") &&
       cardGrid.includes("list") &&
       !navLink.includes("search") &&
       nativeSelect.includes("picker") &&
       !nativeSelect.includes("menu") &&
+      !nativeSelect.includes("slider") &&
       !cssMenu.includes("menu") &&
       progressOnly.includes("progress") &&
       !progressOnly.includes("loading") &&
@@ -514,10 +539,19 @@ const results = [];
       formOnly.includes("form") &&
       !formOnly.includes("settings") &&
       !formOnly.includes("undo") &&
+      !formOnly.includes("slider") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
       !cancelOnly.includes("undo") &&
+      rangeOnly.includes("slider") &&
+      !rangeOnly.includes("picker") &&
+      !bodyOverflow.includes("scroll") &&
+      paneOverflow.includes("scroll") &&
+      dialogOnly.includes("overlay") &&
+      !dialogOnly.includes("popover") &&
+      popoverOnly.includes("popover") &&
+      !popoverOnly.includes("overlay") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -780,6 +814,19 @@ const results = [];
       catalog.byId["sf-symbols"]?.pack === "foundations-icons.md" &&
       catalog.byId["context-menus"]?.pack === "components-menus.md" &&
       catalog.byId.notifications?.pack === "patterns-notifications.md" &&
+      catalog.byId.sliders?.dontCoverageComplete === true &&
+      catalog.byId["scroll-views"]?.dontCoverageComplete === true &&
+      catalog.byId.popovers?.dontCoverageComplete === true &&
+      (catalog.byId.sliders?.dontHeuristicIds || []).includes("slider-as-volume") &&
+      (catalog.byId["scroll-views"]?.dontHeuristicIds || []).includes(
+        "nested-same-axis-scroll",
+      ) &&
+      (catalog.byId.popovers?.dontHeuristicIds || []).includes("cascade-popover") &&
+      (catalog.byId.popovers?.dontHeuristicIds || []).includes("popover-as-warning") &&
+      (catalog.byId.popovers?.dontHeuristicIds || []).includes("popover-on-compact") &&
+      catalog.byId.sliders?.pack === "components-sliders.md" &&
+      catalog.byId["scroll-views"]?.pack === "components-scroll-views.md" &&
+      catalog.byId.popovers?.pack === "components-popovers.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -872,6 +919,9 @@ const results = [];
       "drag-and-drop",
       "settings",
       "undo-and-redo",
+      "sliders",
+      "scroll-views",
+      "popovers",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -2994,6 +3044,156 @@ struct OneTorch: ControlWidget {
     fs.rmSync(menuDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-composed-also-urls", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-slider-scroll-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-slider-scroll-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-slider-scroll-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <>
+      <input type="range" data-volume-slider min="0" max="100" />
+      <div data-nested-same-axis-scroll style={{ overflow: "auto" }}>
+        List
+      </div>
+      <div popover="auto" data-nested-popover data-popover-warning data-popover-compact>
+        Share
+      </div>
+    </>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <>
+      <input type="range" aria-label="Volume" min="0" max="100" />
+      <div className="overflow-y-auto">
+        <div className="overflow-y-auto">Inner</div>
+      </div>
+      <div popover="auto">
+        Share
+        <div popover="auto">Confirm</div>
+      </div>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passSliders: passStatus.topics.sliders?.state === "skipped-no-affordance",
+      passScroll: passStatus.topics["scroll-views"]?.state === "skipped-no-affordance",
+      passPopovers: passStatus.topics.popovers?.state === "skipped-no-affordance",
+      passSheets: passStatus.topics.sheets?.state === "skipped-no-affordance",
+      passPickers: passStatus.topics.pickers?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixSliders: fixStatus.topics.sliders?.state === "applied",
+      fixScroll: fixStatus.topics["scroll-views"]?.state === "applied",
+      fixPopovers: fixStatus.topics.popovers?.state === "applied",
+      volumeMarkerGone: !/data-volume-slider/.test(fixed) && /type="range"/.test(fixed),
+      scrollMarkerGone:
+        !/data-nested-same-axis-scroll/.test(fixed) && /overflow:\s*["']auto["']/.test(fixed),
+      popoverMarkersGone:
+        !/data-nested-popover/.test(fixed) &&
+        !/data-popover-warning/.test(fixed) &&
+        !/data-popover-compact/.test(fixed) &&
+        /popover="auto"/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdSliders: holdStatus.topics.sliders?.state === "pending",
+      holdScroll: holdStatus.topics["scroll-views"]?.state === "pending",
+      holdPopovers: holdStatus.topics.popovers?.state === "pending",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passSliders: passStatus.topics.sliders?.state,
+      passScroll: passStatus.topics["scroll-views"]?.state,
+      passPopovers: passStatus.topics.popovers?.state,
+      fixSliders: fixStatus.topics.sliders?.state,
+      fixScroll: fixStatus.topics["scroll-views"]?.state,
+      fixPopovers: fixStatus.topics.popovers?.state,
+      holdSliders: holdStatus.topics.sliders?.state,
+      holdScroll: holdStatus.topics["scroll-views"]?.state,
+      holdPopovers: holdStatus.topics.popovers?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-slider-scroll-popover-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

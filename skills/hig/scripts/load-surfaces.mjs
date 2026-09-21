@@ -306,6 +306,9 @@ export function loadSurfaces(skillRoot, options = {}) {
     "drag",
     "settings",
     "undo",
+    "slider",
+    "scroll",
+    "popover",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {
