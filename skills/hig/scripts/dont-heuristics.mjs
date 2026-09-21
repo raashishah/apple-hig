@@ -3315,6 +3315,75 @@ function applyTextOverlayOnImageView(text) {
   return text.replace(/\s*data-text-on-image-view(?:="[^"]*")?/g, "");
 }
 
+function hasChartWidget(text) {
+  return (
+    /\bdata-chart\b/.test(text) ||
+    /\bChart\s*\(/.test(text) ||
+    /\b(BarMark|LineMark|PointMark|AreaMark|RectMark|RuleMark)\b/.test(text)
+  );
+}
+
+function scanColorOnlyChartSeries(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-color-only-chart/.test(f.text)) {
+      out.push(hit(f.path, "relying solely on color to distinguish chart data"));
+    }
+  }
+  return out;
+}
+
+function applyColorOnlyChartSeries(text) {
+  return text.replace(/\s*data-color-only-chart(?:="[^"]*")?/g, "");
+}
+
+function scanChartCriticalBehindInteraction(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-chart-hover-only/.test(f.text)) {
+      out.push(hit(f.path, "hide critical chart information behind interaction"));
+      continue;
+    }
+    if (!hasChartWidget(f.text)) continue;
+    if (/\bon(MouseEnter|PointerEnter|Hover)\b/.test(f.text)) {
+      out.push(hit(f.path, "hide critical chart information behind interaction"));
+    }
+  }
+  return out;
+}
+
+function applyChartCriticalBehindInteraction(text) {
+  return text.replace(/\s*data-chart-hover-only(?:="[^"]*")?/g, "");
+}
+
+function scanChartAsTable(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-chart-as-table/.test(f.text)) {
+      out.push(hit(f.path, "chart of data that should be a table or list"));
+    }
+  }
+  return out;
+}
+
+function applyChartAsTable(text) {
+  return text.replace(/\s*data-chart-as-table(?:="[^"]*")?/g, "");
+}
+
+function scanOvercrowdedChart(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-overcrowded-chart/.test(f.text)) {
+      out.push(hit(f.path, "chart packed with too much data"));
+    }
+  }
+  return out;
+}
+
+function applyOvercrowdedChart(text) {
+  return text.replace(/\s*data-overcrowded-chart(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -3572,6 +3641,14 @@ function scanHeuristic(id, files) {
       return scanImageViewAsIcon(files);
     case "text-overlay-on-image-view":
       return scanTextOverlayOnImageView(files);
+    case "color-only-chart-series":
+      return scanColorOnlyChartSeries(files);
+    case "chart-critical-behind-interaction":
+      return scanChartCriticalBehindInteraction(files);
+    case "chart-as-table":
+      return scanChartAsTable(files);
+    case "overcrowded-chart":
+      return scanOvercrowdedChart(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -3822,6 +3899,14 @@ function applyHeuristic(id, file) {
       return applyImageViewAsIcon(file.text);
     case "text-overlay-on-image-view":
       return applyTextOverlayOnImageView(file.text);
+    case "color-only-chart-series":
+      return applyColorOnlyChartSeries(file.text);
+    case "chart-critical-behind-interaction":
+      return applyChartCriticalBehindInteraction(file.text);
+    case "chart-as-table":
+      return applyChartAsTable(file.text);
+    case "overcrowded-chart":
+      return applyOvercrowdedChart(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

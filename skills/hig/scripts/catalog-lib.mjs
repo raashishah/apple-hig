@@ -565,6 +565,7 @@ function affordanceMissing(need, present) {
     case "label":
     case "textview":
     case "imageview":
+    case "chart":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -783,6 +784,13 @@ export function scanAffordances(files) {
     /\bAsyncImage\s*\(/.test(blob)
   ) {
     found.push("imageview");
+  }
+  if (
+    /\bdata-chart\b/.test(blob) ||
+    /\bChart\s*\(/.test(blob) ||
+    /\b(BarMark|LineMark|PointMark|AreaMark|RectMark|RuleMark)\b/.test(blob)
+  ) {
+    found.push("chart");
   }
   return found;
 }

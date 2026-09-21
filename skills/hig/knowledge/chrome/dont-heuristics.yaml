@@ -242,3 +242,11 @@ heuristics:
     match: image view for an interface icon
   - id: text-overlay-on-image-view
     match: overlaying text on an image view
+  - id: color-only-chart-series
+    match: solely on color
+  - id: chart-critical-behind-interaction
+    match: behind interaction
+  - id: chart-as-table
+    match: should be a table or list
+  - id: overcrowded-chart
+    match: too much data

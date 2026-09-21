@@ -56,6 +56,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.labels?.affordance === "label" &&
     surfaces.byId["text-views"]?.affordance === "textview" &&
     surfaces.byId["image-views"]?.affordance === "imageview" &&
+    surfaces.byId.charts?.affordance === "chart" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -421,6 +422,8 @@ const results = [];
     "labels",
     "text-views",
     "image-views",
+    "charts",
+    "charting-data",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -541,6 +544,15 @@ const results = [];
   const imageViewOnly = scanAffordances([
     { path: "Photo.tsx", text: '<div data-image-view><img alt="" src="/photo.jpg" /></div>' },
   ]);
+  const chartOnly = scanAffordances([
+    { path: "Plot.tsx", text: '<div data-chart><span>Steps</span></div>' },
+  ]);
+  const tableOnly = scanAffordances([
+    { path: "Nums.tsx", text: "<table><tr><td>12</td></tr></table>" },
+  ]);
+  const svgOnly = scanAffordances([
+    { path: "Icon.tsx", text: '<svg width="16" height="16" aria-hidden="true" />' },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -571,6 +583,7 @@ const results = [];
       !passList.includes("label") &&
       !passList.includes("textview") &&
       !passList.includes("imageview") &&
+      !passList.includes("chart") &&
       cardGrid.includes("list") &&
       !cardGrid.includes("collection") &&
       !navLink.includes("search") &&
@@ -590,6 +603,7 @@ const results = [];
       !formOnly.includes("label") &&
       !formOnly.includes("textview") &&
       !formOnly.includes("imageview") &&
+      !formOnly.includes("chart") &&
       settingsPage.includes("settings") &&
       undoBar.includes("undo") &&
       !dumpLabel.includes("settings") &&
@@ -619,6 +633,11 @@ const results = [];
       !inputOnly.includes("textview") &&
       !imgOnly.includes("imageview") &&
       imageViewOnly.includes("imageview") &&
+      chartOnly.includes("chart") &&
+      !chartOnly.includes("list") &&
+      tableOnly.includes("list") &&
+      !tableOnly.includes("chart") &&
+      !svgOnly.includes("chart") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -945,6 +964,18 @@ const results = [];
         "text-overlay-on-image-view",
       ) &&
       catalog.byId["image-views"]?.pack === "components-image-views.md" &&
+      catalog.byId.charts?.dontCoverageComplete === true &&
+      catalog.byId["charting-data"]?.dontCoverageComplete === true &&
+      (catalog.byId.charts?.dontHeuristicIds || []).includes(
+        "color-only-chart-series",
+      ) &&
+      (catalog.byId.charts?.dontHeuristicIds || []).includes(
+        "chart-critical-behind-interaction",
+      ) &&
+      (catalog.byId.charts?.dontHeuristicIds || []).includes("chart-as-table") &&
+      (catalog.byId.charts?.dontHeuristicIds || []).includes("overcrowded-chart") &&
+      catalog.byId.charts?.pack === "components-charts.md" &&
+      catalog.byId["charting-data"]?.pack === "components-charts.md" &&
       isTitleStub(catalog.byId["tab-views"]) &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
@@ -1045,6 +1076,8 @@ const results = [];
       "labels",
       "text-views",
       "image-views",
+      "charts",
+      "charting-data",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -3972,6 +4005,144 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-image-views-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-charts-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-charts-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-charts-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div
+      data-chart
+      data-color-only-chart
+      data-chart-hover-only
+      data-chart-as-table
+      data-overcrowded-chart
+    >
+      <span>Steps</span>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-chart onMouseEnter={() => {}}>
+      <span>Steps</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const svgKept = /<svg\b/.test(
+      fs.readFileSync(path.join(passDir, "CompactListBrowser.tsx"), "utf8"),
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passCharts: passStatus.topics.charts?.state === "skipped-no-affordance",
+      passCharting: passStatus.topics["charting-data"]?.state === "skipped-no-affordance",
+      passLists: passStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      svgKept,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixCharts: fixStatus.topics.charts?.state === "applied",
+      fixCharting: fixStatus.topics["charting-data"]?.state === "applied",
+      chartKept: /data-chart/.test(fixed),
+      markersGone:
+        !/data-color-only-chart/.test(fixed) &&
+        !/data-chart-hover-only/.test(fixed) &&
+        !/data-chart-as-table/.test(fixed) &&
+        !/data-overcrowded-chart/.test(fixed),
+      notTable: !/<table\b/i.test(fixed),
+      holdUnchanged: held === origHold,
+      holdCharts: holdStatus.topics.charts?.state === "pending",
+      holdCharting: holdStatus.topics["charting-data"]?.state === "pending",
+      holdNotTable: !/<table\b/i.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passCharts: passStatus.topics.charts?.state,
+      passCharting: passStatus.topics["charting-data"]?.state,
+      fixCharts: fixStatus.topics.charts?.state,
+      holdCharts: holdStatus.topics.charts?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-charts-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
