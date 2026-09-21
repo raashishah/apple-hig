@@ -5,15 +5,13 @@ date: 2026-09-21
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
-execution: code
+execution: knowledge-work
 jev: jev-1.13.0
 ---
 
 # HIG catalog goal agent - Plan
 
-Later-PR plan. It does **not** change apply on main or on PR #12.
-
-Canonical implementation-ready catalog contract: `docs/plans/2026-09-21-001-feat-goal-driven-hig-catalog-plan.md`. This one-page file is the PR #12 lane lock, not the `ce-work` input for the catalog loop.
+Later-PR plan. It does **not** change apply on main or on PR #12, and it is not implementation work on this branch. Jev `plan_doc_shape=one_page_locked_lane` (0.98): this is the catalog plan.
 
 Jev (`jev-1.13.0`): `apply_ssot=surfaces_yaml_requiredIds_12` (1.0); `catalog_loop_relation=additive_later` (1.0); `this_pr_scope=chrome_host_fonts_plus_plan` (1.0); `fonts_this_pr=leave_host` (1.0); `plan_doc_shape=one_page_locked_lane` (0.98). Remove `requiredIds` later noul 0.17. Watch/TV/Vision now noul 0.08. Lists on Vue/Flutter noul 0.87. TypeSafe is not a `/hig` runtime.
 
