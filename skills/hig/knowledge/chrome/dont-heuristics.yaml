@@ -200,3 +200,5 @@ heuristics:
     match: back chevron always points left
   - id: dir-auto-on-locale-root
     match: dir=auto on html or the locale root
+  - id: nested-modal-stacks
+    match: Nested modal stacks

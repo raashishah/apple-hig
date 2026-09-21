@@ -2644,6 +2644,89 @@ function applyDirAutoOnLocaleRoot(text) {
   return next;
 }
 
+function hasNestedDialogTags(text) {
+  let depth = 0;
+  const re = /<(\/)?dialog\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    const selfClose = /\/\s*>$/.test(m[0]);
+    if (m[1]) {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    depth += 1;
+    if (depth >= 2) return true;
+    if (selfClose) depth -= 1;
+  }
+  return false;
+}
+
+function overlayOpenBlocks(text) {
+  const out = [];
+  const openRe = /<([A-Za-z][\w]*)\b[^>]*\brole=["'](?:dialog|alertdialog)["'][^>]*>/gi;
+  let m;
+  while ((m = openRe.exec(text))) {
+    const tag = m[1];
+    let i = m.index + m[0].length;
+    let depth = 1;
+    const reopen = new RegExp(`<${tag}\\b`, "gi");
+    const close = new RegExp(`</${tag}\\s*>`, "gi");
+    while (depth > 0 && i < text.length) {
+      reopen.lastIndex = i;
+      close.lastIndex = i;
+      const nOpen = reopen.exec(text);
+      const nClose = close.exec(text);
+      if (!nClose) {
+        i = Math.min(text.length, m.index + 4000);
+        break;
+      }
+      if (nOpen && nOpen.index < nClose.index) {
+        depth += 1;
+        i = nOpen.index + nOpen[0].length;
+      } else {
+        depth -= 1;
+        i = nClose.index + nClose[0].length;
+      }
+    }
+    out.push(text.slice(m.index, i));
+  }
+  return out;
+}
+
+function scanNestedModalStacks(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nested-modal/.test(f.text)) {
+      out.push(hit(f.path, "nested modal stacks"));
+      continue;
+    }
+    if (hasNestedDialogTags(f.text)) {
+      out.push(hit(f.path, "nested modal stacks"));
+      continue;
+    }
+    const nestedRole = overlayOpenBlocks(f.text).some((block) => {
+      const inner = block.replace(/^<[^>]+>/, "");
+      return /\brole=["'](?:dialog|alertdialog)["']/i.test(inner);
+    });
+    if (nestedRole) {
+      out.push(hit(f.path, "nested modal stacks"));
+      continue;
+    }
+    if (
+      /\.sheet\s*\([\s\S]{0,1200}?\{[\s\S]{0,1200}?(\.sheet\s*\(|\.alert\s*\(|\.confirmationDialog\s*\(|\.fullScreenCover\s*\()/.test(
+        f.text,
+      )
+    ) {
+      out.push(hit(f.path, "nested modal stacks"));
+    }
+  }
+  return out;
+}
+
+function applyNestedModalStacks(text) {
+  return text.replace(/\s*data-nested-modal(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -2859,6 +2942,8 @@ function scanHeuristic(id, files) {
       return scanBackChevronAlwaysLeft(files);
     case "dir-auto-on-locale-root":
       return scanDirAutoOnLocaleRoot(files);
+    case "nested-modal-stacks":
+      return scanNestedModalStacks(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -3067,6 +3152,8 @@ function applyHeuristic(id, file) {
       return applyBackChevronAlwaysLeft(file.text);
     case "dir-auto-on-locale-root":
       return applyDirAutoOnLocaleRoot(file.text);
+    case "nested-modal-stacks":
+      return applyNestedModalStacks(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
