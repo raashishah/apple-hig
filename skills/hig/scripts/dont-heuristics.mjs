@@ -5618,6 +5618,89 @@ function applyWkBriefSession(text) {
   return text.replace(/\s*data-wk-brief-session(?:="[^"]*")?/g, "");
 }
 
+function hasLivePhoto(text) {
+  return (
+    /\bdata-live-photo\b/.test(text) ||
+    /\bPHLivePhotoView\b/.test(text) ||
+    /\bPHLivePhoto\b/.test(text)
+  );
+}
+
+function hasLpDisassembleCopy(text) {
+  return (
+    /frames or audio/i.test(text) ||
+    (/disassemble/i.test(text) && /live photo/i.test(text))
+  );
+}
+
+function hasLpPlaybackCopy(text) {
+  return /video playback button/i.test(text);
+}
+
+function hasLpUnsupportedCopy(text) {
+  return (
+    /unsupported environment/i.test(text) ||
+    (/replicat/i.test(text) && /live photos? experience/i.test(text))
+  );
+}
+
+function scanLpDisassemble(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-lp-disassemble/.test(f.text)) {
+      out.push(hit(f.path, "live photo frames or audio presented separately"));
+      continue;
+    }
+    if (!hasLivePhoto(f.text)) continue;
+    if (hasLpDisassembleCopy(f.text)) {
+      out.push(hit(f.path, "live photo frames or audio presented separately"));
+    }
+  }
+  return out;
+}
+
+function applyLpDisassemble(text) {
+  return text.replace(/\s*data-lp-disassemble(?:="[^"]*")?/g, "");
+}
+
+function scanLpPlaybackButton(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-lp-playback-button/.test(f.text)) {
+      out.push(hit(f.path, "video playback button on a live photo"));
+      continue;
+    }
+    if (!hasLivePhoto(f.text)) continue;
+    if (hasLpPlaybackCopy(f.text)) {
+      out.push(hit(f.path, "video playback button on a live photo"));
+    }
+  }
+  return out;
+}
+
+function applyLpPlaybackButton(text) {
+  return text.replace(/\s*data-lp-playback-button(?:="[^"]*")?/g, "");
+}
+
+function scanLpUnsupportedReplica(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-lp-unsupported-replica/.test(f.text)) {
+      out.push(hit(f.path, "live photos experience replicated in an unsupported environment"));
+      continue;
+    }
+    if (!hasLivePhoto(f.text)) continue;
+    if (hasLpUnsupportedCopy(f.text)) {
+      out.push(hit(f.path, "live photos experience replicated in an unsupported environment"));
+    }
+  }
+  return out;
+}
+
+function applyLpUnsupportedReplica(text) {
+  return text.replace(/\s*data-lp-unsupported-replica(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -6065,6 +6148,12 @@ function scanHeuristic(id, files) {
       return scanWkDistract(files);
     case "wk-brief-session":
       return scanWkBriefSession(files);
+    case "lp-disassemble":
+      return scanLpDisassemble(files);
+    case "lp-playback-button":
+      return scanLpPlaybackButton(files);
+    case "lp-unsupported-replica":
+      return scanLpUnsupportedReplica(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -6505,6 +6594,12 @@ function applyHeuristic(id, file) {
       return applyWkDistract(file.text);
     case "wk-brief-session":
       return applyWkBriefSession(file.text);
+    case "lp-disassemble":
+      return applyLpDisassemble(file.text);
+    case "lp-playback-button":
+      return applyLpPlaybackButton(file.text);
+    case "lp-unsupported-replica":
+      return applyLpUnsupportedReplica(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

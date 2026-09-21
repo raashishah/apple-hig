@@ -5,7 +5,7 @@
 
 ## Live Apple pages
 
-- [Live Photos](https://developer.apple.com/design/human-interface-guidelines/live-photos)
+- [Live Photos](https://developer.apple.com/design/human-interface-guidelines/live-photos) (dedicated `live-photos` surface attaches by appleUrl)
 - [Photo editing](https://developer.apple.com/design/human-interface-guidelines/photo-editing)
 - [ShazamKit](https://developer.apple.com/design/human-interface-guidelines/shazamkit)
 - [Generative AI](https://developer.apple.com/design/human-interface-guidelines/generative-ai)

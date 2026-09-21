@@ -602,6 +602,7 @@ function affordanceMissing(need, present) {
     case "map":
     case "homekit":
     case "workout":
+    case "livephoto":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1125,6 +1126,13 @@ export function scanAffordances(files) {
     /\bWorkoutKit\b/.test(blob)
   ) {
     found.push("workout");
+  }
+  if (
+    /\bdata-live-photo\b/.test(blob) ||
+    /\bPHLivePhotoView\b/.test(blob) ||
+    /\bPHLivePhoto\b/.test(blob)
+  ) {
+    found.push("livephoto");
   }
   return found;
 }

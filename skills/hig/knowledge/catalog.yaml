@@ -627,8 +627,6 @@ topics:
     appliesWhen: "capability:photos,capability:shazam,capability:genai,capability:coreml,capability:arkit"
     failWhen: "When this topic applies, the host UI does not follow Apple's Live Photos design rule."
     passWhen: "When this topic applies, the host follows Apple's Live Photos design rule on existing widgets without changing the typeface or injecting a kit."
-    surfaceId: "media-intelligence"
-    pack: "tech-cluster-media-intelligence.md"
   - id: live-viewing-apps
     title: "Live-viewing apps"
     group: "Patterns"

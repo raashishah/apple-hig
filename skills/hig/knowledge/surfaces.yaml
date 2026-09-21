@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay | idverifier | iap | map | homekit | workout.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay | idverifier | iap | map | homekit | workout | livephoto.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -604,6 +604,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/icloud
     gate: capability:icloud,capability:shareplay,capability:airplay,capability:homekit
     covers: [icloud, shareplay]
+  - id: live-photos
+    pack: tech-live-photos.md
+    affordance: livephoto
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/live-photos
+    gate: always
+    covers: [live-photos]
   - id: media-intelligence
     pack: tech-cluster-media-intelligence.md
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/live-photos

@@ -432,3 +432,9 @@ heuristics:
     match: Distracting chrome
   - id: wk-brief-session
     match: Extremely brief
+  - id: lp-disassemble
+    match: frames or audio
+  - id: lp-playback-button
+    match: Video playback button
+  - id: lp-unsupported-replica
+    match: unsupported environment
