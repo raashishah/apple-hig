@@ -72,6 +72,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.multitasking?.affordance === "multitask" &&
     surfaces.byId["ratings-and-reviews"]?.affordance === "reviewprompt" &&
     surfaces.byId.windows?.affordance === "appwindow" &&
+    surfaces.byId["playing-video"]?.affordance === "videoplayer" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -454,6 +455,7 @@ const results = [];
     "multitasking",
     "ratings-and-reviews",
     "windows",
+    "playing-video",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1457,6 +1459,20 @@ const results = [];
         "critical-window-bottom-bar",
       ) &&
       catalog.byId.windows?.pack === "components-windows.md" &&
+      catalog.byId["playing-video"]?.dontCoverageComplete === true &&
+      (catalog.byId["playing-video"]?.dontHeuristicIds || []).includes(
+        "custom-video-player",
+      ) &&
+      (catalog.byId["playing-video"]?.dontHeuristicIds || []).includes(
+        "letterbox-video-padding",
+      ) &&
+      (catalog.byId["playing-video"]?.dontHeuristicIds || []).includes(
+        "ask-resume-playback",
+      ) &&
+      (catalog.byId["playing-video"]?.dontHeuristicIds || []).includes(
+        "video-loading-splash",
+      ) &&
+      catalog.byId["playing-video"]?.pack === "patterns-playing-video.md" &&
       isTitleStub(catalog.byId["the-menu-bar"]) &&
       catalog.byId.searching?.dontCoverageComplete === true &&
       catalog.byId["search-fields"]?.dontCoverageComplete === true &&
@@ -1573,6 +1589,7 @@ const results = [];
       "multitasking",
       "ratings-and-reviews",
       "windows",
+      "playing-video",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -6596,6 +6613,139 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-windows-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-playing-video-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-playing-video-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-playing-video-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-video-player data-custom-video-player data-letterbox-padding data-resume-prompt data-video-loading-screen>
+      <button type="button">Watch</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-video-player>
+      <button type="button">Resume playback?</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passVideo: passStatus.topics["playing-video"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixVideo: fixStatus.topics["playing-video"]?.state === "applied",
+      systemKept:
+        /data-video-player/.test(fixed) && />\s*Watch\s*</.test(fixed),
+      markersGone:
+        !/data-custom-video-player/.test(fixed) &&
+        !/data-letterbox-padding/.test(fixed) &&
+        !/data-resume-prompt/.test(fixed) &&
+        !/data-video-loading-screen/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdVideo: holdStatus.topics["playing-video"]?.state === "pending",
+      holdStillResume:
+        /data-video-player/.test(held) &&
+        />\s*Resume playback\?\s*</.test(held),
+      holdNotInvented:
+        !/AVPlayerViewController/.test(held) &&
+        !/autoplay/i.test(held) &&
+        !/object-fit/.test(held) &&
+        !/keydown/.test(held) &&
+        !/\bSpace\b/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passVideo: passStatus.topics["playing-video"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixVideo: fixStatus.topics["playing-video"]?.state,
+      holdVideo: holdStatus.topics["playing-video"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-playing-video-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

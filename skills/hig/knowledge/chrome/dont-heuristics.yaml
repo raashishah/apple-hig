@@ -332,3 +332,11 @@ heuristics:
     match: called a scene
   - id: critical-window-bottom-bar
     match: window bottom bar
+  - id: custom-video-player
+    match: diverges from the system player
+  - id: letterbox-video-padding
+    match: letterbox or pillarbox
+  - id: ask-resume-playback
+    match: resume playback
+  - id: video-loading-splash
+    match: loading or splash screen before video

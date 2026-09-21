@@ -582,6 +582,7 @@ function affordanceMissing(need, present) {
     case "multitask":
     case "reviewprompt":
     case "appwindow":
+    case "videoplayer":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -935,6 +936,15 @@ export function scanAffordances(files) {
     /\bopenWindow\s*\(/.test(blob)
   ) {
     found.push("appwindow");
+  }
+  if (
+    /\bdata-video-player\b/.test(blob) ||
+    /\bAVPlayerViewController\b/.test(blob) ||
+    /\bAVPlayer\b/.test(blob) ||
+    /\bVideoPlayer\s*\(/.test(blob) ||
+    /<video\b/i.test(blob)
+  ) {
+    found.push("videoplayer");
   }
   return found;
 }

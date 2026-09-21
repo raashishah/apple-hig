@@ -4244,6 +4244,81 @@ function applyCriticalWindowBottomBar(text) {
   return text.replace(/\s*data-critical-bottom-bar(?:="[^"]*")?/g, "");
 }
 
+function hasVideoPlayer(text) {
+  return (
+    /\bdata-video-player\b/.test(text) ||
+    /\bAVPlayerViewController\b/.test(text) ||
+    /\bAVPlayer\b/.test(text) ||
+    /\bVideoPlayer\s*\(/.test(text) ||
+    /<video\b/i.test(text)
+  );
+}
+
+function scanCustomVideoPlayer(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-custom-video-player/.test(f.text)) {
+      out.push(hit(f.path, "a custom video player that diverges from the system player"));
+    }
+  }
+  return out;
+}
+
+function applyCustomVideoPlayer(text) {
+  return text.replace(/\s*data-custom-video-player(?:="[^"]*")?/g, "");
+}
+
+function scanLetterboxVideoPadding(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-letterbox-padding/.test(f.text)) {
+      out.push(hit(f.path, "video displayed with embedded letterbox or pillarbox padding"));
+    }
+  }
+  return out;
+}
+
+function applyLetterboxVideoPadding(text) {
+  return text.replace(/\s*data-letterbox-padding(?:="[^"]*")?/g, "");
+}
+
+function hasResumePlaybackPrompt(text) {
+  return /Resume\s+(playback|watching|playing)\s*\?/i.test(text);
+}
+
+function scanAskResumePlayback(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-resume-prompt/.test(f.text)) {
+      out.push(hit(f.path, "asking people if they want to resume playback"));
+      continue;
+    }
+    if (!hasVideoPlayer(f.text)) continue;
+    if (hasResumePlaybackPrompt(f.text)) {
+      out.push(hit(f.path, "asking people if they want to resume playback"));
+    }
+  }
+  return out;
+}
+
+function applyAskResumePlayback(text) {
+  return text.replace(/\s*data-resume-prompt(?:="[^"]*")?/g, "");
+}
+
+function scanVideoLoadingSplash(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-video-loading-screen/.test(f.text)) {
+      out.push(hit(f.path, "a loading or splash screen before video playback"));
+    }
+  }
+  return out;
+}
+
+function applyVideoLoadingSplash(text) {
+  return text.replace(/\s*data-video-loading-screen(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -4591,6 +4666,14 @@ function scanHeuristic(id, files) {
       return scanCallWindowScene(files);
     case "critical-window-bottom-bar":
       return scanCriticalWindowBottomBar(files);
+    case "custom-video-player":
+      return scanCustomVideoPlayer(files);
+    case "letterbox-video-padding":
+      return scanLetterboxVideoPadding(files);
+    case "ask-resume-playback":
+      return scanAskResumePlayback(files);
+    case "video-loading-splash":
+      return scanVideoLoadingSplash(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -4931,6 +5014,14 @@ function applyHeuristic(id, file) {
       return applyCallWindowScene(file.text);
     case "critical-window-bottom-bar":
       return applyCriticalWindowBottomBar(file.text);
+    case "custom-video-player":
+      return applyCustomVideoPlayer(file.text);
+    case "letterbox-video-padding":
+      return applyLetterboxVideoPadding(file.text);
+    case "ask-resume-playback":
+      return applyAskResumePlayback(file.text);
+    case "video-loading-splash":
+      return applyVideoLoadingSplash(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
