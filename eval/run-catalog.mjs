@@ -2722,6 +2722,8 @@ const results = [];
       ) &&
       (catalog.byId.buttons?.dontHeuristicIds || []).includes("ok-instead-of-verb") &&
       (catalog.byId.buttons?.dontHeuristicIds || []).includes("destructive-as-primary") &&
+      (catalog.byId.buttons?.dontHeuristicIds || []).includes("tg-radios") &&
+      (catalog.byId.toggles?.dontHeuristicIds || []).includes("tg-radios") &&
       (catalog.byId.widgets?.dontHeuristicIds || []).includes("fake-in-app-widget") &&
       (catalog.byId.controls?.dontHeuristicIds || []).includes(
         "settings-row-as-control-center",
@@ -18631,6 +18633,196 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-tab-disabled-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgr-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgr-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgr-hold-"));
+  const sixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgr-six-"));
+  const fiveDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgr-five-"));
+  const viewDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgr-view-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgr-swift-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgr-sentence-"));
+  const dirs = [passDir, fixDir, holdDir, sixDir, fiveDir, viewDir, swiftDir, sentenceDir];
+  const radios = (name, count) =>
+    Array.from({ length: count }, () => `      <input type="radio" name="${name}" />`).join("\n");
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-tg-radios>
+      <input type="radio" name="only" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div>
+      <p>Avoid listing too many radio buttons in a set.</p>
+      <input type="radio" name="only" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSix = `export function HostWidgets() {
+  return (
+    <fieldset>
+${radios("size", 6)}
+    </fieldset>
+  );
+}
+`;
+    fs.writeFileSync(path.join(sixDir, "HostWidgets.tsx"), origSix);
+    const origFive = `export function HostWidgets() {
+  return (
+    <fieldset>
+${radios("size", 5)}
+    </fieldset>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fiveDir, "HostWidgets.tsx"), origFive);
+    const origView = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="View">
+      <button type="button" role="radio">One</button>
+      <button type="button" role="radio">Two</button>
+      <button type="button" role="radio">Three</button>
+      <button type="button" role="radio">Four</button>
+      <button type="button" role="radio">Five</button>
+      <button type="button" role="radio">Six</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(viewDir, "HostWidgets.tsx"), origView);
+    const origSwift = `export function HostWidgets() {
+  Picker("Size", selection: $size) {
+    Text("A").tag(0)
+    Text("B").tag(1)
+    Text("C").tag(2)
+    Text("D").tag(3)
+    Text("E").tag(4)
+    Text("F").tag(5)
+  }
+  .pickerStyle(.radioGroup)
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid listing too many radio buttons in a set.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const sixReport = run(sixDir);
+    const fiveReport = run(fiveDir);
+    const viewReport = run(viewDir);
+    const swiftReport = run(swiftDir);
+    const sentenceReport = run(sentenceDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const sixStatus = readStatus(sixDir);
+    const fiveStatus = readStatus(fiveDir);
+    const viewStatus = readStatus(viewDir);
+    const swiftStatus = readStatus(swiftDir);
+    const sentenceStatus = readStatus(sentenceDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const six = fs.readFileSync(path.join(sixDir, "HostWidgets.tsx"), "utf8");
+    const five = fs.readFileSync(path.join(fiveDir, "HostWidgets.tsx"), "utf8");
+    const view = fs.readFileSync(path.join(viewDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      sixChrome: sixReport.chrome.pass === true,
+      fiveChrome: fiveReport.chrome.pass === true,
+      viewChrome: viewReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      sentenceChrome: sentenceReport.chrome.pass === true,
+      passButtons: passStatus.topics.buttons?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixButtons: fixStatus.topics.buttons?.state === "applied",
+      radioKept: /type="radio"/.test(fixed),
+      markersGone: !/data-tg-radios\b/.test(fixed),
+      notPopup: !/<select\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdButtons: holdStatus.topics.buttons?.state === "pending",
+      holdStillPhrase: /Avoid listing too many radio buttons in a set/.test(held),
+      holdRadioKept: /type="radio"/.test(held),
+      sixUnchanged: six === origSix,
+      sixButtons: sixStatus.topics.buttons?.state === "pending",
+      sixKept: (six.match(/type="radio"/g) || []).length === 6,
+      fiveUnchanged: five === origFive,
+      fiveButtons: fiveStatus.topics.buttons?.state === "already-compliant",
+      fiveKept: (five.match(/type="radio"/g) || []).length === 5,
+      viewUnchanged: view === origView,
+      viewButtons: viewStatus.topics.buttons?.state === "already-compliant",
+      viewKept: (view.match(/role="radio"/g) || []).length === 6 && !/type="radio"/.test(view),
+      swiftUnchanged: swift === origSwift,
+      swiftButtons: swiftStatus.topics.buttons?.state === "pending",
+      swiftKept: (swift.match(/\.tag\(/g) || []).length === 6 && /\.radioGroup/.test(swift),
+      sentenceUnchanged: sentence === origSentence,
+      sentenceButtons: sentenceStatus.topics.buttons?.state === "already-compliant",
+      sentenceKept: /Avoid listing too many radio buttons in a set/.test(sentence) &&
+        !/type="radio"/.test(sentence),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: passStatus.topics.buttons?.state,
+      fixButtons: fixStatus.topics.buttons?.state,
+      holdButtons: holdStatus.topics.buttons?.state,
+      sixButtons: sixStatus.topics.buttons?.state,
+      fiveButtons: fiveStatus.topics.buttons?.state,
+      viewButtons: viewStatus.topics.buttons?.state,
+      swiftButtons: swiftStatus.topics.buttons?.state,
+      sentenceButtons: sentenceStatus.topics.buttons?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-too-many-radios-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

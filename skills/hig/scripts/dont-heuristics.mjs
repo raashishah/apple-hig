@@ -8493,6 +8493,69 @@ function applyDestructivePrimary(text) {
   return text.replace(/\s*data-bt-primary(?:="[^"]*")?/g, "");
 }
 
+function hasRadioWidget(text) {
+  return (
+    /<input\b[^>]*\btype\s*=\s*["']radio["']/i.test(text) || /\.radioGroup\b/.test(text)
+  );
+}
+
+function hasTooManyRadiosCopy(text) {
+  return (
+    /more than about five radio buttons/i.test(text) ||
+    /too many radio buttons/i.test(text) ||
+    /listing too many radio buttons/i.test(text)
+  );
+}
+
+function namedRadioSetOverFive(text) {
+  const counts = new Map();
+  const re = /<input\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    const tag = m[0];
+    if (!/\btype\s*=\s*["']radio["']/i.test(tag)) continue;
+    const name = tag.match(/\bname\s*=\s*["']([^"']+)["']/i);
+    if (!name || !name[1]) continue;
+    counts.set(name[1], (counts.get(name[1]) || 0) + 1);
+  }
+  for (const count of counts.values()) {
+    if (count > 5) return true;
+  }
+  return false;
+}
+
+function swiftRadioGroupOverFive(text) {
+  const re = /\bPicker\b[\s\S]{0,1200}?\.pickerStyle\(\s*\.radioGroup\s*\)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const tags = m[0].match(/\.tag\(/g);
+    if (tags && tags.length > 5) return true;
+  }
+  return false;
+}
+
+function scanTooManyRadios(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-tg-radios\b/.test(f.text)) {
+      out.push(hit(f.path, "a set of more than about five radio buttons"));
+      continue;
+    }
+    if (hasRadioWidget(f.text) && hasTooManyRadiosCopy(f.text)) {
+      out.push(hit(f.path, "a set of more than about five radio buttons"));
+      continue;
+    }
+    if (namedRadioSetOverFive(f.text) || swiftRadioGroupOverFive(f.text)) {
+      out.push(hit(f.path, "a set of more than about five radio buttons"));
+    }
+  }
+  return out;
+}
+
+function applyTooManyRadios(text) {
+  return text.replace(/\s*data-tg-radios(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -8692,6 +8755,8 @@ function scanHeuristic(id, files) {
       return scanMultiplePrimaries(files);
     case "destructive-as-primary":
       return scanDestructivePrimary(files);
+    case "tg-radios":
+      return scanTooManyRadios(files);
     case "fake-in-app-widget":
       return scanFakeInAppWidget(files);
     case "stretch-small-widget-large":
@@ -9300,6 +9365,8 @@ function applyHeuristic(id, file) {
       return applyEqualWeightSubmits(file.text);
     case "destructive-as-primary":
       return applyDestructivePrimary(file.text);
+    case "tg-radios":
+      return applyTooManyRadios(file.text);
     case "fake-in-app-widget":
       return applyFakeInAppWidget(file.text, file);
     case "stretch-small-widget-large":

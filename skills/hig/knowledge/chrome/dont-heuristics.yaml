@@ -184,6 +184,8 @@ heuristics:
     match: Multiple primary actions in one region
   - id: destructive-as-primary
     match: primary role on a button that performs a destructive action
+  - id: tg-radios
+    match: more than about five radio buttons
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large

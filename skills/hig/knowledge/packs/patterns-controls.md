@@ -18,6 +18,7 @@
 - Placeholder-as-only-label.
 - Multiple primary actions in one region.
 - The primary role on a button that performs a destructive action.
+- A set of more than about five radio buttons.
 
 ## Apply in host
 
