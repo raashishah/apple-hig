@@ -180,6 +180,8 @@ heuristics:
     match: Toggles that navigate or submit
   - id: multiple-primaries-one-region
     match: Multiple primary actions in one region
+  - id: destructive-as-primary
+    match: primary role on a button that performs a destructive action
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large

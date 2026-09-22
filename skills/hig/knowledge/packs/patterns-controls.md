@@ -17,6 +17,7 @@
 - Toggles that navigate or submit.
 - Placeholder-as-only-label.
 - Multiple primary actions in one region.
+- The primary role on a button that performs a destructive action.
 
 ## Apply in host
 

@@ -2720,6 +2720,7 @@ const results = [];
         "morph-circular-bar",
       ) &&
       (catalog.byId.buttons?.dontHeuristicIds || []).includes("ok-instead-of-verb") &&
+      (catalog.byId.buttons?.dontHeuristicIds || []).includes("destructive-as-primary") &&
       (catalog.byId.widgets?.dontHeuristicIds || []).includes("fake-in-app-widget") &&
       (catalog.byId.controls?.dontHeuristicIds || []).includes(
         "settings-row-as-control-center",
@@ -17047,6 +17048,176 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-tracking-leave-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-hold-"));
+  const primaryDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-primary-"));
+  const submitDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-submit-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-plain-"));
+  const roleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-role-"));
+  const saveDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-save-"));
+  const prominentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btd-prominent-"));
+  const dirs = [passDir, fixDir, holdDir, primaryDir, submitDir, plainDir, roleDir, saveDir, prominentDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-bt-primary>
+      <button type="button">Save</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return <p>Don't assign the primary role to a button that performs a destructive action.</p>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origPrimary = `export function HostWidgets() {
+  return <button class="primary">Delete</button>;
+}
+`;
+    fs.writeFileSync(path.join(primaryDir, "HostWidgets.tsx"), origPrimary);
+    const origSubmit = `export function HostWidgets() {
+  return <button type="submit">Delete</button>;
+}
+`;
+    fs.writeFileSync(path.join(submitDir, "HostWidgets.tsx"), origSubmit);
+    const origPlain = `export function HostWidgets() {
+  return <button type="button">Delete</button>;
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origRole = `export function HostWidgets() {
+  return Button("Delete", role: .destructive);
+}
+`;
+    fs.writeFileSync(path.join(roleDir, "HostWidgets.tsx"), origRole);
+    const origSave = `export function HostWidgets() {
+  return Button("Save").buttonStyle(.borderedProminent);
+}
+`;
+    fs.writeFileSync(path.join(saveDir, "HostWidgets.tsx"), origSave);
+    const origProminent = `export function HostWidgets() {
+  return Button("Delete").buttonStyle(.borderedProminent);
+}
+`;
+    fs.writeFileSync(path.join(prominentDir, "HostWidgets.tsx"), origProminent);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const primaryReport = run(primaryDir);
+    const submitReport = run(submitDir);
+    const plainReport = run(plainDir);
+    const roleReport = run(roleDir);
+    const saveReport = run(saveDir);
+    const prominentReport = run(prominentDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const primaryStatus = readStatus(primaryDir);
+    const submitStatus = readStatus(submitDir);
+    const plainStatus = readStatus(plainDir);
+    const roleStatus = readStatus(roleDir);
+    const saveStatus = readStatus(saveDir);
+    const prominentStatus = readStatus(prominentDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const primary = fs.readFileSync(path.join(primaryDir, "HostWidgets.tsx"), "utf8");
+    const submitted = fs.readFileSync(path.join(submitDir, "HostWidgets.tsx"), "utf8");
+    const plain = fs.readFileSync(path.join(plainDir, "HostWidgets.tsx"), "utf8");
+    const role = fs.readFileSync(path.join(roleDir, "HostWidgets.tsx"), "utf8");
+    const saved = fs.readFileSync(path.join(saveDir, "HostWidgets.tsx"), "utf8");
+    const prominent = fs.readFileSync(path.join(prominentDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      primaryChrome: primaryReport.chrome.pass === true,
+      submitChrome: submitReport.chrome.pass === true,
+      plainChrome: plainReport.chrome.pass === true,
+      roleChrome: roleReport.chrome.pass === true,
+      saveChrome: saveReport.chrome.pass === true,
+      prominentChrome: prominentReport.chrome.pass === true,
+      passButtons: passStatus.topics.buttons?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixButtons: fixStatus.topics.buttons?.state === "applied",
+      systemKept: />\s*Save\s*</.test(fixed),
+      markersGone: !/data-bt-primary/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdButtons: holdStatus.topics.buttons?.state === "pending",
+      holdStillPhrase: /primary role to a button that performs a destructive action/.test(held),
+      holdNotInvented: !/class=["']primary["']/.test(held),
+      primaryUnchanged: primary === origPrimary,
+      primaryButtons: primaryStatus.topics.buttons?.state === "pending",
+      primaryKept: /class="primary"/.test(primary) && />\s*Delete\s*</.test(primary),
+      submitUnchanged: submitted === origSubmit,
+      submitButtons: submitStatus.topics.buttons?.state === "pending",
+      submitKept: /type="submit"/.test(submitted) && />\s*Delete\s*</.test(submitted),
+      plainUnchanged: plain === origPlain,
+      plainButtons: plainStatus.topics.buttons?.state === "already-compliant",
+      plainKept: />\s*Delete\s*</.test(plain),
+      roleUnchanged: role === origRole,
+      roleButtons: roleStatus.topics.buttons?.state === "already-compliant",
+      roleKept: /role: \.destructive/.test(role),
+      saveUnchanged: saved === origSave,
+      saveButtons: saveStatus.topics.buttons?.state === "already-compliant",
+      saveKept: /Button\("Save"\)/.test(saved) && /borderedProminent/.test(saved),
+      prominentUnchanged: prominent === origProminent,
+      prominentButtons: prominentStatus.topics.buttons?.state === "pending",
+      prominentKept: /Button\("Delete"\)/.test(prominent) && /borderedProminent/.test(prominent),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: passStatus.topics.buttons?.state,
+      fixButtons: fixStatus.topics.buttons?.state,
+      holdButtons: holdStatus.topics.buttons?.state,
+      primaryButtons: primaryStatus.topics.buttons?.state,
+      submitButtons: submitStatus.topics.buttons?.state,
+      plainButtons: plainStatus.topics.buttons?.state,
+      roleButtons: roleStatus.topics.buttons?.state,
+      saveButtons: saveStatus.topics.buttons?.state,
+      prominentButtons: prominentStatus.topics.buttons?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-primary-destructive-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

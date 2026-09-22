@@ -8058,6 +8058,61 @@ function applyAcSymbol(text) {
   return text.replace(/\s*data-ac-symbol(?:="[^"]*")?/g, "");
 }
 
+function hasDestructivePrimaryCopy(text) {
+  return (
+    /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
+    /primary role to a button that performs a destructive action/i.test(text) ||
+    /primary role on a button that performs a destructive action/i.test(text)
+  );
+}
+
+function hasDestructivePrimary(text) {
+  const label = "Delete|Remove|Erase|Destroy";
+  const htmlPrimary = new RegExp(
+    `<button\\b[^>]*\\b(?:class|className)=["'][^"']*\\bprimary\\b[^"']*["'][^>]*>\\s*(?:${label})\\s*</button>`,
+    "i",
+  );
+  const htmlVariant = new RegExp(
+    `<button\\b[^>]*(?:\\bvariant|\\bdata-variant)=["']primary["'][^>]*>\\s*(?:${label})\\s*</button>`,
+    "i",
+  );
+  const htmlSubmit = new RegExp(
+    `<button\\b[^>]*\\btype=["']submit["'][^>]*>\\s*(?:${label})\\s*</button>`,
+    "i",
+  );
+  const swiftProminent = new RegExp(
+    `Button\\(\\s*["'](?:${label})["'][\\s\\S]{0,240}buttonStyle\\(\\s*\\.borderedProminent\\s*\\)|buttonStyle\\(\\s*\\.borderedProminent\\s*\\)[\\s\\S]{0,240}Button\\(\\s*["'](?:${label})["']`,
+    "i",
+  );
+  const swiftBoth =
+    /role:\s*\.destructive[\s\S]{0,240}\.borderedProminent|\.borderedProminent[\s\S]{0,240}role:\s*\.destructive/i;
+  return (
+    htmlPrimary.test(text) ||
+    htmlVariant.test(text) ||
+    htmlSubmit.test(text) ||
+    swiftProminent.test(text) ||
+    swiftBoth.test(text)
+  );
+}
+
+function scanDestructivePrimary(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-bt-primary/.test(f.text)) {
+      out.push(hit(f.path, "the primary role on a button that performs a destructive action"));
+      continue;
+    }
+    if (hasDestructivePrimaryCopy(f.text) || hasDestructivePrimary(f.text)) {
+      out.push(hit(f.path, "the primary role on a button that performs a destructive action"));
+    }
+  }
+  return out;
+}
+
+function applyDestructivePrimary(text) {
+  return text.replace(/\s*data-bt-primary(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -8253,6 +8308,8 @@ function scanHeuristic(id, files) {
       return scanToggleNavigates(files);
     case "multiple-primaries-one-region":
       return scanMultiplePrimaries(files);
+    case "destructive-as-primary":
+      return scanDestructivePrimary(files);
     case "fake-in-app-widget":
       return scanFakeInAppWidget(files);
     case "stretch-small-widget-large":
@@ -8845,6 +8902,8 @@ function applyHeuristic(id, file) {
       return applyToggleNavigates(file.text);
     case "multiple-primaries-one-region":
       return applyEqualWeightSubmits(file.text);
+    case "destructive-as-primary":
+      return applyDestructivePrimary(file.text);
     case "fake-in-app-widget":
       return applyFakeInAppWidget(file.text, file);
     case "stretch-small-widget-large":
