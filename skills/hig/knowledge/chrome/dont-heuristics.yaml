@@ -174,6 +174,8 @@ heuristics:
     match: Overweight wheels for a short list
   - id: morph-circular-bar
     match: Morph a circular indicator into a bar mid-task
+  - id: pg-label
+    match: label on a spinning progress indicator
   - id: jump-progress-ninety
     match: Jump progress to 90% then stall
   - id: pull-down-to-refresh-title

@@ -19378,6 +19378,220 @@ ${tags(sevenLabels)}
   results.push({ case: "catalog-apply-segment-count-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-hold-"));
+  const labeledDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-labeled-"));
+  const ariaDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-aria-"));
+  const barDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-bar-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-sentence-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-swift-"));
+  const swiftBarDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-swift-bar-"));
+  const activityDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-activity-"));
+  const activityLabelDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgl-activity-label-"));
+  const dirs = [
+    passDir,
+    fixDir,
+    holdDir,
+    labeledDir,
+    ariaDir,
+    barDir,
+    sentenceDir,
+    swiftDir,
+    swiftBarDir,
+    activityDir,
+    activityLabelDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return <progress data-pg-label />;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div>
+      <p>Avoid labeling a spinning progress indicator.</p>
+      <progress />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origLabeled = `export function HostWidgets() {
+  return (
+    <p>
+      <progress /> Saving
+    </p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(labeledDir, "HostWidgets.tsx"), origLabeled);
+    const origAria = `export function HostWidgets() {
+  return <progress aria-label="Saving" />;
+}
+`;
+    fs.writeFileSync(path.join(ariaDir, "HostWidgets.tsx"), origAria);
+    const origBar = `export function HostWidgets() {
+  return (
+    <p>
+      <progress value="64" max="100" /> 64%
+    </p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(barDir, "HostWidgets.tsx"), origBar);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid labeling a spinning progress indicator.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origSwift = `export function HostWidgets() {
+  return ProgressView("Saving")
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftBar = `export function HostWidgets() {
+  return ProgressView("Export", value: 0.4)
+}
+`;
+    fs.writeFileSync(path.join(swiftBarDir, "HostWidgets.tsx"), origSwiftBar);
+    const origActivity = `export function HostWidgets() {
+  return UIActivityIndicatorView()
+}
+`;
+    fs.writeFileSync(path.join(activityDir, "HostWidgets.tsx"), origActivity);
+    const origActivityLabel = `export function HostWidgets() {
+  UIActivityIndicatorView()
+  Text("Saving")
+}
+`;
+    fs.writeFileSync(path.join(activityLabelDir, "HostWidgets.tsx"), origActivityLabel);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const labeledReport = run(labeledDir);
+    const ariaReport = run(ariaDir);
+    const barReport = run(barDir);
+    const sentenceReport = run(sentenceDir);
+    const swiftReport = run(swiftDir);
+    const swiftBarReport = run(swiftBarDir);
+    const activityReport = run(activityDir);
+    const activityLabelReport = run(activityLabelDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const labeledStatus = readStatus(labeledDir);
+    const ariaStatus = readStatus(ariaDir);
+    const barStatus = readStatus(barDir);
+    const sentenceStatus = readStatus(sentenceDir);
+    const swiftStatus = readStatus(swiftDir);
+    const swiftBarStatus = readStatus(swiftBarDir);
+    const activityStatus = readStatus(activityDir);
+    const activityLabelStatus = readStatus(activityLabelDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const labeled = fs.readFileSync(path.join(labeledDir, "HostWidgets.tsx"), "utf8");
+    const aria = fs.readFileSync(path.join(ariaDir, "HostWidgets.tsx"), "utf8");
+    const bar = fs.readFileSync(path.join(barDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const swiftBar = fs.readFileSync(path.join(swiftBarDir, "HostWidgets.tsx"), "utf8");
+    const activity = fs.readFileSync(path.join(activityDir, "HostWidgets.tsx"), "utf8");
+    const activityLabel = fs.readFileSync(path.join(activityLabelDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["progress-indicators"]?.dontHeuristicIds || []).includes("pg-label"),
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      labeledChrome: labeledReport.chrome.pass === true,
+      ariaChrome: ariaReport.chrome.pass === true,
+      barChrome: barReport.chrome.pass === true,
+      sentenceChrome: sentenceReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      swiftBarChrome: swiftBarReport.chrome.pass === true,
+      activityChrome: activityReport.chrome.pass === true,
+      activityLabelChrome: activityLabelReport.chrome.pass === true,
+      passProgress: passStatus.topics["progress-indicators"]?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      fixProgress: fixStatus.topics["progress-indicators"]?.state === "applied",
+      markerGone: !/data-pg-label(?![\w-])/.test(fixed),
+      spinnerKept: /<progress\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdProgress: holdStatus.topics["progress-indicators"]?.state === "pending",
+      holdStillPhrase: /labeling a spinning progress indicator/.test(held),
+      labeledUnchanged: labeled === origLabeled,
+      labeledProgress: labeledStatus.topics["progress-indicators"]?.state === "pending",
+      labelKept: />\s*Saving\s*</.test(labeled),
+      ariaUnchanged: aria === origAria,
+      ariaProgress: ariaStatus.topics["progress-indicators"]?.state === "already-compliant",
+      barUnchanged: bar === origBar,
+      barProgress: barStatus.topics["progress-indicators"]?.state === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceProgress: sentenceStatus.topics["progress-indicators"]?.state === "skipped-no-affordance",
+      swiftUnchanged: swift === origSwift,
+      swiftProgress: swiftStatus.topics["progress-indicators"]?.state === "pending",
+      swiftBarUnchanged: swiftBar === origSwiftBar,
+      swiftBarProgress: swiftBarStatus.topics["progress-indicators"]?.state === "already-compliant",
+      activityUnchanged: activity === origActivity,
+      activityProgress: activityStatus.topics["progress-indicators"]?.state === "already-compliant",
+      activityLabelUnchanged: activityLabel === origActivityLabel,
+      activityLabelProgress: activityLabelStatus.topics["progress-indicators"]?.state === "pending",
+      activityTextKept: /Text\("Saving"\)/.test(activityLabel),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passProgress: passStatus.topics["progress-indicators"]?.state,
+      fixProgress: fixStatus.topics["progress-indicators"]?.state,
+      holdProgress: holdStatus.topics["progress-indicators"]?.state,
+      labeledProgress: labeledStatus.topics["progress-indicators"]?.state,
+      ariaProgress: ariaStatus.topics["progress-indicators"]?.state,
+      barProgress: barStatus.topics["progress-indicators"]?.state,
+      sentenceProgress: sentenceStatus.topics["progress-indicators"]?.state,
+      swiftProgress: swiftStatus.topics["progress-indicators"]?.state,
+      swiftBarProgress: swiftBarStatus.topics["progress-indicators"]?.state,
+      activityProgress: activityStatus.topics["progress-indicators"]?.state,
+      activityLabelProgress: activityLabelStatus.topics["progress-indicators"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-spinner-label-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

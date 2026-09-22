@@ -2597,6 +2597,111 @@ function applyOverweightWheel(text, file) {
   return next;
 }
 
+function htmlIndeterminateSpinners(text) {
+  const spans = [];
+  const progressRe = /<progress\b([^>]*)>/gi;
+  let m;
+  while ((m = progressRe.exec(text))) {
+    if (/\bvalue\s*=/.test(m[1])) continue;
+    spans.push({ start: m.index, end: m.index + m[0].length });
+  }
+  const barRe = /<([A-Za-z][\w]*)\b([^>]*\brole=["']progressbar["'][^>]*)>/gi;
+  while ((m = barRe.exec(text))) {
+    if (/\baria-valuenow\s*=/.test(m[2]) || /\bvalue\s*=/.test(m[2])) continue;
+    spans.push({ start: m.index, end: m.index + m[0].length });
+  }
+  return spans;
+}
+
+function adjacentVisibleLabel(text, start, end) {
+  const before = text.slice(Math.max(0, start - 80), start);
+  const after = text.slice(end, end + 80);
+  const gt = before.lastIndexOf(">");
+  const beforeText = gt >= 0 ? before.slice(gt + 1) : "";
+  const lt = after.indexOf("<");
+  const afterText = lt >= 0 ? after.slice(0, lt) : "";
+  const chunk = `${beforeText} ${afterText}`.replace(/\s+/g, " ").trim();
+  return /[A-Za-z]/.test(chunk);
+}
+
+function hasSpinnerWidget(text) {
+  if (htmlIndeterminateSpinners(text).length) return true;
+  if (/\bUIActivityIndicatorView\b/.test(text)) return true;
+  if (/\bNSProgressIndicator\b/.test(text) && /\.spinning\b/.test(text)) return true;
+  const re = /\bProgressView\s*\(/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const call = text.slice(m.index, m.index + 80);
+    if (!/\bvalue\s*:/.test(call)) return true;
+  }
+  return false;
+}
+
+function hasSpinnerLabelCopy(text) {
+  return (
+    /labeling a spinning progress indicator/i.test(text) ||
+    /label on a spinning progress indicator/i.test(text)
+  );
+}
+
+function htmlSpinnerHasVisibleLabel(text) {
+  return htmlIndeterminateSpinners(text).some((span) =>
+    adjacentVisibleLabel(text, span.start, span.end),
+  );
+}
+
+function swiftLabeledSpinner(text) {
+  const titled = /\bProgressView\s*\(\s*"[^"]+"/g;
+  let m;
+  while ((m = titled.exec(text))) {
+    const call = text.slice(m.index, m.index + 160);
+    if (!/\bvalue\s*:/.test(call)) return true;
+  }
+  const bare = /\bProgressView\s*\(\s*\)\s*\{/g;
+  while ((m = bare.exec(text))) {
+    const body = text.slice(m.index, m.index + 180);
+    if (/Text\s*\(\s*"/.test(body)) return true;
+  }
+  return false;
+}
+
+function activityLabeled(text) {
+  if (/\bNSProgressIndicator\b/.test(text) && /\.spinning\b/.test(text)) {
+    if (/Text\s*\(\s*"[^"]+"/.test(text) || /text\s*=\s*"[^"]+"/.test(text)) return true;
+  }
+  const re = /\bUIActivityIndicatorView\b/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const window = text.slice(Math.max(0, m.index - 180), Math.min(text.length, m.index + 220));
+    if (/Text\s*\(\s*"[^"]+"/.test(window) || /text\s*=\s*"[^"]+"/.test(window)) return true;
+  }
+  return false;
+}
+
+function scanSpinnerLabel(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pg-label(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a label on a spinning progress indicator"));
+      continue;
+    }
+    if (!hasSpinnerWidget(f.text)) continue;
+    if (
+      hasSpinnerLabelCopy(f.text) ||
+      htmlSpinnerHasVisibleLabel(f.text) ||
+      swiftLabeledSpinner(f.text) ||
+      activityLabeled(f.text)
+    ) {
+      out.push(hit(f.path, "a label on a spinning progress indicator"));
+    }
+  }
+  return out;
+}
+
+function applySpinnerLabel(text) {
+  return text.replace(/\s*data-pg-label(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMorphProgress(files) {
   const out = [];
   for (const f of files) {
@@ -8956,6 +9061,8 @@ function scanHeuristic(id, files) {
       return scanOverweightWheel(files);
     case "morph-circular-bar":
       return scanMorphProgress(files);
+    case "pg-label":
+      return scanSpinnerLabel(files);
     case "jump-progress-ninety":
       return scanJumpNinety(files);
     case "pull-down-to-refresh-title":
@@ -9572,6 +9679,8 @@ function applyHeuristic(id, file) {
       return applyOverweightWheel(file.text, file);
     case "morph-circular-bar":
       return applyMorphProgress(file.text);
+    case "pg-label":
+      return applySpinnerLabel(file.text);
     case "jump-progress-ninety":
       return applyJumpNinety(file.text);
     case "pull-down-to-refresh-title":

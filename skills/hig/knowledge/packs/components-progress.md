@@ -23,6 +23,7 @@
 - Morph a circular indicator into a bar mid-task.
 - Jump progress to 90% then stall.
 - Title pull-to-refresh "pull down to refresh".
+- A label on a spinning progress indicator.
 
 ## Apply in host
 
