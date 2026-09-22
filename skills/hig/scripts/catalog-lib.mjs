@@ -611,6 +611,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "siwa":
       return !present.includes(need);
+    case "applepay":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1182,6 +1184,13 @@ export function scanAffordances(files) {
     /\bASAuthorizationAppleIDButton\b/.test(blob)
   ) {
     found.push("siwa");
+  }
+  if (
+    /\bdata-apple-pay\b/.test(blob) ||
+    /\bPKPaymentButton\b/.test(blob) ||
+    /\bPayWithApplePayButton\b/.test(blob)
+  ) {
+    found.push("applepay");
   }
   return found;
 }

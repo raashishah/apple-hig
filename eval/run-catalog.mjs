@@ -99,6 +99,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.healthkit?.affordance === "healthkit" &&
     surfaces.byId.carplay?.affordance === "carplay" &&
     surfaces.byId["sign-in-with-apple"]?.affordance === "siwa" &&
+    surfaces.byId["apple-pay"]?.affordance === "applepay" &&
+    surfaces.byId["apple-pay"]?.gate === "capability:applepay" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -997,6 +999,36 @@ const results = [];
       text: '<div data-sia-password data-sia-email data-sia-logo><button type="button">Sign in with Apple</button></div>',
     },
   ]);
+  const applePayOnly = scanAffordances([
+    {
+      path: "Pay.tsx",
+      text: '<div data-apple-pay><button type="button">Pay with Apple Pay</button></div>',
+    },
+  ]);
+  const applePayButtonOnly = scanAffordances([
+    {
+      path: "Pay.swift",
+      text: "let button = PKPaymentButton()",
+    },
+  ]);
+  const applePayPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Pay with Apple Pay at checkout.</p>",
+    },
+  ]);
+  const passKitOnly = scanAffordances([
+    {
+      path: "Wallet.swift",
+      text: "import PassKit\nlet library = PKPassLibrary()",
+    },
+  ]);
+  const apMarkerOnly = scanAffordances([
+    {
+      path: "Pay.tsx",
+      text: '<div data-ap-mark-button data-ap-plural data-ap-logo-word><button type="button">Pay with Apple Pay</button></div>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1370,6 +1402,20 @@ const results = [];
       !formOnly.includes("siwa") &&
       !passList.includes("siwa") &&
       !pageOnly.includes("siwa") &&
+      applePayOnly.includes("applepay") &&
+      applePayButtonOnly.includes("applepay") &&
+      !applePayOnly.includes("siwa") &&
+      !applePayOnly.includes("taptopay") &&
+      !applePayOnly.includes("iap") &&
+      !applePayPhraseOnly.includes("applepay") &&
+      !passKitOnly.includes("applepay") &&
+      !apMarkerOnly.includes("applepay") &&
+      !tapToPayOnly.includes("applepay") &&
+      !iapOnly.includes("applepay") &&
+      !siwaOnly.includes("applepay") &&
+      !formOnly.includes("applepay") &&
+      !passList.includes("applepay") &&
+      !pageOnly.includes("applepay") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2076,6 +2122,12 @@ const results = [];
       (catalog.byId["sign-in-with-apple"]?.dontHeuristicIds || []).includes("sia-logo") &&
       catalog.byId["sign-in-with-apple"]?.pack === "tech-sign-in-with-apple.md" &&
       catalog.byId["sign-in-with-apple"]?.appliesWhen === "always" &&
+      catalog.byId["apple-pay"]?.dontCoverageComplete === true &&
+      (catalog.byId["apple-pay"]?.dontHeuristicIds || []).includes("ap-mark-button") &&
+      (catalog.byId["apple-pay"]?.dontHeuristicIds || []).includes("ap-plural") &&
+      (catalog.byId["apple-pay"]?.dontHeuristicIds || []).includes("ap-logo-word") &&
+      catalog.byId["apple-pay"]?.pack === "tech-apple-pay.md" &&
+      catalog.byId["apple-pay"]?.appliesWhen === "capability:applepay" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -10813,6 +10865,136 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-siwa-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-applepay-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-applepay-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-applepay-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-apple-pay data-ap-mark-button data-ap-plural data-ap-logo-word>
+      <button type="button">Pay with Apple Pay</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-apple-pay>
+      Pay with Apple Pays to check out.
+      <button type="button">Pay with Apple Pay</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passApplePay: passStatus.topics["apple-pay"]?.state === "skipped-gate",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixApplePay: fixStatus.topics["apple-pay"]?.state === "applied",
+      systemKept:
+        /\bdata-apple-pay\b/.test(fixed) && />\s*Pay with Apple Pay\s*</.test(fixed),
+      markersGone:
+        !/data-ap-mark-button/.test(fixed) &&
+        !/data-ap-plural/.test(fixed) &&
+        !/data-ap-logo-word/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdApplePay: holdStatus.topics["apple-pay"]?.state === "pending",
+      holdStillPlural:
+        /\bdata-apple-pay\b/.test(held) &&
+        /Pay with Apple Pays to check out/.test(held) &&
+        /Pay with Apple Pay/.test(held),
+      holdNotInvented:
+        !/PKPaymentButton/.test(held) && !/PayWithApplePayButton/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passApplePay: passStatus.topics["apple-pay"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixApplePay: fixStatus.topics["apple-pay"]?.state,
+      holdApplePay: holdStatus.topics["apple-pay"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-applepay-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

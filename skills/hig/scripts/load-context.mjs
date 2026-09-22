@@ -610,6 +610,7 @@ function detectCapabilitiesFromTree(cwd) {
     /\bPKPaymentButton\b/.test(blob) ||
     /\bPayWithApplePayButton\b/.test(blob) ||
     /\bApplePayButton\b/.test(blob) ||
+    /\bdata-apple-pay\b/.test(blob) ||
     /com\.apple\.developer\.in-app-payments/.test(blob);
   if (walletSignals) capabilities.add("wallet");
   if (applePaySignals) capabilities.add("applepay");

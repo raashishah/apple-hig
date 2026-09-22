@@ -474,3 +474,9 @@ heuristics:
     match: personal email asked
   - id: sia-logo
     match: custom Apple logo
+  - id: ap-mark-button
+    match: Apple Pay mark used as a payment button
+  - id: ap-plural
+    match: made plural or possessive
+  - id: ap-logo-word
+    match: Apple logo used in place
