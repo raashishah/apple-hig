@@ -24844,6 +24844,172 @@ ${dots}
   results.push({ case: "catalog-apply-app-clip-screenshot-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-hold-"));
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-named-"));
+  const fieldDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-field-"));
+  const welcomeDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-welcome-"));
+  const guestDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-guest-"));
+  const hiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-hi-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvw-copy-"));
+  const dirs = [
+    passDir,
+    fixDir,
+    holdDir,
+    namedDir,
+    fieldDir,
+    welcomeDir,
+    guestDir,
+    hiDir,
+    sentenceDir,
+    copyDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return <p data-pv-who>Welcome back</p>;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return <p>Welcome back, Alex</p>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origNamed = `export function HostWidgets() {
+  return <p>Signed in as Jordan</p>;
+}
+`;
+    fs.writeFileSync(path.join(namedDir, "HostWidgets.tsx"), origNamed);
+    const origField = `export function HostWidgets() {
+  return (
+    <label>
+      Display name
+      <input name="displayName" placeholder="Alex" />
+    </label>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fieldDir, "HostWidgets.tsx"), origField);
+    const origWelcome = `export function HostWidgets() {
+  return <p>Welcome back</p>;
+}
+`;
+    fs.writeFileSync(path.join(welcomeDir, "HostWidgets.tsx"), origWelcome);
+    const origGuest = `export function HostWidgets() {
+  return <p>Signed in as a guest</p>;
+}
+`;
+    fs.writeFileSync(path.join(guestDir, "HostWidgets.tsx"), origGuest);
+    const origHi = `export function HostWidgets() {
+  return <p>Hi, Alex</p>;
+}
+`;
+    fs.writeFileSync(path.join(hiDir, "HostWidgets.tsx"), origHi);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid making assumptions about who is signed in.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <p>Welcome back, Alex</p>
+      <p>Avoid making assumptions about who is signed in.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const names = [
+      "pass",
+      "fix",
+      "hold",
+      "named",
+      "field",
+      "welcome",
+      "guest",
+      "hi",
+      "sentence",
+      "copy",
+    ];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      named: namedDir,
+      field: fieldDir,
+      welcome: welcomeDir,
+      guest: guestDir,
+      hi: hiDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const named = fs.readFileSync(path.join(namedDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const privacy = (name) => status[name].topics.privacy?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.privacy?.dontHeuristicIds || []).includes("pv-who"),
+      plain: (catalog.byId.privacy?.dontHeuristicIds || []).includes("pv-plain"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passPrivacy: privacy("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixPrivacy: privacy("fix") === "applied",
+      markerGone: !/data-pv-who(?![\w-])/.test(fixed),
+      welcomeKept: />\s*Welcome back\s*</.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPrivacy: privacy("hold") === "pending",
+      namedUnchanged: named === origNamed,
+      namedPrivacy: privacy("named") === "pending",
+      fieldPrivacy: privacy("field") === "already-compliant",
+      welcomePrivacy: privacy("welcome") === "already-compliant",
+      guestPrivacy: privacy("guest") === "already-compliant",
+      hiPrivacy: privacy("hi") === "already-compliant",
+      sentencePrivacy: privacy("sentence") === "already-compliant",
+      copyUnchanged: copied === origCopy,
+      copyPrivacy: privacy("copy") === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPrivacy: privacy("pass"),
+      fixPrivacy: privacy("fix"),
+      holdPrivacy: privacy("hold"),
+      namedPrivacy: privacy("named"),
+      fieldPrivacy: privacy("field"),
+      welcomePrivacy: privacy("welcome"),
+      guestPrivacy: privacy("guest"),
+      hiPrivacy: privacy("hi"),
+      sentencePrivacy: privacy("sentence"),
+      copyPrivacy: privacy("copy"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-signed-in-person-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

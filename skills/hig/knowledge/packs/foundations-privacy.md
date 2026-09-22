@@ -3,7 +3,7 @@
 **Apple:** https://developer.apple.com/design/human-interface-guidelines/privacy  
 **Phase:** 1
 
-Encode permission **timing and copy**. Do not complete Apple Pay, Sign in with Apple, or biometric sheets for the user (those stay human-only).
+Encode permission **timing and copy**. Do not complete Apple Pay, Sign in with Apple, or biometric sheets for the user (those stay human-only). A greeting that names the signed-in person is the violation. A Display name field stays allowed. A generic Welcome stays allowed. Do not invent a person. Do not rewrite the greeting.
 
 ## Apple guidance (durable)
 
@@ -27,6 +27,7 @@ Encode permission **timing and copy**. Do not complete Apple Pay, Sign in with A
 - A custom tracking screen with an incentive or an Allow button.
 - A Close or Cancel button on a custom tracking screen.
 - A password written to a plain-text file.
+- A greeting that names the signed-in person.
 
 ## Apply in host
 

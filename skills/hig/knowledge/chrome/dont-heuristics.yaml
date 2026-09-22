@@ -52,6 +52,8 @@ heuristics:
     match: Close or Cancel button on a custom tracking screen
   - id: pv-plain
     match: password written to a plain-text file
+  - id: pv-who
+    match: greeting that names the signed-in person
   - id: rewrite-or-automate-system-ui
     match: Rewriting or automating system permission
   - id: opaque-brand-bar-fills

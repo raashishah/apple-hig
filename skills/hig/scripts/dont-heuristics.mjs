@@ -1020,6 +1020,31 @@ function applyPlaintextPassword(text) {
   return text.replace(/\s*data-pv-plain(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function namesSignedInPerson(text) {
+  return (
+    /\b[Ww]elcome back,\s+[A-Z][a-z]{2,}\b/.test(text) ||
+    /\b[Ss]igned in as\s+[A-Z][a-z]{2,}\b/.test(text)
+  );
+}
+
+function scanSignedInPerson(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pv-who(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a greeting that names the signed-in person"));
+      continue;
+    }
+    if (namesSignedInPerson(f.text)) {
+      out.push(hit(f.path, "a greeting that names the signed-in person"));
+    }
+  }
+  return out;
+}
+
+function applySignedInPerson(text) {
+  return text.replace(/\s*data-pv-who(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanRewriteOrAutomate(files) {
   const out = scanRewriteSystemAlerts(files);
   for (const f of files) {
@@ -10819,6 +10844,8 @@ function scanHeuristic(id, files) {
       return scanAttLeave(files);
     case "pv-plain":
       return scanPlaintextPassword(files);
+    case "pv-who":
+      return scanSignedInPerson(files);
     case "rewrite-or-automate-system-ui":
       return scanRewriteOrAutomate(files);
     case "opaque-brand-bar-fills":
@@ -11501,6 +11528,8 @@ function applyHeuristic(id, file) {
       return applyAttLeave(file.text);
     case "pv-plain":
       return applyPlaintextPassword(file.text);
+    case "pv-who":
+      return applySignedInPerson(file.text);
     case "rewrite-or-automate-system-ui":
       return file.text;
     case "opaque-brand-bar-fills":
