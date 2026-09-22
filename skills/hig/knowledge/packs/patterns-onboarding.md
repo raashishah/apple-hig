@@ -6,7 +6,7 @@
 
 Own surface: first-run, empty-state coaching, permission primers. Distinct files from Settings and from Launching.
 
-**Skip unless** the host has a first-run flow, feature tour, or empty-state coach marks.
+**Skip unless** the host has a first-run flow, feature tour, or empty-state coach marks. A tutorial presented again on a later launch is the violation. A first-launch tour stays allowed. Do not invent an onboarding flow. Do not remove the tour.
 
 ## Apple guidance (1:1)
 
@@ -36,6 +36,7 @@ Own surface: first-run, empty-state coaching, permission primers. Distinct files
 - Require an account before any value if the app can run signed out.
 - Ask for every permission on page one.
 - Duplicate Help as six interstitial cards.
+- A tutorial presented again on a later launch.
 
 ## Checklist
 

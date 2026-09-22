@@ -25010,6 +25010,187 @@ ${dots}
   results.push({ case: "catalog-apply-signed-in-person-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-clean-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-hold-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-fix-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-sentence-"));
+  const licenseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-license-"));
+  const skipDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-skip-"));
+  const classDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-class-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-oba-bare-"));
+  const dirs = [
+    passDir,
+    cleanDir,
+    holdDir,
+    fixDir,
+    copyDir,
+    sentenceDir,
+    licenseDir,
+    skipDir,
+    classDir,
+    bareDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const tour = `export function HostWidgets() {
+  return (
+    <div data-onboarding>
+      <p>Welcome</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), tour);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-onboarding className="every-launch">
+      <p>Welcome</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-onboarding data-ob-again>
+      <p>Welcome</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), `export function HostWidgets() {
+  return <p data-ob-again>Welcome</p>;
+}
+`);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-onboarding>
+      <p>If people skip the tutorial, don't present it again on subsequent launches.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>If people skip the tutorial, don't present it again on subsequent launches.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origLicense = `export function HostWidgets() {
+  return (
+    <div data-onboarding>
+      <p>Avoid displaying licensing details within your onboarding flow.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(licenseDir, "HostWidgets.tsx"), origLicense);
+    const origSkip = `export function HostWidgets() {
+  return (
+    <div data-onboarding>
+      <p>Welcome</p>
+      <button type="button">Skip</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(skipDir, "HostWidgets.tsx"), origSkip);
+    const origClass = `export function HostWidgets() {
+  return <div className="every-launch">Welcome</div>;
+}
+`;
+    fs.writeFileSync(path.join(classDir, "HostWidgets.tsx"), origClass);
+    const names = [
+      "pass",
+      "clean",
+      "hold",
+      "fix",
+      "copy",
+      "sentence",
+      "license",
+      "skip",
+      "class",
+      "bare",
+    ];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      hold: holdDir,
+      fix: fixDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      license: licenseDir,
+      skip: skipDir,
+      class: classDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const tourState = (name) => status[name].topics.onboarding?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.onboarding?.dontHeuristicIds || []).includes("ob-again"),
+      help: (catalog.byId.onboarding?.dontHeuristicIds || []).includes("help-as-six-interstitials"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passTour: tourState("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanTour: tourState("clean") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdTour: tourState("hold") === "pending",
+      tourKept: /className="every-launch"/.test(held) && />\s*Welcome\s*</.test(held),
+      fixTour: tourState("fix") === "applied",
+      markerGone: !/data-ob-again(?![\w-])/.test(fixed),
+      welcomeKept: /\bdata-onboarding\b/.test(fixed) && />\s*Welcome\s*</.test(fixed),
+      copyUnchanged: copied === origCopy,
+      copyTour: tourState("copy") === "pending",
+      sentenceTour: tourState("sentence") === "skipped-no-affordance",
+      licenseTour: tourState("license") === "already-compliant",
+      skipTour: tourState("skip") === "already-compliant",
+      classTour: tourState("class") === "skipped-no-affordance",
+      bareTour: tourState("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-ob-again(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passTour: tourState("pass"),
+      cleanTour: tourState("clean"),
+      holdTour: tourState("hold"),
+      fixTour: tourState("fix"),
+      copyTour: tourState("copy"),
+      sentenceTour: tourState("sentence"),
+      licenseTour: tourState("license"),
+      skipTour: tourState("skip"),
+      classTour: tourState("class"),
+      bareTour: tourState("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-onboarding-again-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

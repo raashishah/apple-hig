@@ -2014,6 +2014,37 @@ function scanHelpInterstitials(files) {
   return out;
 }
 
+function tourOnEveryLaunch(text) {
+  if (!fileHasOnboarding(text)) return false;
+  return /class(?:Name)?=["'][^"']*\bevery-launch\b/i.test(text);
+}
+
+function hasTourAgainCopy(text) {
+  return (
+    /present it again on subsequent launches/i.test(text) ||
+    /tutorial presented again on a later launch/i.test(text)
+  );
+}
+
+function scanTourAgain(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ob-again(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a tutorial presented again on a later launch"));
+      continue;
+    }
+    if (!fileHasOnboarding(f.text)) continue;
+    if (tourOnEveryLaunch(f.text) || hasTourAgainCopy(f.text)) {
+      out.push(hit(f.path, "a tutorial presented again on a later launch"));
+    }
+  }
+  return out;
+}
+
+function applyTourAgain(text) {
+  return text.replace(/\s*data-ob-again(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanNotificationWall(files) {
   const out = [];
   for (const f of files) {
@@ -10908,6 +10939,8 @@ function scanHeuristic(id, files) {
       return scanEveryPermissionPageOne(files);
     case "help-as-six-interstitials":
       return scanHelpInterstitials(files);
+    case "ob-again":
+      return scanTourAgain(files);
     case "first-launch-notification-wall":
       return scanNotificationWall(files);
     case "marketing-as-time-sensitive":
@@ -11592,6 +11625,8 @@ function applyHeuristic(id, file) {
       return file.text;
     case "help-as-six-interstitials":
       return file.text;
+    case "ob-again":
+      return applyTourAgain(file.text);
     case "first-launch-notification-wall":
       return file.text;
     case "marketing-as-time-sensitive":

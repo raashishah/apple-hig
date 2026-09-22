@@ -116,6 +116,8 @@ heuristics:
     match: Ask for every permission on page one
   - id: help-as-six-interstitials
     match: Duplicate Help as six interstitial cards
+  - id: ob-again
+    match: tutorial presented again on a later launch
   - id: first-launch-notification-wall
     match: First-launch "Enable notifications" wall
   - id: marketing-as-time-sensitive
