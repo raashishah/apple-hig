@@ -117,6 +117,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["action-button"]?.gate === "always" &&
     surfaces.byId["camera-control"]?.affordance === "cameracontrol" &&
     surfaces.byId["camera-control"]?.gate === "always" &&
+    surfaces.byId["dock-menus"]?.affordance === "dockmenu" &&
+    surfaces.byId["dock-menus"]?.gate === "always" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -533,6 +535,7 @@ const results = [];
     "imessage-apps-and-stickers",
     "action-button",
     "camera-control",
+    "dock-menus",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1298,6 +1301,30 @@ const results = [];
       text: "let session = AVCaptureSession()",
     },
   ]);
+  const dockOnly = scanAffordances([
+    {
+      path: "Dock.tsx",
+      text: '<div data-dock-menu><button type="button">Expedite Dispatch</button></div>',
+    },
+  ]);
+  const appDockOnly = scanAffordances([
+    {
+      path: "Dock.swift",
+      text: "func applicationDockMenu(_ sender: NSApplication) {}",
+    },
+  ]);
+  const dockPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Open the Dock menu.</p>",
+    },
+  ]);
+  const dkMarkerOnly = scanAffordances([
+    {
+      path: "Dock.tsx",
+      text: '<div data-dk-elsewhere><button type="button">Expedite Dispatch</button></div>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1778,6 +1805,19 @@ const results = [];
       !formOnly.includes("cameracontrol") &&
       !passList.includes("cameracontrol") &&
       !pageOnly.includes("cameracontrol") &&
+      dockOnly.includes("dockmenu") &&
+      !dockOnly.includes("menu") &&
+      !dockOnly.includes("quickaction") &&
+      appDockOnly.includes("dockmenu") &&
+      !appDockOnly.includes("quickaction") &&
+      !dockPhraseOnly.includes("dockmenu") &&
+      !dkMarkerOnly.includes("dockmenu") &&
+      !commandMenuOnly.includes("dockmenu") &&
+      !editMenuOnly.includes("dockmenu") &&
+      !quickActionOnly.includes("dockmenu") &&
+      !formOnly.includes("dockmenu") &&
+      !passList.includes("dockmenu") &&
+      !pageOnly.includes("dockmenu") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2533,6 +2573,10 @@ const results = [];
       (catalog.byId["camera-control"]?.dontHeuristicIds || []).includes("cc-duplicate") &&
       catalog.byId["camera-control"]?.pack === "inputs-camera-control.md" &&
       catalog.byId["camera-control"]?.appliesWhen === "always" &&
+      catalog.byId["dock-menus"]?.dontCoverageComplete === true &&
+      (catalog.byId["dock-menus"]?.dontHeuristicIds || []).includes("dk-elsewhere") &&
+      catalog.byId["dock-menus"]?.pack === "components-dock-menus.md" &&
+      catalog.byId["dock-menus"]?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2698,6 +2742,7 @@ const results = [];
       "imessage-apps-and-stickers",
       "action-button",
       "camera-control",
+      "dock-menus",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -12417,6 +12462,132 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-camera-control-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dock-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dock-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dock-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div>
+      <div data-dock-menu data-dk-elsewhere>
+        <button type="button">Expedite Dispatch</button>
+      </div>
+      <button type="button">Expedite Dispatch</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-dock-menu>
+      <button type="button">Expedite Dispatch</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passDock: passStatus.topics["dock-menus"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixDock: fixStatus.topics["dock-menus"]?.state === "applied",
+      systemKept: /\bdata-dock-menu\b/.test(fixed) && />\s*Expedite Dispatch\s*</.test(fixed),
+      markersGone: !/data-dk-elsewhere/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdDock: holdStatus.topics["dock-menus"]?.state === "pending",
+      holdStillOnly:
+        /\bdata-dock-menu\b/.test(held) &&
+        /Expedite Dispatch/.test(held),
+      holdNotInvented: !/applicationDockMenu/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passDock: passStatus.topics["dock-menus"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixDock: fixStatus.topics["dock-menus"]?.state,
+      holdDock: holdStatus.topics["dock-menus"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-dock-menus-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

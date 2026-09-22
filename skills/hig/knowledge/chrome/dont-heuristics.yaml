@@ -512,3 +512,5 @@ heuristics:
     match: repeats the Settings guidance
   - id: cc-duplicate
     match: Duplicating controls in the UI and the Camera Control overlay
+  - id: dk-elsewhere
+    match: not available in other places

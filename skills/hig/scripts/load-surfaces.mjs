@@ -366,6 +366,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "stickerpack",
     "actionbutton",
     "cameracontrol",
+    "dockmenu",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

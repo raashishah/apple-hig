@@ -143,6 +143,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 84. Camera Control Don'ts. **Landed on this PR.** Account camera-control Don'ts when every Don't has a scanner and the host has Camera Control chrome. Skip-unless `cameracontrol` affordance stays. Gate is `always` and overlays catalog `phone`. Duplicating controls in the UI and the Camera Control overlay scans from Apple's camera-control page. Do not invent a Camera Control. Do not map camera-control onto a slider, `AVCaptureSession`, or a bare Camera Control phrase. Custom symbols stay on packed SF Symbols. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+85. Dock menu Don'ts. **Landed on this PR.** Account dock-menus Don'ts when every Don't has a scanner and the host has Dock menu chrome. Skip-unless `dockmenu` affordance stays. Gate is `always` and overlays catalog `desktop`. A custom Dock menu item that is not available in other places scans from Apple's dock-menus page. Do not invent a Dock menu or a second command. Do not map dock-menus onto a menu, a Home Screen quick action, or a bare Dock phrase. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit
