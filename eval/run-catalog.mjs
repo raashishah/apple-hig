@@ -26769,6 +26769,148 @@ ${dots}
   results.push({ case: "catalog-apply-look-scroll-list-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-pass-"));
+  const pairDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-pair-"));
+  const contextDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-context-"));
+  const toolbarDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-toolbar-"));
+  const selectDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-select-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-hold-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-api-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pda-fix-"));
+  const dirs = [passDir, pairDir, contextDir, toolbarDir, selectDir, holdDir, apiDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(
+      path.join(pairDir, "HostWidgets.tsx"),
+      host(`<button type="button">Save</button><button type="button" aria-haspopup="menu">Actions</button>`),
+    );
+    fs.writeFileSync(
+      path.join(contextDir, "HostWidgets.tsx"),
+      host(`<div role="menu"><button role="menuitem" type="button">Copy</button></div>`),
+    );
+    fs.writeFileSync(
+      path.join(toolbarDir, "HostWidgets.tsx"),
+      host(`<div role="toolbar"><button type="button" aria-haspopup="menu">Actions</button></div>`),
+    );
+    fs.writeFileSync(
+      path.join(selectDir, "HostWidgets.tsx"),
+      host(`<select><option>Save</option><option>Delete</option></select>`),
+    );
+    const origHold = host(
+      `<button type="button" aria-haspopup="menu">Actions<span role="menu"><button role="menuitem" type="button">Save</button></span></button>`,
+    );
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origApi = `export function HostWidgets() {
+  Menu("Actions") {
+    Button("Save") {}
+  }
+  .menuStyle(.pullDown)
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origCopy = host(
+      `<button type="button" aria-haspopup="menu">Actions</button><p>Avoid putting all of a view's actions in one pull-down button.</p>`,
+    );
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid putting all of a view's actions in one pull-down button.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(
+      `<button type="button">Save</button><button type="button" aria-haspopup="menu" data-pd-all>Actions</button>`,
+    );
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "pair", "context", "toolbar", "select", "hold", "api", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      pair: pairDir,
+      context: contextDir,
+      toolbar: toolbarDir,
+      select: selectDir,
+      hold: holdDir,
+      api: apiDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const pulls = (name) => status[name].topics["pull-down-buttons"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["pull-down-buttons"]?.dontHeuristicIds || []).includes("pd-all"),
+      menus: (catalog.byId.menus?.dontHeuristicIds || []).includes("pd-all"),
+      tall: (catalog.byId.menus?.dontHeuristicIds || []).includes("mn-tall"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passPulls: pulls("pass") === "skipped-no-affordance",
+      passMenus: status.pass.topics.menus?.state === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      pairPulls: pulls("pair") === "already-compliant",
+      contextPulls: pulls("context") === "already-compliant",
+      toolbarPulls: pulls("toolbar") === "already-compliant",
+      selectPulls: pulls("select") === "skipped-no-affordance",
+      holdUnchanged: held === origHold,
+      holdPulls: pulls("hold") === "pending",
+      holdMenus: status.hold.topics.menus?.state === "pending",
+      menuKept: /aria-haspopup="menu"/.test(held),
+      apiUnchanged: api === origApi,
+      apiPulls: pulls("api") === "pending",
+      menuCallKept: /menuStyle\(\.pullDown\)/.test(api),
+      copyUnchanged: copied === origCopy,
+      copyPulls: pulls("copy") === "pending",
+      sentencePulls: pulls("sentence") === "skipped-no-affordance",
+      fixPulls: pulls("fix") === "applied",
+      markerGone: !/data-pd-all(?![\w-])/.test(fixed),
+      saveKept: />\s*Save\s*</.test(fixed),
+      popupKept: /aria-haspopup="menu"/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPulls: pulls("pass"),
+      pairPulls: pulls("pair"),
+      contextPulls: pulls("context"),
+      toolbarPulls: pulls("toolbar"),
+      selectPulls: pulls("select"),
+      holdPulls: pulls("hold"),
+      apiPulls: pulls("api"),
+      copyPulls: pulls("copy"),
+      sentencePulls: pulls("sentence"),
+      fixPulls: pulls("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-pulldown-all-actions-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

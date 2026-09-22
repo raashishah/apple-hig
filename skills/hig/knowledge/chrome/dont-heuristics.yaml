@@ -192,6 +192,8 @@ heuristics:
     match: toolbar item with no visible text and no accessible name
   - id: tb-pull
     match: pull-down menu in a toolbar
+  - id: pd-all
+    match: view's actions in one pull-down button
   - id: al-lines
     match: alert title that wraps to more than two lines
   - id: al-scroll

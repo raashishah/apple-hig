@@ -11133,6 +11133,169 @@ function applyToolbarPullDown(text) {
   return text.replace(/\s*data-tb-pull(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function roleSpans(text, role) {
+  const out = [];
+  const openRe = new RegExp(
+    `<([A-Za-z][\\w]*)\\b[^>]*\\brole=["']${role}["'][^>]*>`,
+    "gi",
+  );
+  let m;
+  while ((m = openRe.exec(text))) {
+    const tag = m[1];
+    let i = m.index + m[0].length;
+    let depth = 1;
+    const reopen = new RegExp(`<${tag}\\b`, "gi");
+    const close = new RegExp(`</${tag}\\s*>`, "gi");
+    while (depth > 0 && i < text.length) {
+      reopen.lastIndex = i;
+      close.lastIndex = i;
+      const nOpen = reopen.exec(text);
+      const nClose = close.exec(text);
+      if (!nClose) {
+        i = text.length;
+        break;
+      }
+      if (nOpen && nOpen.index < nClose.index) {
+        depth += 1;
+        i = nOpen.index + nOpen[0].length;
+      } else {
+        depth -= 1;
+        i = nClose.index + nClose[0].length;
+      }
+    }
+    out.push({ start: m.index, end: i });
+  }
+  return out;
+}
+
+function dataToolbarSpans(text) {
+  const out = [];
+  const openRe = /<([A-Za-z][\w]*)\b[^>]*\bdata-toolbar(?![\w-])[^>]*>/gi;
+  let m;
+  while ((m = openRe.exec(text))) {
+    const tag = m[1];
+    let i = m.index + m[0].length;
+    let depth = 1;
+    const reopen = new RegExp(`<${tag}\\b`, "gi");
+    const close = new RegExp(`</${tag}\\s*>`, "gi");
+    while (depth > 0 && i < text.length) {
+      reopen.lastIndex = i;
+      close.lastIndex = i;
+      const nOpen = reopen.exec(text);
+      const nClose = close.exec(text);
+      if (!nClose) {
+        i = text.length;
+        break;
+      }
+      if (nOpen && nOpen.index < nClose.index) {
+        depth += 1;
+        i = nOpen.index + nOpen[0].length;
+      } else {
+        depth -= 1;
+        i = nClose.index + nClose[0].length;
+      }
+    }
+    out.push({ start: m.index, end: i });
+  }
+  return out;
+}
+
+function toolbarModifierSpans(text) {
+  const out = [];
+  const re = /\.toolbar\s*\{/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const open = m.index + m[0].lastIndexOf("{");
+    const close = matchingBrace(text, open);
+    if (close < 0) continue;
+    out.push({ start: m.index, end: close + 1 });
+  }
+  return out;
+}
+
+function indexInSpans(index, spans) {
+  return spans.some((span) => index >= span.start && index < span.end);
+}
+
+function menuCommandSpans(text) {
+  const spans = roleSpans(text, "menu");
+  const re = /\bMenu\s*\(/g;
+  let m;
+  while ((m = re.exec(text))) {
+    if (/context$/i.test(text.slice(Math.max(0, m.index - 8), m.index))) continue;
+    const paren = text.indexOf("(", m.index);
+    const close = matchingBrace(text, paren);
+    if (close < 0) continue;
+    spans.push({ start: m.index, end: close + 1 });
+  }
+  return spans;
+}
+
+function pullDownLauncherIndexes(text, toolbars) {
+  const indexes = [];
+  const menus = roleSpans(text, "menu");
+  const re =
+    /<button\b[^>]*\baria-haspopup=["']menu["'][^>]*>|\bNSPullDownButton\b|\.menuStyle\s*\(\s*\.pullDown\b/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    if (indexInSpans(m.index, toolbars) || indexInSpans(m.index, menus)) continue;
+    if (/role=["']menuitem["']/i.test(m[0])) continue;
+    indexes.push(m.index);
+  }
+  return indexes;
+}
+
+function outsidePullDownActionCount(text) {
+  const toolbars = [...roleSpans(text, "toolbar"), ...dataToolbarSpans(text), ...toolbarModifierSpans(text)];
+  const launchers = pullDownLauncherIndexes(text, toolbars);
+  if (launchers.length === 0) return null;
+  const menus = menuCommandSpans(text);
+  let count = 0;
+  const buttonRe = /<button\b[^>]*>|\bButton\s*\(\s*"/g;
+  let m;
+  while ((m = buttonRe.exec(text))) {
+    if (indexInSpans(m.index, toolbars) || indexInSpans(m.index, menus)) continue;
+    if (/role=["']menuitem["']/i.test(m[0])) continue;
+    if (/aria-haspopup=["']menu["']/i.test(m[0])) continue;
+    count += 1;
+  }
+  return count;
+}
+
+function hasLonePullDown(text) {
+  return outsidePullDownActionCount(text) === 0;
+}
+
+function hasPullDownAllCopy(text) {
+  return (
+    /all of a view['’]?s actions in one pull-down/i.test(text) ||
+    /pull-down button that holds every action/i.test(text)
+  );
+}
+
+function hasPullDownLauncher(text) {
+  const toolbars = [...roleSpans(text, "toolbar"), ...dataToolbarSpans(text), ...toolbarModifierSpans(text)];
+  return pullDownLauncherIndexes(text, toolbars).length > 0;
+}
+
+function scanPullDownAllActions(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pd-all(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "all of a view's actions in one pull-down button"));
+      continue;
+    }
+    if (hasLonePullDown(f.text) || (hasPullDownAllCopy(f.text) && hasPullDownLauncher(f.text))) {
+      out.push(hit(f.path, "all of a view's actions in one pull-down button"));
+    }
+  }
+  return out;
+}
+
+function applyPullDownAllActions(text) {
+  return text.replace(/\s*data-pd-all(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function headingLineCount(inner) {
   const normalized = String(inner || "")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -11678,6 +11841,8 @@ function scanHeuristic(id, files) {
       return scanToolbarUnnamed(files);
     case "tb-pull":
       return scanToolbarPullDown(files);
+    case "pd-all":
+      return scanPullDownAllActions(files);
     case "al-lines":
       return scanAlertTitleLines(files);
     case "al-scroll":
@@ -12386,6 +12551,8 @@ function applyHeuristic(id, file) {
       return applyToolbarUnnamed(file.text);
     case "tb-pull":
       return applyToolbarPullDown(file.text);
+    case "pd-all":
+      return applyPullDownAllActions(file.text);
     case "al-lines":
       return applyAlertTitleLines(file.text);
     case "al-scroll":

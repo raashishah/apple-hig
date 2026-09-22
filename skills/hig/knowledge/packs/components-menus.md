@@ -26,6 +26,7 @@
 - A submenu item that is unavailable when its nested items are unavailable.
 - A keyboard shortcut inside a context menu.
 - A context menu taller than the window.
+- All of a view's actions in one pull-down button.
 
 ## Apply in host
 

@@ -712,7 +712,7 @@ export function scanAffordances(files) {
     /\bMenu\s*\(/.test(blob) ||
     /\bcontextMenu\s*\(/.test(blob) ||
     /aria-haspopup=["']menu["']/i.test(blob) ||
-    /\b(UIMenu|NSMenu|UIContextMenuInteraction)\b/.test(blob)
+    /\b(UIMenu|NSMenu|NSPullDownButton|UIContextMenuInteraction)\b/.test(blob)
   ) {
     found.push("menu");
   }
