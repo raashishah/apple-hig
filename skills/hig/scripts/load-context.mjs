@@ -604,6 +604,10 @@ function detectCapabilitiesFromTree(cwd) {
     /\bPKAddPassButton\b/.test(blob) ||
     /\bPKAddSecureElementPassViewController\b/.test(blob) ||
     /com\.apple\.developer\.pass-type-identifiers/.test(blob);
+  const webBlob = files
+    .filter((rel) => /\.(tsx|jsx|vue|html|js|mjs)$/i.test(rel))
+    .map((rel) => readHead(path.join(cwd, rel), 12000))
+    .join("\n");
   const applePaySignals =
     /\bPKPaymentAuthorization(?:Controller|ViewController)?\b/.test(blob) ||
     /\bPKPaymentRequest\b/.test(blob) ||
@@ -611,6 +615,9 @@ function detectCapabilitiesFromTree(cwd) {
     /\bPayWithApplePayButton\b/.test(blob) ||
     /\bApplePayButton\b/.test(blob) ||
     /\bdata-apple-pay\b/.test(blob) ||
+    /\bdata-apple-pay\b/.test(webBlob) ||
+    /\bPKPaymentButton\b/.test(webBlob) ||
+    /\bPayWithApplePayButton\b/.test(webBlob) ||
     /com\.apple\.developer\.in-app-payments/.test(blob);
   if (walletSignals) capabilities.add("wallet");
   if (applePaySignals) capabilities.add("applepay");
