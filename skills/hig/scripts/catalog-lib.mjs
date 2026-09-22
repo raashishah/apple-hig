@@ -653,6 +653,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "shazam":
       return !present.includes(need);
+    case "photoedit":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1322,6 +1324,9 @@ export function scanAffordances(files) {
     /\bSHManagedSession\b/.test(blob)
   ) {
     found.push("shazam");
+  }
+  if (/\bdata-photo-edit\b/.test(blob) || /\bPHContentEditingController\b/.test(blob)) {
+    found.push("photoedit");
   }
   return found;
 }

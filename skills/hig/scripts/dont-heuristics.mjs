@@ -7489,6 +7489,46 @@ function applySzMic(text) {
   return text.replace(/\s*data-sz-mic(?:="[^"]*")?/g, "");
 }
 
+function hasPhotoEdit(text) {
+  return /\bdata-photo-edit\b/.test(text) || /\bPHContentEditingController\b/.test(text);
+}
+
+function hasPxCancelCopy(text) {
+  return (
+    /don['’]?t immediately discard their changes/i.test(text) ||
+    /immediately discard (?:their|the) changes/i.test(text)
+  );
+}
+
+function hasPxCancelSignal(text) {
+  if (!hasPhotoEdit(text)) return false;
+  if (!/\b(?:hasEdits|isEdited|unsavedEdits)\b/.test(text)) return false;
+  if (/\bconfirm\b/i.test(text)) return false;
+  return (
+    /cancel[\s\S]{0,240}(?:discard|revert)/i.test(text) ||
+    /(?:discard|revert)[\s\S]{0,240}cancel/i.test(text)
+  );
+}
+
+function scanPxCancel(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-px-cancel/.test(f.text)) {
+      out.push(hit(f.path, "Cancel that discards edits without a confirm"));
+      continue;
+    }
+    if (!hasPhotoEdit(f.text)) continue;
+    if (hasPxCancelCopy(f.text) || hasPxCancelSignal(f.text)) {
+      out.push(hit(f.path, "Cancel that discards edits without a confirm"));
+    }
+  }
+  return out;
+}
+
+function applyPxCancel(text) {
+  return text.replace(/\s*data-px-cancel(?:="[^"]*")?/g, "");
+}
+
 function hasAppClipCode(text) {
   return /\bdata-app-clip-code\b/.test(text);
 }
@@ -8269,6 +8309,8 @@ function scanHeuristic(id, files) {
       return scanWlDecline(files);
     case "sz-mic":
       return scanSzMic(files);
+    case "px-cancel":
+      return scanPxCancel(files);
     case "ac-modified":
       return scanAcModified(files);
     case "ac-overlay":
@@ -8845,6 +8887,8 @@ function applyHeuristic(id, file) {
       return applyWlDecline(file.text);
     case "sz-mic":
       return applySzMic(file.text);
+    case "px-cancel":
+      return applyPxCancel(file.text);
     case "ac-modified":
       return applyAcModified(file.text);
     case "ac-overlay":

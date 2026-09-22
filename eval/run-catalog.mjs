@@ -143,6 +143,10 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.shazamkit?.gate === "capability:shazam" &&
     surfaces.surfaces.findIndex((s) => s.id === "shazamkit") <
       surfaces.surfaces.findIndex((s) => s.id === "media-intelligence") &&
+    surfaces.byId["photo-editing"]?.affordance === "photoedit" &&
+    surfaces.byId["photo-editing"]?.gate === "capability:photos" &&
+    surfaces.surfaces.findIndex((s) => s.id === "photo-editing") <
+      surfaces.surfaces.findIndex((s) => s.id === "media-intelligence") &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1691,6 +1695,30 @@ const results = [];
       text: "<div data-sz-mic></div>",
     },
   ]);
+  const photoEditOnly = scanAffordances([
+    {
+      path: "Edit.tsx",
+      text: "<div data-photo-edit></div>",
+    },
+  ]);
+  const photoControllerOnly = scanAffordances([
+    {
+      path: "Edit.swift",
+      text: "class Editor: PHContentEditingController {}",
+    },
+  ]);
+  const photosImportOnly = scanAffordances([
+    {
+      path: "Edit.swift",
+      text: "import PhotosUI",
+    },
+  ]);
+  const pxMarkerOnly = scanAffordances([
+    {
+      path: "Edit.tsx",
+      text: "<div data-px-cancel></div>",
+    },
+  ]);
   const shazamPhraseOnly = scanAffordances([
     {
       path: "Copy.tsx",
@@ -2385,6 +2413,13 @@ const results = [];
       !szMarkerOnly.includes("shazam") &&
       !shazamPhraseOnly.includes("shazam") &&
       !shazamPermissionOnly.includes("shazam") &&
+      photoEditOnly.includes("photoedit") &&
+      photoControllerOnly.includes("photoedit") &&
+      !photosImportOnly.includes("photoedit") &&
+      !pxMarkerOnly.includes("photoedit") &&
+      !imgOnly.includes("photoedit") &&
+      !imageViewOnly.includes("photoedit") &&
+      !shazamWidgetOnly.includes("photoedit") &&
       !passWidgetOnly.includes("shazam") &&
       !walletOnly.includes("walletpass") &&
       !walletPhraseOnly.includes("walletpass") &&
@@ -3239,6 +3274,11 @@ const results = [];
       catalog.byId.shazamkit?.pack === "tech-shazamkit.md" &&
       catalog.byId.shazamkit?.surfaceId === "shazamkit" &&
       catalog.byId.shazamkit?.appliesWhen === "capability:shazam" &&
+      catalog.byId["photo-editing"]?.dontCoverageComplete === true &&
+      (catalog.byId["photo-editing"]?.dontHeuristicIds || []).includes("px-cancel") &&
+      catalog.byId["photo-editing"]?.pack === "tech-photo-editing.md" &&
+      catalog.byId["photo-editing"]?.surfaceId === "photo-editing" &&
+      catalog.byId["photo-editing"]?.appliesWhen === "capability:photos" &&
       catalog.byId["mac-catalyst"]?.pack === "tech-cluster-platform.md" &&
       catalog.byId["apple-pay"]?.appliesWhen === "capability:applepay" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
@@ -15545,6 +15585,195 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-shazam-mic-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-hold-"));
+  const badDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-bad-"));
+  const noneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-none-"));
+  const confirmDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-confirm-"));
+  const toolbarDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-toolbar-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-px-bare-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, badDir, noneDir, confirmDir, toolbarDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeImport = (dir) => {
+      fs.writeFileSync(path.join(dir, "Edit.swift"), "import PhotosUI\n");
+    };
+    writeImport(cleanDir);
+    writeImport(fixDir);
+    writeImport(holdDir);
+    writeImport(badDir);
+    writeImport(noneDir);
+    writeImport(confirmDir);
+    writeImport(toolbarDir);
+    fs.writeFileSync(path.join(bareDir, "Listen.swift"), "import ShazamKit\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-photo-edit data-px-cancel>
+      <button type="button">Edit</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-photo-edit>
+      <p>Don't immediately discard their changes.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origBad = `export function HostWidgets() {
+  return (
+    <div data-photo-edit>
+      {hasEdits ? <button onClick={discard}>Cancel</button> : null}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(badDir, "HostWidgets.tsx"), origBad);
+    const origNone = `export function HostWidgets() {
+  return (
+    <div data-photo-edit>
+      <button onClick={discard}>Cancel</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(noneDir, "HostWidgets.tsx"), origNone);
+    const origConfirm = `export function HostWidgets() {
+  return (
+    <div data-photo-edit>
+      {hasEdits ? <p>Confirm cancel. Edits will be lost.</p> : null}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(confirmDir, "HostWidgets.tsx"), origConfirm);
+    const origToolbar = `export function HostWidgets() {
+  return (
+    <div data-photo-edit>
+      <p>Don't provide a custom top toolbar.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(toolbarDir, "HostWidgets.tsx"), origToolbar);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const badReport = run(badDir);
+    const noneReport = run(noneDir);
+    const confirmReport = run(confirmDir);
+    const toolbarReport = run(toolbarDir);
+    const bareReport = run(bareDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const badStatus = readStatus(badDir);
+    const noneStatus = readStatus(noneDir);
+    const confirmStatus = readStatus(confirmDir);
+    const toolbarStatus = readStatus(toolbarDir);
+    const bareStatus = readStatus(bareDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const bad = fs.readFileSync(path.join(badDir, "HostWidgets.tsx"), "utf8");
+    const none = fs.readFileSync(path.join(noneDir, "HostWidgets.tsx"), "utf8");
+    const confirmed = fs.readFileSync(path.join(confirmDir, "HostWidgets.tsx"), "utf8");
+    const tooled = fs.readFileSync(path.join(toolbarDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      badChrome: badReport.chrome.pass === true,
+      noneChrome: noneReport.chrome.pass === true,
+      confirmChrome: confirmReport.chrome.pass === true,
+      toolbarChrome: toolbarReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      passPhoto: passStatus.topics["photo-editing"]?.state === "skipped-gate",
+      cleanPhoto: cleanStatus.topics["photo-editing"]?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixPhoto: fixStatus.topics["photo-editing"]?.state === "applied",
+      systemKept: /\bdata-photo-edit\b/.test(fixed) && />\s*Edit\s*</.test(fixed),
+      markersGone: !/data-px-cancel/.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Edit.swift"), "utf8").includes("import PhotosUI"),
+      holdUnchanged: held === origHold,
+      holdPhoto: holdStatus.topics["photo-editing"]?.state === "pending",
+      holdStillPhrase: /immediately discard their changes/.test(held) && /\bdata-photo-edit\b/.test(held),
+      holdNotInvented: !/PHContentEditingController|<dialog\b/i.test(held),
+      badUnchanged: bad === origBad,
+      badPhoto: badStatus.topics["photo-editing"]?.state === "pending",
+      badKept: /hasEdits/.test(bad) && /discard/.test(bad) && />\s*Cancel\s*</.test(bad),
+      noneUnchanged: none === origNone,
+      nonePhoto: noneStatus.topics["photo-editing"]?.state === "already-compliant",
+      confirmUnchanged: confirmed === origConfirm,
+      confirmPhoto: confirmStatus.topics["photo-editing"]?.state === "already-compliant",
+      confirmKept: /Edits will be lost/.test(confirmed),
+      toolbarUnchanged: tooled === origToolbar,
+      toolbarPhoto: toolbarStatus.topics["photo-editing"]?.state === "already-compliant",
+      toolbarKept: /custom top toolbar/.test(tooled),
+      barePhoto: bareStatus.topics["photo-editing"]?.state === "skipped-gate",
+      bareMarkersRemain: /data-px-cancel/.test(bared),
+      shazamKept: fs.readFileSync(path.join(bareDir, "Listen.swift"), "utf8").includes("import ShazamKit"),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPhoto: passStatus.topics["photo-editing"]?.state,
+      cleanPhoto: cleanStatus.topics["photo-editing"]?.state,
+      fixPhoto: fixStatus.topics["photo-editing"]?.state,
+      holdPhoto: holdStatus.topics["photo-editing"]?.state,
+      badPhoto: badStatus.topics["photo-editing"]?.state,
+      nonePhoto: noneStatus.topics["photo-editing"]?.state,
+      confirmPhoto: confirmStatus.topics["photo-editing"]?.state,
+      toolbarPhoto: toolbarStatus.topics["photo-editing"]?.state,
+      barePhoto: bareStatus.topics["photo-editing"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-photo-cancel-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

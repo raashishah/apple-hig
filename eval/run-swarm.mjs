@@ -326,6 +326,23 @@ const results = [];
       platform: "phone",
       capabilities: ["coreml"],
     }).launched.some((s) => s.id === "shazamkit") &&
+    surfaces.byId["photo-editing"]?.gate === "capability:photos" &&
+    surfaces.byId["photo-editing"]?.affordance === "photoedit" &&
+    surfaces.surfaces.findIndex((s) => s.id === "photo-editing") <
+      surfaces.surfaces.findIndex((s) => s.id === "media-intelligence") &&
+    !phone.launched.some((s) => s.id === "photo-editing") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["photos"],
+    }).launched.some((s) => s.id === "photo-editing") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["photos"],
+    }).launched.some((s) => s.id === "media-intelligence") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["shazam"],
+    }).launched.some((s) => s.id === "photo-editing") &&
     surfaces.byId["app-clips"]?.gate === "capability:appclips" &&
     surfaces.byId["app-clips"]?.affordance === "appclipcode" &&
     !phone.launched.some((s) => s.id === "app-clips") &&
