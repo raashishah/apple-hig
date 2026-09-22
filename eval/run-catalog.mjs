@@ -97,6 +97,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.siri?.affordance === "siri" &&
     surfaces.byId["siri-app-shortcuts"]?.affordance === "appshortcut" &&
     surfaces.byId.healthkit?.affordance === "healthkit" &&
+    surfaces.byId.carplay?.affordance === "carplay" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -504,6 +505,7 @@ const results = [];
     "siri",
     "app-shortcuts",
     "healthkit",
+    "carplay",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1331,6 +1333,12 @@ const results = [];
       !formOnly.includes("healthkit") &&
       !passList.includes("healthkit") &&
       !pageOnly.includes("healthkit") &&
+      carplayOnly.includes("carplay") &&
+      !carplayOnly.includes("map") &&
+      !mapOnly.includes("carplay") &&
+      !formOnly.includes("carplay") &&
+      !passList.includes("carplay") &&
+      !pageOnly.includes("carplay") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1994,7 +2002,6 @@ const results = [];
       (catalog.byId.maps?.dontHeuristicIds || []).includes("map-replica-apple") &&
       catalog.byId.maps?.pack === "tech-maps.md" &&
       catalog.byId.maps?.appliesWhen === "always" &&
-      catalog.byId.carplay?.pack === "tech-cluster-carplay-maps.md" &&
       catalog.byId.homekit?.dontCoverageComplete === true &&
       (catalog.byId.homekit?.dontHeuristicIds || []).includes("hk-company-name") &&
       (catalog.byId.homekit?.dontHeuristicIds || []).includes("hk-overwrite-db") &&
@@ -2026,6 +2033,12 @@ const results = [];
       (catalog.byId.healthkit?.dontHeuristicIds || []).includes("hlt-term") &&
       catalog.byId.healthkit?.pack === "tech-healthkit.md" &&
       catalog.byId.healthkit?.appliesWhen === "always" &&
+      catalog.byId.carplay?.dontCoverageComplete === true &&
+      (catalog.byId.carplay?.dontHeuristicIds || []).includes("cp-iphone-lock") &&
+      (catalog.byId.carplay?.dontHeuristicIds || []).includes("cp-iphone-error") &&
+      (catalog.byId.carplay?.dontHeuristicIds || []).includes("cp-iphone-interact") &&
+      catalog.byId.carplay?.pack === "tech-carplay.md" &&
+      catalog.byId.carplay?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2182,6 +2195,7 @@ const results = [];
       "siri",
       "app-shortcuts",
       "healthkit",
+      "carplay",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -10499,6 +10513,137 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-healthkit-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-carplay-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-carplay-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-carplay-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-carplay data-cp-iphone-lock data-cp-iphone-error data-cp-iphone-interact>
+      <button type="button">Open in CarPlay</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-carplay>
+      Unlock iPhone to continue in CarPlay.
+      <button type="button">Open in CarPlay</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passCarplay: passStatus.topics.carplay?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixCarplay: fixStatus.topics.carplay?.state === "applied",
+      systemKept:
+        /\bdata-carplay\b/.test(fixed) && />\s*Open in CarPlay\s*</.test(fixed),
+      markersGone:
+        !/data-cp-iphone-lock/.test(fixed) &&
+        !/data-cp-iphone-error/.test(fixed) &&
+        !/data-cp-iphone-interact/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdCarplay: holdStatus.topics.carplay?.state === "pending",
+      holdStillLock:
+        /\bdata-carplay\b/.test(held) &&
+        /Unlock iPhone to continue in CarPlay/.test(held) &&
+        /Open in CarPlay/.test(held),
+      holdNotInvented:
+        !/CPInterfaceController/.test(held) &&
+        !/CPTemplateApplicationScene/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passCarplay: passStatus.topics.carplay?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixCarplay: fixStatus.topics.carplay?.state,
+      holdCarplay: holdStatus.topics.carplay?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-carplay-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

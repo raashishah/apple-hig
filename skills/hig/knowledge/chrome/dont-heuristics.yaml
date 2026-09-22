@@ -462,3 +462,9 @@ heuristics:
     match: health data sharing
   - id: hlt-term
     match: the term HealthKit
+  - id: cp-iphone-lock
+    match: iPhone requires input
+  - id: cp-iphone-error
+    match: Errors reported on iPhone
+  - id: cp-iphone-interact
+    match: iPhone interactions required

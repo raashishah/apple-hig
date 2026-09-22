@@ -6040,6 +6040,95 @@ function applyHltTerm(text) {
   return text.replace(/\s*data-hlt-term(?:="[^"]*")?/g, "");
 }
 
+function hasCarPlay(text) {
+  return (
+    /\bdata-carplay\b/.test(text) ||
+    /\bCPInterfaceController\b/.test(text) ||
+    /\bCPTemplateApplicationScene\b/.test(text)
+  );
+}
+
+function hasCpIphoneLockCopy(text) {
+  return (
+    /iphone requires input/i.test(text) ||
+    /locked out of carplay/i.test(text) ||
+    (/unlock iphone/i.test(text) && /carplay/i.test(text))
+  );
+}
+
+function hasCpIphoneErrorCopy(text) {
+  return (
+    /errors reported on iphone/i.test(text) ||
+    (/pick up (their |the )?iphone/i.test(text) && /error|resolve/i.test(text)) ||
+    (/report(ed)? errors? on (the connected )?iphone/i.test(text))
+  );
+}
+
+function hasCpIphoneInteractCopy(text) {
+  return (
+    /iphone interactions? required/i.test(text) ||
+    (/setup on iphone/i.test(text) && /carplay|vehicle|motion/i.test(text)) ||
+    /app interactions on iphone/i.test(text)
+  );
+}
+
+function scanCpIphoneLock(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-cp-iphone-lock/.test(f.text)) {
+      out.push(hit(f.path, "carplay locked out because iphone requires input"));
+      continue;
+    }
+    if (!hasCarPlay(f.text)) continue;
+    if (hasCpIphoneLockCopy(f.text)) {
+      out.push(hit(f.path, "carplay locked out because iphone requires input"));
+    }
+  }
+  return out;
+}
+
+function applyCpIphoneLock(text) {
+  return text.replace(/\s*data-cp-iphone-lock(?:="[^"]*")?/g, "");
+}
+
+function scanCpIphoneError(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-cp-iphone-error/.test(f.text)) {
+      out.push(hit(f.path, "errors reported on iphone instead of carplay"));
+      continue;
+    }
+    if (!hasCarPlay(f.text)) continue;
+    if (hasCpIphoneErrorCopy(f.text)) {
+      out.push(hit(f.path, "errors reported on iphone instead of carplay"));
+    }
+  }
+  return out;
+}
+
+function applyCpIphoneError(text) {
+  return text.replace(/\s*data-cp-iphone-error(?:="[^"]*")?/g, "");
+}
+
+function scanCpIphoneInteract(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-cp-iphone-interact/.test(f.text)) {
+      out.push(hit(f.path, "iphone interactions required while carplay is active"));
+      continue;
+    }
+    if (!hasCarPlay(f.text)) continue;
+    if (hasCpIphoneInteractCopy(f.text)) {
+      out.push(hit(f.path, "iphone interactions required while carplay is active"));
+    }
+  }
+  return out;
+}
+
+function applyCpIphoneInteract(text) {
+  return text.replace(/\s*data-cp-iphone-interact(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -6517,6 +6606,12 @@ function scanHeuristic(id, files) {
       return scanHltSharing(files);
     case "hlt-term":
       return scanHltTerm(files);
+    case "cp-iphone-lock":
+      return scanCpIphoneLock(files);
+    case "cp-iphone-error":
+      return scanCpIphoneError(files);
+    case "cp-iphone-interact":
+      return scanCpIphoneInteract(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -6987,6 +7082,12 @@ function applyHeuristic(id, file) {
       return applyHltSharing(file.text);
     case "hlt-term":
       return applyHltTerm(file.text);
+    case "cp-iphone-lock":
+      return applyCpIphoneLock(file.text);
+    case "cp-iphone-error":
+      return applyCpIphoneError(file.text);
+    case "cp-iphone-interact":
+      return applyCpIphoneInteract(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

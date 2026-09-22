@@ -171,8 +171,6 @@ topics:
     appliesWhen: "capability:carplay,capability:mapkit"
     failWhen: "When this topic applies, the host UI does not follow Apple's CarPlay design rule."
     passWhen: "When this topic applies, the host follows Apple's CarPlay design rule on existing widgets without changing the typeface or injecting a kit."
-    surfaceId: "carplay-maps"
-    pack: "tech-cluster-carplay-maps.md"
   - id: charting-data
     title: "Charting data"
     group: "Patterns"

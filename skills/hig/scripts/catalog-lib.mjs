@@ -607,6 +607,7 @@ function affordanceMissing(need, present) {
     case "siri":
     case "appshortcut":
     case "healthkit":
+    case "carplay":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1165,6 +1166,13 @@ export function scanAffordances(files) {
     /\bHKQuantityTypeIdentifier\b/.test(blob)
   ) {
     found.push("healthkit");
+  }
+  if (
+    /\bdata-carplay\b/.test(blob) ||
+    /\bCPInterfaceController\b/.test(blob) ||
+    /\bCPTemplateApplicationScene\b/.test(blob)
+  ) {
+    found.push("carplay");
   }
   return found;
 }
