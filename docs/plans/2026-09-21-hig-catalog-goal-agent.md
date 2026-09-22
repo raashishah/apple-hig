@@ -145,6 +145,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 85. Dock menu Don'ts. **Landed on this PR.** Account dock-menus Don'ts when every Don't has a scanner and the host has Dock menu chrome. Skip-unless `dockmenu` affordance stays. Gate is `always` and overlays catalog `desktop`. A custom Dock menu item that is not available in other places scans from Apple's dock-menus page. Do not invent a Dock menu or a second command. Do not map dock-menus onto a menu, a Home Screen quick action, or a bare Dock phrase. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+86. Gesture Don'ts. **Landed on this PR.** Account gestures Don'ts when every Don't has a scanner and the host has gesture chrome. Skip-unless `gesture` affordance stays. Gate stays `phone,ipad`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. Unique tap or swipe meaning, custom edge swipes that fight system Home or back, and gesture-only navigation with no toolbar Back scan from the existing gestures pack. Do not invent a gesture recognizer. Do not map gestures onto a button, a tap phrase, `MagnifyGesture`, or `UIGestureRecognizer`. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

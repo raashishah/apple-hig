@@ -178,10 +178,13 @@ const results = [];
     webSkip.launched.some((s) => s.id === "action-button") &&
     webSkip.launched.some((s) => s.id === "camera-control") &&
     webSkip.launched.some((s) => s.id === "dock-menus") &&
+    !webSkip.launched.some((s) => s.id === "inputs-gestures") &&
     hk.launched.some((s) => s.id === "healthkit") &&
+    hk.launched.some((s) => s.id === "inputs-gestures") &&
     !webSkip.launched.some((s) => s.id === "game-center") &&
     gc.launched.some((s) => s.id === "game-center") &&
     desktop.launched.some((s) => s.id === "mac-chrome") &&
+    !desktop.launched.some((s) => s.id === "inputs-gestures") &&
     multi.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "game-center");

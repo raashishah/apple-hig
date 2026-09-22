@@ -367,6 +367,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "actionbutton",
     "cameracontrol",
     "dockmenu",
+    "gesture",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

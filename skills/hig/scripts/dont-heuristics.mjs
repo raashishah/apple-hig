@@ -6815,6 +6815,86 @@ function applyDkElsewhere(text) {
   return text.replace(/\s*data-dk-elsewhere(?:="[^"]*")?/g, "");
 }
 
+function hasGesture(text) {
+  return (
+    /\bdata-gesture\b/.test(text) ||
+    /\bonTapGesture\b/.test(text) ||
+    /\bUITapGestureRecognizer\b/.test(text) ||
+    /\bUISwipeGestureRecognizer\b/.test(text) ||
+    /\bUIPanGestureRecognizer\b/.test(text) ||
+    /\bDragGesture\b/.test(text)
+  );
+}
+
+function hasGsUniqueCopy(text) {
+  return /tap-to-delete with no button/i.test(text) || /unique meaning for tap or swipe/i.test(text);
+}
+
+function hasGsEdgeCopy(text) {
+  return /edge swipes that fight system Home/i.test(text);
+}
+
+function hasGsOnlyCopy(text) {
+  return /gesture-only navigation/i.test(text) || /no toolbar Back/i.test(text);
+}
+
+function scanGsUniqueTap(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-gs-unique/.test(f.text)) {
+      out.push(hit(f.path, "unique meaning for tap or swipe"));
+      continue;
+    }
+    if (!hasGesture(f.text)) continue;
+    if (hasGsUniqueCopy(f.text)) {
+      out.push(hit(f.path, "unique meaning for tap or swipe"));
+    }
+  }
+  return out;
+}
+
+function scanGsEdgeSwipe(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-gs-edge/.test(f.text)) {
+      out.push(hit(f.path, "edge swipes that fight system Home"));
+      continue;
+    }
+    if (!hasGesture(f.text)) continue;
+    if (hasGsEdgeCopy(f.text)) {
+      out.push(hit(f.path, "edge swipes that fight system Home"));
+    }
+  }
+  return out;
+}
+
+function scanGsGestureOnly(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-gs-only/.test(f.text)) {
+      out.push(hit(f.path, "gesture-only navigation with no toolbar Back"));
+      continue;
+    }
+    if (!hasGesture(f.text)) continue;
+    if (hasGsOnlyCopy(f.text)) {
+      out.push(hit(f.path, "gesture-only navigation with no toolbar Back"));
+    }
+  }
+  return out;
+}
+
+function applyGsUniqueTap(text) {
+  return text.replace(/\s*data-gs-unique(?:="[^"]*")?/g, "");
+}
+
+function applyGsEdgeSwipe(text) {
+  return text.replace(/\s*data-gs-edge(?:="[^"]*")?/g, "");
+}
+
+function applyGsGestureOnly(text) {
+  return text.replace(/\s*data-gs-only(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7344,6 +7424,12 @@ function scanHeuristic(id, files) {
       return scanCcDuplicate(files);
     case "dk-elsewhere":
       return scanDkElsewhere(files);
+    case "gs-unique-tap":
+      return scanGsUniqueTap(files);
+    case "gs-edge-swipe":
+      return scanGsEdgeSwipe(files);
+    case "gs-gesture-only":
+      return scanGsGestureOnly(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -7866,6 +7952,12 @@ function applyHeuristic(id, file) {
       return applyCcDuplicate(file.text);
     case "dk-elsewhere":
       return applyDkElsewhere(file.text);
+    case "gs-unique-tap":
+      return applyGsUniqueTap(file.text);
+    case "gs-edge-swipe":
+      return applyGsEdgeSwipe(file.text);
+    case "gs-gesture-only":
+      return applyGsGestureOnly(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

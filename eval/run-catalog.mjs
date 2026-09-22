@@ -119,6 +119,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["camera-control"]?.gate === "always" &&
     surfaces.byId["dock-menus"]?.affordance === "dockmenu" &&
     surfaces.byId["dock-menus"]?.gate === "always" &&
+    surfaces.byId["inputs-gestures"]?.affordance === "gesture" &&
+    surfaces.byId["inputs-gestures"]?.gate === "phone,ipad" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1325,6 +1327,66 @@ const results = [];
       text: '<div data-dk-elsewhere><button type="button">Expedite Dispatch</button></div>',
     },
   ]);
+  const gestureOnly = scanAffordances([
+    {
+      path: "Gesture.tsx",
+      text: "<div data-gesture></div>",
+    },
+  ]);
+  const onTapGestureOnly = scanAffordances([
+    {
+      path: "Gesture.swift",
+      text: "content.onTapGesture { }",
+    },
+  ]);
+  const uiTapOnly = scanAffordances([
+    {
+      path: "Gesture.swift",
+      text: "let tap = UITapGestureRecognizer()",
+    },
+  ]);
+  const uiSwipeOnly = scanAffordances([
+    {
+      path: "Gesture.swift",
+      text: "let swipe = UISwipeGestureRecognizer()",
+    },
+  ]);
+  const uiPanOnly = scanAffordances([
+    {
+      path: "Gesture.swift",
+      text: "let pan = UIPanGestureRecognizer()",
+    },
+  ]);
+  const dragGestureOnly = scanAffordances([
+    {
+      path: "Gesture.swift",
+      text: "let drag = DragGesture()",
+    },
+  ]);
+  const gesturePhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Use a tap or swipe.</p>",
+    },
+  ]);
+  const gsMarkerOnly = scanAffordances([
+    {
+      path: "Gesture.tsx",
+      text: '<div data-gs-unique data-gs-edge data-gs-only></div>',
+    },
+  ]);
+  const magnifyOnly = scanAffordances([
+    {
+      path: "Gesture.swift",
+      text: "let zoom = MagnifyGesture()",
+    },
+  ]);
+  const uiGestureBaseOnly = scanAffordances([
+    {
+      path: "Gesture.swift",
+      text: "let base = UIGestureRecognizer()",
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1818,6 +1880,21 @@ const results = [];
       !formOnly.includes("dockmenu") &&
       !passList.includes("dockmenu") &&
       !pageOnly.includes("dockmenu") &&
+      gestureOnly.includes("gesture") &&
+      !gestureOnly.includes("button") &&
+      onTapGestureOnly.includes("gesture") &&
+      uiTapOnly.includes("gesture") &&
+      uiSwipeOnly.includes("gesture") &&
+      uiPanOnly.includes("gesture") &&
+      dragGestureOnly.includes("gesture") &&
+      !gesturePhraseOnly.includes("gesture") &&
+      !gsMarkerOnly.includes("gesture") &&
+      !magnifyOnly.includes("gesture") &&
+      !uiGestureBaseOnly.includes("gesture") &&
+      !formOnly.includes("gesture") &&
+      !passList.includes("gesture") &&
+      !pageOnly.includes("gesture") &&
+      !dockOnly.includes("gesture") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2577,6 +2654,12 @@ const results = [];
       (catalog.byId["dock-menus"]?.dontHeuristicIds || []).includes("dk-elsewhere") &&
       catalog.byId["dock-menus"]?.pack === "components-dock-menus.md" &&
       catalog.byId["dock-menus"]?.appliesWhen === "always" &&
+      catalog.byId.gestures?.dontCoverageComplete === true &&
+      (catalog.byId.gestures?.dontHeuristicIds || []).includes("gs-unique-tap") &&
+      (catalog.byId.gestures?.dontHeuristicIds || []).includes("gs-edge-swipe") &&
+      (catalog.byId.gestures?.dontHeuristicIds || []).includes("gs-gesture-only") &&
+      catalog.byId.gestures?.pack === "inputs-gestures.md" &&
+      catalog.byId.gestures?.appliesWhen === "phone,ipad" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -12588,6 +12671,152 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-dock-menus-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gesture-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gesture-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gesture-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gesture-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, cleanDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    const writePhone = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: phone\nregister: product\nThis product is a phone app.\n",
+      );
+    };
+    writePhone(cleanDir);
+    writePhone(fixDir);
+    writePhone(holdDir);
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-gesture data-gs-unique data-gs-edge data-gs-only>
+      <button type="button">Save</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-gesture>
+      <p>tap-to-delete with no button.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const cleanReport = applyCatalog({
+      cwd: cleanDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const cleanStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(cleanDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(cleanDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passGestures: passStatus.topics.gestures?.state === "skipped-gate",
+      cleanGestures: cleanStatus.topics.gestures?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixGestures: fixStatus.topics.gestures?.state === "applied",
+      systemKept: /\bdata-gesture\b/.test(fixed) && />\s*Save\s*</.test(fixed),
+      markersGone: !/data-gs-unique|data-gs-edge|data-gs-only/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdGestures: holdStatus.topics.gestures?.state === "pending",
+      holdStillPhrase: /\bdata-gesture\b/.test(held) && /tap-to-delete with no button/.test(held),
+      holdNotInvented: !/UITapGestureRecognizer|onTapGesture/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passGestures: passStatus.topics.gestures?.state,
+      cleanGestures: cleanStatus.topics.gestures?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixGestures: fixStatus.topics.gestures?.state,
+      holdGestures: holdStatus.topics.gestures?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(cleanDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-gestures-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

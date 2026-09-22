@@ -631,6 +631,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "dockmenu":
       return !present.includes(need);
+    case "gesture":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1240,6 +1242,16 @@ export function scanAffordances(files) {
   }
   if (/\bdata-dock-menu\b/.test(blob) || /\bapplicationDockMenu\b/.test(blob)) {
     found.push("dockmenu");
+  }
+  if (
+    /\bdata-gesture\b/.test(blob) ||
+    /\bonTapGesture\b/.test(blob) ||
+    /\bUITapGestureRecognizer\b/.test(blob) ||
+    /\bUISwipeGestureRecognizer\b/.test(blob) ||
+    /\bUIPanGestureRecognizer\b/.test(blob) ||
+    /\bDragGesture\b/.test(blob)
+  ) {
+    found.push("gesture");
   }
   return found;
 }

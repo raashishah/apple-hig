@@ -514,3 +514,9 @@ heuristics:
     match: Duplicating controls in the UI and the Camera Control overlay
   - id: dk-elsewhere
     match: not available in other places
+  - id: gs-unique-tap
+    match: tap-to-delete with no button
+  - id: gs-edge-swipe
+    match: edge swipes that fight system Home
+  - id: gs-gesture-only
+    match: Gesture-only navigation with no toolbar Back
