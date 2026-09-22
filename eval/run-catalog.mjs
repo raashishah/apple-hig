@@ -23014,6 +23014,177 @@ ${dots}
   results.push({ case: "catalog-apply-photo-toolbar-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-hold-"));
+  const logoDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-logo-"));
+  const decoDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-deco-"));
+  const heartDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-heart-"));
+  const adDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-ad-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-bare-"));
+  const researchDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ckl-research-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, logoDir, decoDir, heartDir, adDir, sentenceDir, bareDir, researchDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeCare = (dir) => {
+      fs.writeFileSync(path.join(dir, "Care.swift"), "import CareKit\n");
+    };
+    for (const dir of [cleanDir, fixDir, holdDir, logoDir, decoDir, heartDir, adDir, sentenceDir]) writeCare(dir);
+    fs.writeFileSync(path.join(researchDir, "Study.swift"), "import ResearchKit\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-carekit data-ck-logo>
+      <button type="button">Plan</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(researchDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-carekit>
+      <p>Avoid creating a purely decorative symbol or using a corporate logo as a custom symbol.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origLogo = `export function HostWidgets() {
+  return (
+    <div data-carekit>
+      <img alt="logo" src="acme.png" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(logoDir, "HostWidgets.tsx"), origLogo);
+    const origDeco = `export function HostWidgets() {
+  return (
+    <div data-carekit>
+      <svg className="care-symbol" aria-hidden="true" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(decoDir, "HostWidgets.tsx"), origDeco);
+    const origHeart = `export function HostWidgets() {
+  return (
+    <div data-carekit>
+      <img alt="heart" src="heart.png" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(heartDir, "HostWidgets.tsx"), origHeart);
+    const origAd = `export function HostWidgets() {
+  return (
+    <div data-carekit>
+      <p>Sponsored</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(adDir, "HostWidgets.tsx"), origAd);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid creating a purely decorative symbol or using a corporate logo as a custom symbol.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origBare = `export function HostWidgets() {
+  return <span data-ck-logo>Plan</span>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const names = ["pass", "clean", "fix", "hold", "logo", "deco", "heart", "ad", "sentence", "bare", "research"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      fix: fixDir,
+      hold: holdDir,
+      logo: logoDir,
+      deco: decoDir,
+      heart: heartDir,
+      ad: adDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+      research: researchDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const logo = fs.readFileSync(path.join(logoDir, "HostWidgets.tsx"), "utf8");
+    const advertised = fs.readFileSync(path.join(adDir, "HostWidgets.tsx"), "utf8");
+    const researched = fs.readFileSync(path.join(researchDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const care = (name) => status[name].topics.carekit?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.carekit?.dontHeuristicIds || []).includes("ck-logo"),
+      adHeuristic: (catalog.byId.carekit?.dontHeuristicIds || []).includes("ck-ad"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passCare: care("pass") === "skipped-gate",
+      cleanCare: care("clean") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixCare: care("fix") === "applied",
+      markerGone: !/data-ck-logo(?![\w-])/.test(fixed),
+      planKept: /\bdata-carekit\b/.test(fixed) && />\s*Plan\s*</.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Care.swift"), "utf8").includes("import CareKit"),
+      holdUnchanged: held === origHold,
+      holdCare: care("hold") === "pending",
+      holdPhrase: /corporate logo as a custom symbol/.test(held),
+      logoUnchanged: logo === origLogo,
+      logoCare: care("logo") === "pending",
+      logoKept: /alt="logo"/.test(logo),
+      decoCare: care("deco") === "pending",
+      heartCare: care("heart") === "already-compliant",
+      adUnchanged: advertised === origAd,
+      adCare: care("ad") === "pending",
+      adKept: /Sponsored/.test(advertised),
+      sentenceCare: care("sentence") === "skipped-no-affordance",
+      bareCare: care("bare") === "skipped-gate",
+      bareMarkerRemains: /data-ck-logo(?![\w-])/.test(bared),
+      researchCare: care("research") === "skipped-gate",
+      researchMarkerRemains: /data-ck-logo(?![\w-])/.test(researched),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passCare: care("pass"),
+      cleanCare: care("clean"),
+      fixCare: care("fix"),
+      holdCare: care("hold"),
+      logoCare: care("logo"),
+      decoCare: care("deco"),
+      heartCare: care("heart"),
+      adCare: care("ad"),
+      sentenceCare: care("sentence"),
+      bareCare: care("bare"),
+      researchCare: care("research"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-care-symbol-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
