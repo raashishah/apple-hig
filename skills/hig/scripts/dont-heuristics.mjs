@@ -9257,6 +9257,43 @@ function applyAcSymbol(text) {
   return text.replace(/\s*data-ac-symbol(?:="[^"]*")?/g, "");
 }
 
+function hasAcSoloCopy(text) {
+  return (
+    /App Clip logo on its own/i.test(text) ||
+    /use the App Clip logo on its own/i.test(text)
+  );
+}
+
+function appClipLogoOnItsOwn(text) {
+  if (!hasAppClipCode(text)) return false;
+  const logo = /\bapp-clip-logo\b/i.test(text) || /aria-label=["']App Clip logo["']/i.test(text);
+  if (!logo) return false;
+  const generated =
+    /\bclass(?:Name)?=["'][^"']*\bapp-clip-code\b/i.test(text) ||
+    /aria-label=["']App Clip Code["']/i.test(text) ||
+    /\bdata-generated-code\b/.test(text);
+  return !generated;
+}
+
+function scanAcSolo(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-solo(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "the App Clip logo used on its own"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcSoloCopy(f.text) || appClipLogoOnItsOwn(f.text)) {
+      out.push(hit(f.path, "the App Clip logo used on its own"));
+    }
+  }
+  return out;
+}
+
+function applyAcSolo(text) {
+  return text.replace(/\s*data-ac-solo(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -11037,6 +11074,8 @@ function scanHeuristic(id, files) {
       return scanAcAspect(files);
     case "ac-symbol":
       return scanAcSymbol(files);
+    case "ac-solo":
+      return scanAcSolo(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -11699,6 +11738,8 @@ function applyHeuristic(id, file) {
       return applyAcAspect(file.text);
     case "ac-symbol":
       return applyAcSymbol(file.text);
+    case "ac-solo":
+      return applyAcSolo(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
