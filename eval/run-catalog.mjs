@@ -20398,6 +20398,179 @@ ${dots}
   results.push({ case: "catalog-apply-scroll-indicator-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-hold-"));
+  const scrubDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-scrub-"));
+  const animDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-anim-"));
+  const pairDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-pair-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-sentence-"));
+  const minimalDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-minimal-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-swift-"));
+  const swiftScrubDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pga-swift-scrub-"));
+  const dirs = [passDir, fixDir, holdDir, scrubDir, animDir, pairDir, sentenceDir, minimalDir, swiftDir, swiftScrubDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-page-control data-pgc-anim>
+      <button type="button" />
+      <button type="button" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-page-control data-page-scrub style={{ scrollBehavior: "smooth" }}>
+      <p>Avoid animating page transitions during scrubbing.</p>
+      <button type="button" />
+      <button type="button" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origScrub = `export function HostWidgets() {
+  return (
+    <div data-page-control data-page-scrub>
+      <button type="button" />
+      <button type="button" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(scrubDir, "HostWidgets.tsx"), origScrub);
+    const origAnim = `export function HostWidgets() {
+  return (
+    <div data-page-control style={{ scrollBehavior: "smooth" }}>
+      <button type="button" />
+      <button type="button" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(animDir, "HostWidgets.tsx"), origAnim);
+    const origPair = `export function HostWidgets() {
+  return (
+    <div data-page-control data-page-scrub style={{ scrollBehavior: "smooth" }}>
+      <button type="button" />
+      <button type="button" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(pairDir, "HostWidgets.tsx"), origPair);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid animating page transitions during scrubbing.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origMinimal = `export function HostWidgets() {
+  return (
+    <div data-page-control data-page-minimal data-page-scrub>
+      <button type="button" />
+      <button type="button" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(minimalDir, "HostWidgets.tsx"), origMinimal);
+    const origSwift = `export function HostWidgets() {
+  let pages = UIPageControl()
+  pages.allowsContinuousInteraction = true
+  withAnimation(.linear) { pages.currentPage = 1 }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftScrub = `export function HostWidgets() {
+  let pages = UIPageControl()
+  pages.allowsContinuousInteraction = true
+}
+`;
+    fs.writeFileSync(path.join(swiftScrubDir, "HostWidgets.tsx"), origSwiftScrub);
+    const names = ["pass", "fix", "hold", "scrub", "anim", "pair", "sentence", "minimal", "swift", "swiftScrub"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      scrub: scrubDir,
+      anim: animDir,
+      pair: pairDir,
+      sentence: sentenceDir,
+      minimal: minimalDir,
+      swift: swiftDir,
+      swiftScrub: swiftScrubDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const pair = fs.readFileSync(path.join(pairDir, "HostWidgets.tsx"), "utf8");
+    const minimal = fs.readFileSync(path.join(minimalDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const pages = (name) => status[name].topics["page-controls"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["page-controls"]?.dontHeuristicIds || []).includes("pgc-anim"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      pairChrome: reports.pair.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passPages: pages("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixPages: pages("fix") === "applied",
+      markerGone: !/data-pgc-anim(?![\w-])/.test(fixed),
+      dotsKept: /data-page-control/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPages: pages("hold") === "pending",
+      holdStillPhrase: /animating page transitions during scrubbing/.test(held),
+      scrubPages: pages("scrub") === "already-compliant",
+      animPages: pages("anim") === "already-compliant",
+      pairUnchanged: pair === origPair,
+      pairPages: pages("pair") === "pending",
+      pairKept: /data-page-scrub/.test(pair) && /scrollBehavior:\s*"smooth"/.test(pair),
+      sentencePages: pages("sentence") === "skipped-no-affordance",
+      minimalUnchanged: minimal === origMinimal,
+      minimalPages: pages("minimal") === "pending",
+      swiftPages: pages("swift") === "pending",
+      swiftScrubPages: pages("swiftScrub") === "already-compliant",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPages: pages("pass"),
+      fixPages: pages("fix"),
+      holdPages: pages("hold"),
+      scrubPages: pages("scrub"),
+      animPages: pages("anim"),
+      pairPages: pages("pair"),
+      sentencePages: pages("sentence"),
+      minimalPages: pages("minimal"),
+      swiftPages: pages("swift"),
+      swiftScrubPages: pages("swiftScrub"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-scrub-animation-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

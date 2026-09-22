@@ -3840,6 +3840,57 @@ function applyMinimalPageScrub(text) {
   return text.replace(/\s*data-pgc-scrub(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function pageScrubChunks(text) {
+  const out = [
+    ...blocksWithAttr(text, "data-page-control").map((b) => b.text),
+    ...blocksWithAttr(text, "data-carousel-dots").map((b) => b.text),
+  ];
+  const re = /\b(?:UIPageControl|PageControl)\s*[\({]/g;
+  let m;
+  while ((m = re.exec(text))) out.push(text.slice(m.index, m.index + 700));
+  return out;
+}
+
+function chunkAnimatesPage(chunk) {
+  return (
+    /scroll-behavior\s*:\s*smooth/i.test(chunk) ||
+    /scrollBehavior\s*:\s*["']smooth["']/.test(chunk) ||
+    /\bwithAnimation\s*\(/.test(chunk) ||
+    /\.animation\s*\(/.test(chunk) ||
+    /\banimated\s*:\s*true\b/.test(chunk)
+  );
+}
+
+function hasScrubAnimCopy(text) {
+  return (
+    /animating page transitions during scrubbing/i.test(text) ||
+    /animated page transition while a page control is scrubbing/i.test(text)
+  );
+}
+
+function scrubAnimates(text) {
+  return pageScrubChunks(text).some((chunk) => hasPageScrubber(chunk) && chunkAnimatesPage(chunk));
+}
+
+function scanScrubAnimation(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pgc-anim(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an animated page transition while a page control is scrubbing"));
+      continue;
+    }
+    if (!hasPageControlWidget(f.text)) continue;
+    if (hasScrubAnimCopy(f.text) || scrubAnimates(f.text)) {
+      out.push(hit(f.path, "an animated page transition while a page control is scrubbing"));
+    }
+  }
+  return out;
+}
+
+function applyScrubAnimation(text) {
+  return text.replace(/\s*data-pgc-anim(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanPageControlAsHierarchy(files) {
   const out = [];
   for (const f of files) {
@@ -9413,6 +9464,8 @@ function scanHeuristic(id, files) {
       return scanPageControlAsHierarchy(files);
     case "pgc-scrub":
       return scanMinimalPageScrub(files);
+    case "pgc-anim":
+      return scanScrubAnimation(files);
     case "too-many-page-dots":
       return scanTooManyPageDots(files);
     case "too-many-page-indicator-images":
@@ -10039,6 +10092,8 @@ function applyHeuristic(id, file) {
       return applyPageControlAsHierarchy(file.text);
     case "pgc-scrub":
       return applyMinimalPageScrub(file.text);
+    case "pgc-anim":
+      return applyScrubAnimation(file.text);
     case "too-many-page-dots":
       return applyTooManyPageDots(file.text);
     case "too-many-page-indicator-images":
