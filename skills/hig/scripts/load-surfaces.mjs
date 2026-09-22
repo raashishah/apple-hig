@@ -377,6 +377,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "researchkit",
     "walletpass",
     "appclipcode",
+    "shazam",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

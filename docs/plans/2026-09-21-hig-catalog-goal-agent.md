@@ -173,6 +173,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 99. Wallet decline Don'ts. **Landed on this PR.** Account a second suggestion after people decline when every Don't has a scanner and the host has the same pass widget. Skip-unless `walletpass` stays. Gate stays `capability:wallet`. Do not overlay `always`. If people decline your suggestion, don't ask them again, from Apple's Wallet page. Do not complete an Add to Wallet sheet. Do not map this Don't onto `data-wl-decline`, the first suggestion, a permission prompt, or Apple Pay. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+100. ShazamKit microphone Don'ts. **Landed on this PR.** Account a microphone that stays on after recognition when every Don't has a scanner and the host has a recognition session. Skip-unless `shazam` stays. Dedicated surface `shazamkit` attaches by appleUrl before the media cluster. Gate stays `capability:shazam`. Do not overlay `always`. People don't expect the microphone to stay on, from Apple's ShazamKit page. Do not complete a microphone permission sheet. Do not map this Don't onto `import ShazamKit`, `data-sz-mic`, an iCloud song-library opt-in, or packed privacy. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

@@ -651,6 +651,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "appclipcode":
       return !present.includes(need);
+    case "shazam":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1313,6 +1315,13 @@ export function scanAffordances(files) {
   }
   if (/\bdata-app-clip-code\b/.test(blob)) {
     found.push("appclipcode");
+  }
+  if (
+    /\bdata-shazam\b/.test(blob) ||
+    /\bSHSession\b/.test(blob) ||
+    /\bSHManagedSession\b/.test(blob)
+  ) {
+    found.push("shazam");
   }
   return found;
 }

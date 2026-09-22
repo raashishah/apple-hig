@@ -652,6 +652,7 @@ function detectCapabilitiesFromTree(cwd) {
   }
   if (/\bimport\s+ARKit\b/.test(blob)) capabilities.add("arkit");
   if (/\bimport\s+CoreML\b/.test(blob)) capabilities.add("coreml");
+  if (/\bimport\s+ShazamKit\b/.test(blob)) capabilities.add("shazam");
   if (
     /com\.apple\.developer\.associated-appclip-app-identifiers/.test(blob) ||
     /com\.apple\.developer\.parent-application-identifiers/.test(blob) ||

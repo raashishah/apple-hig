@@ -139,6 +139,10 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.wallet?.gate === "capability:wallet" &&
     surfaces.byId["app-clips"]?.affordance === "appclipcode" &&
     surfaces.byId["app-clips"]?.gate === "capability:appclips" &&
+    surfaces.byId.shazamkit?.affordance === "shazam" &&
+    surfaces.byId.shazamkit?.gate === "capability:shazam" &&
+    surfaces.surfaces.findIndex((s) => s.id === "shazamkit") <
+      surfaces.surfaces.findIndex((s) => s.id === "media-intelligence") &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1663,6 +1667,42 @@ const results = [];
       text: "<div data-wl-decline></div>",
     },
   ]);
+  const shazamWidgetOnly = scanAffordances([
+    {
+      path: "Listen.tsx",
+      text: "<div data-shazam></div>",
+    },
+  ]);
+  const shazamSessionOnly = scanAffordances([
+    {
+      path: "Listen.swift",
+      text: "let session = SHSession()",
+    },
+  ]);
+  const shazamImportOnly = scanAffordances([
+    {
+      path: "Listen.swift",
+      text: "import ShazamKit",
+    },
+  ]);
+  const szMarkerOnly = scanAffordances([
+    {
+      path: "Listen.tsx",
+      text: "<div data-sz-mic></div>",
+    },
+  ]);
+  const shazamPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>They don't expect the microphone to stay on.</p>",
+    },
+  ]);
+  const shazamPermissionOnly = scanAffordances([
+    {
+      path: "Listen.swift",
+      text: "AVAudioSession.sharedInstance().requestRecordPermission { _ in }",
+    },
+  ]);
   const walletPhraseOnly = scanAffordances([
     {
       path: "Copy.tsx",
@@ -2339,6 +2379,13 @@ const results = [];
       !applePayButtonOnly.includes("walletpass") &&
       !wlMarkerOnly.includes("walletpass") &&
       !wlDeclineMarkerOnly.includes("walletpass") &&
+      shazamWidgetOnly.includes("shazam") &&
+      shazamSessionOnly.includes("shazam") &&
+      !shazamImportOnly.includes("shazam") &&
+      !szMarkerOnly.includes("shazam") &&
+      !shazamPhraseOnly.includes("shazam") &&
+      !shazamPermissionOnly.includes("shazam") &&
+      !passWidgetOnly.includes("shazam") &&
       !walletOnly.includes("walletpass") &&
       !walletPhraseOnly.includes("walletpass") &&
       !apMarkerOnly.includes("walletpass") &&
@@ -3187,6 +3234,11 @@ const results = [];
       catalog.byId["app-clips"]?.pack === "tech-app-clips.md" &&
       catalog.byId["app-clips"]?.surfaceId === "app-clips" &&
       catalog.byId["app-clips"]?.appliesWhen === "capability:appclips" &&
+      catalog.byId.shazamkit?.dontCoverageComplete === true &&
+      (catalog.byId.shazamkit?.dontHeuristicIds || []).includes("sz-mic") &&
+      catalog.byId.shazamkit?.pack === "tech-shazamkit.md" &&
+      catalog.byId.shazamkit?.surfaceId === "shazamkit" &&
+      catalog.byId.shazamkit?.appliesWhen === "capability:shazam" &&
       catalog.byId["mac-catalyst"]?.pack === "tech-cluster-platform.md" &&
       catalog.byId["apple-pay"]?.appliesWhen === "capability:applepay" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
@@ -15316,6 +15368,183 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-wallet-decline-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sz-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sz-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sz-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sz-hold-"));
+  const listenDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sz-listen-"));
+  const stopDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sz-stop-"));
+  const optDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sz-opt-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sz-bare-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, listenDir, stopDir, optDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeImport = (dir) => {
+      fs.writeFileSync(path.join(dir, "Listen.swift"), "import ShazamKit\n");
+    };
+    writeImport(cleanDir);
+    writeImport(fixDir);
+    writeImport(holdDir);
+    writeImport(listenDir);
+    writeImport(stopDir);
+    writeImport(optDir);
+    fs.writeFileSync(path.join(bareDir, "Model.swift"), "import CoreML\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-shazam data-sz-mic>
+      <button type="button">Match</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-shazam>
+      <p>They don't expect the microphone to stay on.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origListen = `export function HostWidgets() {
+  return (
+    <div data-shazam>
+      session.match(signature)
+      audioEngine.start()
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(listenDir, "HostWidgets.tsx"), origListen);
+    const origStop = `export function HostWidgets() {
+  return (
+    <div data-shazam>
+      session.match(signature)
+      audioEngine.start()
+      audioEngine.stop()
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(stopDir, "HostWidgets.tsx"), origStop);
+    const origOpt = `export function HostWidgets() {
+  return (
+    <div data-shazam>
+      session.match(signature)
+      audioEngine.start()
+      audioEngine.stop()
+      <p>Let people opt in to storing recognized songs.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(optDir, "HostWidgets.tsx"), origOpt);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const listenReport = run(listenDir);
+    const stopReport = run(stopDir);
+    const optReport = run(optDir);
+    const bareReport = run(bareDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const listenStatus = readStatus(listenDir);
+    const stopStatus = readStatus(stopDir);
+    const optStatus = readStatus(optDir);
+    const bareStatus = readStatus(bareDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const listened = fs.readFileSync(path.join(listenDir, "HostWidgets.tsx"), "utf8");
+    const stopped = fs.readFileSync(path.join(stopDir, "HostWidgets.tsx"), "utf8");
+    const opted = fs.readFileSync(path.join(optDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      listenChrome: listenReport.chrome.pass === true,
+      stopChrome: stopReport.chrome.pass === true,
+      optChrome: optReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      passShazam: passStatus.topics.shazamkit?.state === "skipped-gate",
+      cleanShazam: cleanStatus.topics.shazamkit?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixShazam: fixStatus.topics.shazamkit?.state === "applied",
+      systemKept: /\bdata-shazam\b/.test(fixed) && />\s*Match\s*</.test(fixed),
+      markersGone: !/data-sz-mic/.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Listen.swift"), "utf8").includes("import ShazamKit"),
+      holdUnchanged: held === origHold,
+      holdShazam: holdStatus.topics.shazamkit?.state === "pending",
+      holdStillPhrase: /microphone to stay on/.test(held) && /\bdata-shazam\b/.test(held),
+      holdNotInvented: !/audioEngine\.stop|requestRecordPermission/.test(held),
+      listenUnchanged: listened === origListen,
+      listenShazam: listenStatus.topics.shazamkit?.state === "pending",
+      listenKept: /audioEngine\.start\(\)/.test(listened) && !/audioEngine\.stop\(\)/.test(listened),
+      stopUnchanged: stopped === origStop,
+      stopShazam: stopStatus.topics.shazamkit?.state === "already-compliant",
+      stopKept: /audioEngine\.stop\(\)/.test(stopped),
+      optUnchanged: opted === origOpt,
+      optShazam: optStatus.topics.shazamkit?.state === "already-compliant",
+      optKept: /opt in to storing recognized songs/.test(opted),
+      bareShazam: bareStatus.topics.shazamkit?.state === "skipped-gate",
+      bareMarkersRemain: /data-sz-mic/.test(bared),
+      coremlKept: fs.readFileSync(path.join(bareDir, "Model.swift"), "utf8").includes("import CoreML"),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passShazam: passStatus.topics.shazamkit?.state,
+      cleanShazam: cleanStatus.topics.shazamkit?.state,
+      fixShazam: fixStatus.topics.shazamkit?.state,
+      holdShazam: holdStatus.topics.shazamkit?.state,
+      listenShazam: listenStatus.topics.shazamkit?.state,
+      stopShazam: stopStatus.topics.shazamkit?.state,
+      optShazam: optStatus.topics.shazamkit?.state,
+      bareShazam: bareStatus.topics.shazamkit?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-shazam-mic-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

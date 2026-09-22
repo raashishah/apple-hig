@@ -311,6 +311,21 @@ const results = [];
       platform: "phone",
       capabilities: ["applepay"],
     }).launched.some((s) => s.id === "wallet") &&
+    surfaces.byId.shazamkit?.gate === "capability:shazam" &&
+    surfaces.byId.shazamkit?.affordance === "shazam" &&
+    !phone.launched.some((s) => s.id === "shazamkit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["shazam"],
+    }).launched.some((s) => s.id === "shazamkit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["shazam"],
+    }).launched.some((s) => s.id === "media-intelligence") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["coreml"],
+    }).launched.some((s) => s.id === "shazamkit") &&
     surfaces.byId["app-clips"]?.gate === "capability:appclips" &&
     surfaces.byId["app-clips"]?.affordance === "appclipcode" &&
     !phone.launched.some((s) => s.id === "app-clips") &&

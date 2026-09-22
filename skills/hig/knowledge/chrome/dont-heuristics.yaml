@@ -554,6 +554,8 @@ heuristics:
     match: change message used for marketing
   - id: wl-decline
     match: decline a Wallet suggestion
+  - id: sz-mic
+    match: microphone that stays on after the recognition sample
   - id: ac-modified
     match: homemade or modified App Clip Code
   - id: ac-overlay
