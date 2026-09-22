@@ -11191,6 +11191,90 @@ function applyAlertScroll(text) {
   return text.replace(/\s*data-al-scroll(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function alertButtonLabel(chunk) {
+  const open = chunk.match(/^<[^>]*>/);
+  const tag = open ? open[0] : "";
+  const aria = tag.match(/\baria-label=["']([^"']+)["']/i);
+  if (aria) return aria[1].trim();
+  return chunk.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function messageExplainsLabel(message, label) {
+  const name = String(label || "").trim();
+  if (name.length < 2 || name.length > 40) return false;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b(?:tap|press|click|choose)\\s+${escaped}\\b`, "i").test(message);
+}
+
+function regionExplainsAlertButton(region) {
+  const labels = [];
+  const re = /<(button|a)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  let m;
+  while ((m = re.exec(region))) {
+    const label = alertButtonLabel(m[0]);
+    if (label) labels.push(label);
+  }
+  if (!labels.length) return false;
+  const message = region
+    .replace(/<(button|a)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ");
+  return labels.some((label) => messageExplainsLabel(message, label));
+}
+
+function swiftAlertExplainsButton(text) {
+  const re = /\.alert\s*\(/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const window = text.slice(m.index, m.index + 1200);
+    const labels = [...window.matchAll(/\bButton\s*\(\s*"([^"]+)"/g)].map((item) => item[1]);
+    const messages = [...window.matchAll(/\bText\s*\(\s*"([^"]+)"/g)].map((item) => item[1]);
+    const blob = messages.join(" ");
+    if (labels.some((label) => messageExplainsLabel(blob, label))) return true;
+  }
+  return false;
+}
+
+function uikitAlertExplainsButton(text) {
+  if (!/\bUIAlertController\b/.test(text) || !/\.alert\b/.test(text)) return false;
+  const message = (text.match(/\bmessage:\s*"([^"]*)"/) || [])[1] || "";
+  const labels = [...text.matchAll(/\bUIAlertAction\s*\(\s*title:\s*"([^"]+)"/g)].map((item) => item[1]);
+  return labels.some((label) => messageExplainsLabel(message, label));
+}
+
+function hasExplainAlertButton(text) {
+  if (elementsWithRole(text, "alertdialog").some(regionExplainsAlertButton)) return true;
+  if (swiftAlertExplainsButton(text)) return true;
+  if (uikitAlertExplainsButton(text)) return true;
+  return false;
+}
+
+function hasExplainAlertCopy(text) {
+  return /explaining alert buttons/i.test(text) || /alert message that explains a button/i.test(text);
+}
+
+function hasExplainAlertWidget(text) {
+  return /role=["']alertdialog["']/i.test(text) || /\.alert\s*\(/.test(text) || /\bUIAlertController\b/.test(text);
+}
+
+function scanExplainAlertButton(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-al-hint(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an alert message that explains a button"));
+      continue;
+    }
+    if (hasExplainAlertButton(f.text) || (hasExplainAlertCopy(f.text) && hasExplainAlertWidget(f.text))) {
+      out.push(hit(f.path, "an alert message that explains a button"));
+    }
+  }
+  return out;
+}
+
+function applyExplainAlertButton(text) {
+  return text.replace(/\s*data-al-hint(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function stripWritingComments(text) {
   return String(text || "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -11455,6 +11539,8 @@ function scanHeuristic(id, files) {
       return scanAlertTitleLines(files);
     case "al-scroll":
       return scanAlertScroll(files);
+    case "al-hint":
+      return scanExplainAlertButton(files);
     case "wr-we":
       return scanWeCopy(files);
     case "hide-unavailable-menu-items":
@@ -12157,6 +12243,8 @@ function applyHeuristic(id, file) {
       return applyAlertTitleLines(file.text);
     case "al-scroll":
       return applyAlertScroll(file.text);
+    case "al-hint":
+      return applyExplainAlertButton(file.text);
     case "wr-we":
       return applyWeCopy(file.text);
     case "hide-unavailable-menu-items":

@@ -32,6 +32,7 @@
 - Relying solely on the Done button to exit a sheet.
 - An alert title that wraps to more than two lines.
 - An alert that scrolls.
+- An alert message that explains a button.
 
 ## Chrome gates
 
