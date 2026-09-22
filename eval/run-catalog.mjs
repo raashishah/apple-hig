@@ -15998,7 +15998,7 @@ struct OneTorch: ControlWidget {
       padWallet: padStatus.topics.wallet?.state === "already-compliant",
       padKept: /padding: 8px/.test(pad),
       stripUnchanged: strip === origStrip,
-      stripWallet: stripStatus.topics.wallet?.state === "already-compliant",
+      stripWallet: stripStatus.topics.wallet?.state === "pending",
       stripKept: /strip image/.test(strip),
       payWallet: payStatus.topics.wallet?.state === "skipped-gate",
       payMarkersRemain: /data-wl-shadow/.test(paid),
@@ -22669,6 +22669,190 @@ ${dots}
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-plaintext-password-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-hold-"));
+  const svgDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-svg-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-plain-"));
+  const overDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-over-"));
+  const padDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-pad-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-bare-"));
+  const payDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wlt-pay-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, svgDir, plainDir, overDir, padDir, sentenceDir, bareDir, payDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writePassKit = (dir) => {
+      fs.writeFileSync(path.join(dir, "Pass.swift"), "import PassKit\nlet library = PKPassLibrary()\n");
+    };
+    for (const dir of [cleanDir, fixDir, holdDir, svgDir, plainDir, overDir, padDir, sentenceDir]) {
+      writePassKit(dir);
+    }
+    fs.writeFileSync(path.join(payDir, "Pay.swift"), "let button = PKPaymentButton()\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-wallet data-wl-strip>
+      <button type="button">Pass</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(payDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <p>Avoid embedding text in the strip image.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSvg = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <svg className="strip" aria-hidden="true">
+        <text>20% OFF</text>
+      </svg>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(svgDir, "HostWidgets.tsx"), origSvg);
+    const origPlain = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <svg className="strip" aria-hidden="true">
+        <rect width="120" height="40" />
+      </svg>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origOver = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <img className="strip" alt="storefront" src="strip.png" />
+      <p>20% off</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(overDir, "HostWidgets.tsx"), origOver);
+    const origPad = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <img alt="logo" style="padding: 8px" src="logo.png" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(padDir, "HostWidgets.tsx"), origPad);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid embedding text in the strip image.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origBare = `export function HostWidgets() {
+  return <span data-wl-strip>Pass</span>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const names = ["pass", "clean", "fix", "hold", "svg", "plain", "over", "pad", "sentence", "bare", "pay"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      fix: fixDir,
+      hold: holdDir,
+      svg: svgDir,
+      plain: plainDir,
+      over: overDir,
+      pad: padDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+      pay: payDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const svg = fs.readFileSync(path.join(svgDir, "HostWidgets.tsx"), "utf8");
+    const paid = fs.readFileSync(path.join(payDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const wallet = (name) => status[name].topics.wallet?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.wallet?.dontHeuristicIds || []).includes("wl-strip"),
+      passChrome: reports.pass.chrome.pass === true,
+      cleanChrome: reports.clean.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      svgChrome: reports.svg.chrome.pass === true,
+      plainChrome: reports.plain.chrome.pass === true,
+      overChrome: reports.over.chrome.pass === true,
+      padChrome: reports.pad.chrome.pass === true,
+      sentenceChrome: reports.sentence.chrome.pass === true,
+      bareChrome: reports.bare.chrome.pass === true,
+      payChrome: reports.pay.chrome.pass === true,
+      passWallet: wallet("pass") === "skipped-gate",
+      cleanWallet: wallet("clean") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixWallet: wallet("fix") === "applied",
+      markerGone: !/data-wl-strip(?![\w-])/.test(fixed),
+      passKept: /\bdata-wallet\b/.test(fixed) && />\s*Pass\s*</.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Pass.swift"), "utf8").includes("import PassKit"),
+      holdUnchanged: held === origHold,
+      holdWallet: wallet("hold") === "pending",
+      holdPhrase: /embedding text in the strip image/.test(held),
+      svgUnchanged: svg === origSvg,
+      svgWallet: wallet("svg") === "pending",
+      svgTextKept: /<text>20% OFF<\/text>/.test(svg),
+      plainWallet: wallet("plain") === "already-compliant",
+      overWallet: wallet("over") === "already-compliant",
+      padWallet: wallet("pad") === "already-compliant",
+      sentenceWallet: wallet("sentence") === "skipped-no-affordance",
+      bareWallet: wallet("bare") === "skipped-gate",
+      bareMarkerRemains: /data-wl-strip(?![\w-])/.test(bared),
+      payWallet: wallet("pay") === "skipped-gate",
+      payMarkerRemains: /data-wl-strip(?![\w-])/.test(paid),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWallet: wallet("pass"),
+      cleanWallet: wallet("clean"),
+      fixWallet: wallet("fix"),
+      holdWallet: wallet("hold"),
+      svgWallet: wallet("svg"),
+      plainWallet: wallet("plain"),
+      overWallet: wallet("over"),
+      padWallet: wallet("pad"),
+      sentenceWallet: wallet("sentence"),
+      bareWallet: wallet("bare"),
+      payWallet: wallet("pay"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-wallet-strip-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

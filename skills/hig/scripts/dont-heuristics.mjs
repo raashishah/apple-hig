@@ -8794,6 +8794,44 @@ function applyWlLogoShadow(text) {
   return text.replace(/\s*data-wl-shadow(?:="[^"]*")?/g, "");
 }
 
+function hasWlStripCopy(text) {
+  return (
+    /embedding text in the strip image/i.test(text) ||
+    /text embedded in the strip image/i.test(text) ||
+    /avoid embedding text in the strip/i.test(text)
+  );
+}
+
+function stripSvgContainsText(text) {
+  const re = /<svg\b([^>]*)>([\s\S]*?)<\/svg>/gi;
+  let match;
+  while ((match = re.exec(text))) {
+    const isStrip = /\bstrip\b/i.test(match[1]);
+    const hasText = /<(?:text|tspan)\b/i.test(match[2]);
+    if (isStrip && hasText) return true;
+  }
+  return false;
+}
+
+function scanWlStrip(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wl-strip(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "text embedded in the strip image"));
+      continue;
+    }
+    if (!hasPass(f.text)) continue;
+    if (hasWlStripCopy(f.text) || stripSvgContainsText(f.text)) {
+      out.push(hit(f.path, "text embedded in the strip image"));
+    }
+  }
+  return out;
+}
+
+function applyWlStrip(text) {
+  return text.replace(/\s*data-wl-strip(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasShazam(text) {
   return /\bdata-shazam\b/.test(text) || /\bSHSession\b/.test(text) || /\bSHManagedSession\b/.test(text);
 }
@@ -10842,6 +10880,8 @@ function scanHeuristic(id, files) {
       return scanWlDecline(files);
     case "wl-shadow":
       return scanWlLogoShadow(files);
+    case "wl-strip":
+      return scanWlStrip(files);
     case "sz-mic":
       return scanSzMic(files);
     case "px-cancel":
@@ -11496,6 +11536,8 @@ function applyHeuristic(id, file) {
       return applyWlDecline(file.text);
     case "wl-shadow":
       return applyWlLogoShadow(file.text);
+    case "wl-strip":
+      return applyWlStrip(file.text);
     case "sz-mic":
       return applySzMic(file.text);
     case "px-cancel":
