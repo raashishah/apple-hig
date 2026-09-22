@@ -532,3 +532,9 @@ heuristics:
     match: instructional text displayed with a pointer
   - id: pt-decorative
     match: purely decorative pointer effect
+  - id: pe-hover
+    match: Hover that initiates an action
+  - id: pe-double-tap
+    match: Double-tap that modifies content
+  - id: pe-distract
+    match: Distraction while people write

@@ -151,6 +151,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 88. Pointing Don'ts. **Landed on this PR.** Account pointing-devices Don'ts when every Don't has a scanner and the host has pointer chrome. Skip-unless `pointer` affordance stays. Gate stays `ipad,desktop`. Do not overlay `always`, because unknown chrome-pass and phone hosts must stay skipped-gate. Instructional text displayed with a pointer, and a purely decorative pointer effect, scan from Apple's pointing-devices page. Do not invent a pointer. Do not map pointing-devices onto a link `cursor: pointer`, a hover rule, or a bare pointer phrase. System edge swipes stay on gestures. Pencil hover stays on the Pencil pack. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+89. Pencil Don'ts. **Landed on this PR.** Account apple-pencil-and-scribble Don'ts when every Don't has a scanner and the host has pencil chrome. Skip-unless `pencil` affordance stays. Gate stays `ipad+capability:pencil`. Do not overlay `always`, because unknown chrome-pass, phone, and Mac hosts must stay skipped-gate. Hover that initiates an action, double-tap that modifies content, and distraction while people write scan from Apple's apple-pencil-and-scribble page. Do not invent a pencil canvas. Do not map apple-pencil-and-scribble onto `import PencilKit`, a bare Apple Pencil phrase, or `data-pe-*` markers alone. Pointer instructional text stays on pointing. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

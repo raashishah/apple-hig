@@ -125,6 +125,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["inputs-keyboards"]?.gate === "phone,ipad,desktop" &&
     surfaces.byId["inputs-pointing"]?.affordance === "pointer" &&
     surfaces.byId["inputs-pointing"]?.gate === "ipad,desktop" &&
+    surfaces.byId["inputs-pencil"]?.affordance === "pencil" &&
+    surfaces.byId["inputs-pencil"]?.gate === "ipad+capability:pencil" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1481,6 +1483,48 @@ const results = [];
       text: ".row:hover { color: red; }",
     },
   ]);
+  const pencilOnly = scanAffordances([
+    {
+      path: "Ink.tsx",
+      text: "<div data-pencil></div>",
+    },
+  ]);
+  const canvasOnly = scanAffordances([
+    {
+      path: "Ink.swift",
+      text: "let canvas = PKCanvasView()",
+    },
+  ]);
+  const toolPickerOnly = scanAffordances([
+    {
+      path: "Ink.swift",
+      text: "let tools = PKToolPicker()",
+    },
+  ]);
+  const scribbleOnly = scanAffordances([
+    {
+      path: "Ink.swift",
+      text: "let scribble = UIScribbleInteraction(delegate: self)",
+    },
+  ]);
+  const importPencilOnly = scanAffordances([
+    {
+      path: "Ink.swift",
+      text: "import PencilKit",
+    },
+  ]);
+  const pencilPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Use Apple Pencil.</p>",
+    },
+  ]);
+  const peMarkerOnly = scanAffordances([
+    {
+      path: "Ink.tsx",
+      text: "<div data-pe-hover data-pe-double-tap data-pe-distract></div>",
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -2015,6 +2059,18 @@ const results = [];
       !formOnly.includes("pointer") &&
       !passList.includes("pointer") &&
       !pageOnly.includes("pointer") &&
+      pencilOnly.includes("pencil") &&
+      !pencilOnly.includes("pointer") &&
+      canvasOnly.includes("pencil") &&
+      toolPickerOnly.includes("pencil") &&
+      scribbleOnly.includes("pencil") &&
+      !importPencilOnly.includes("pencil") &&
+      !pencilPhraseOnly.includes("pencil") &&
+      !peMarkerOnly.includes("pencil") &&
+      !pointerOnly.includes("pencil") &&
+      !formOnly.includes("pencil") &&
+      !passList.includes("pencil") &&
+      !pageOnly.includes("pencil") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2795,6 +2851,16 @@ const results = [];
       (catalog.byId["pointing-devices"]?.dontHeuristicIds || []).includes("pt-decorative") &&
       catalog.byId["pointing-devices"]?.pack === "inputs-pointing-devices.md" &&
       catalog.byId["pointing-devices"]?.appliesWhen === "ipad,desktop" &&
+      catalog.byId["apple-pencil-and-scribble"]?.dontCoverageComplete === true &&
+      (catalog.byId["apple-pencil-and-scribble"]?.dontHeuristicIds || []).includes("pe-hover") &&
+      (catalog.byId["apple-pencil-and-scribble"]?.dontHeuristicIds || []).includes(
+        "pe-double-tap",
+      ) &&
+      (catalog.byId["apple-pencil-and-scribble"]?.dontHeuristicIds || []).includes(
+        "pe-distract",
+      ) &&
+      catalog.byId["apple-pencil-and-scribble"]?.pack === "inputs-apple-pencil.md" &&
+      catalog.byId["apple-pencil-and-scribble"]?.appliesWhen === "ipad+capability:pencil" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -13246,6 +13312,176 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-pointing-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pencil-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pencil-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pencil-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pencil-hold-"));
+  const phoneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pencil-phone-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, cleanDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.cpSync(src, phoneDir, { recursive: true });
+    const writeIpad = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: ipad\nregister: product\nThis product is an iPad app.\n",
+      );
+      fs.writeFileSync(path.join(dir, "Canvas.swift"), "import PencilKit\n");
+    };
+    writeIpad(cleanDir);
+    writeIpad(fixDir);
+    writeIpad(holdDir);
+    fs.writeFileSync(
+      path.join(phoneDir, "DESIGN.md"),
+      "platform_primary: phone\nregister: product\nThis product is an iPhone app.\n",
+    );
+    fs.writeFileSync(path.join(phoneDir, "Canvas.swift"), "import PencilKit\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-pencil data-pe-hover data-pe-double-tap data-pe-distract>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(phoneDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <p>hover that initiates an action.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const cleanReport = applyCatalog({
+      cwd: cleanDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const phoneReport = applyCatalog({
+      cwd: phoneDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const cleanStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(cleanDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const phoneStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(phoneDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const phoneWidgets = fs.readFileSync(path.join(phoneDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(cleanDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+      ...walkSource(phoneDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      phoneChrome: phoneReport.chrome.pass === true,
+      passPencil: passStatus.topics["apple-pencil-and-scribble"]?.state === "skipped-gate",
+      cleanPencil: cleanStatus.topics["apple-pencil-and-scribble"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixPencil: fixStatus.topics["apple-pencil-and-scribble"]?.state === "applied",
+      systemKept: /\bdata-pencil\b/.test(fixed) && />\s*Ink\s*</.test(fixed),
+      markersGone: !/data-pe-hover|data-pe-double-tap|data-pe-distract/.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Canvas.swift"), "utf8").includes("import PencilKit"),
+      holdUnchanged: held === origHold,
+      holdPencil: holdStatus.topics["apple-pencil-and-scribble"]?.state === "pending",
+      holdStillPhrase:
+        /\bdata-pencil\b/.test(held) && /hover that initiates an action/.test(held),
+      holdNotInvented: !/PKCanvasView|PKToolPicker|UIScribbleInteraction/.test(held),
+      phonePencil: phoneStatus.topics["apple-pencil-and-scribble"]?.state === "skipped-gate",
+      phoneMarkersRemain: /data-pe-hover|data-pe-double-tap|data-pe-distract/.test(phoneWidgets),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPencil: passStatus.topics["apple-pencil-and-scribble"]?.state,
+      cleanPencil: cleanStatus.topics["apple-pencil-and-scribble"]?.state,
+      fixPencil: fixStatus.topics["apple-pencil-and-scribble"]?.state,
+      holdPencil: holdStatus.topics["apple-pencil-and-scribble"]?.state,
+      phonePencil: phoneStatus.topics["apple-pencil-and-scribble"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(cleanDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+    fs.rmSync(phoneDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-pencil-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

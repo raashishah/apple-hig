@@ -167,6 +167,10 @@ const results = [];
     platform_secondary: ["desktop"],
     capabilities: [],
   });
+  const padPencil = selectSurfaces(surfaces, {
+    platform: "ipad",
+    capabilities: ["pencil"],
+  });
   const ok =
     webSkip.launched.some((s) => s.id === "healthkit") &&
     webSkip.launched.some((s) => s.id === "sign-in-with-apple") &&
@@ -191,6 +195,10 @@ const results = [];
     !desktop.launched.some((s) => s.id === "inputs-gestures") &&
     desktop.launched.some((s) => s.id === "inputs-keyboards") &&
     desktop.launched.some((s) => s.id === "inputs-pointing") &&
+    !desktop.launched.some((s) => s.id === "inputs-pencil") &&
+    !webSkip.launched.some((s) => s.id === "inputs-pencil") &&
+    !hk.launched.some((s) => s.id === "inputs-pencil") &&
+    padPencil.launched.some((s) => s.id === "inputs-pencil") &&
     multi.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "game-center");

@@ -637,6 +637,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "pointer":
       return !present.includes(need);
+    case "pencil":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1273,6 +1275,14 @@ export function scanAffordances(files) {
     /\bcursor:\s*url\(/.test(blob)
   ) {
     found.push("pointer");
+  }
+  if (
+    /\bdata-pencil\b/.test(blob) ||
+    /\bPKCanvasView\b/.test(blob) ||
+    /\bPKToolPicker\b/.test(blob) ||
+    /\bUIScribbleInteraction\b/.test(blob)
+  ) {
+    found.push("pencil");
   }
   return found;
 }

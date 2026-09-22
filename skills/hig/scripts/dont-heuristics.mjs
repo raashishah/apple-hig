@@ -7112,6 +7112,81 @@ function applyPtDecorative(text) {
   return text.replace(/\s*data-pt-decorative(?:="[^"]*")?/g, "");
 }
 
+function hasPencil(text) {
+  return (
+    /\bdata-pencil\b/.test(text) ||
+    /\bPKCanvasView\b/.test(text) ||
+    /\bPKToolPicker\b/.test(text) ||
+    /\bUIScribbleInteraction\b/.test(text)
+  );
+}
+
+function hasPeHoverCopy(text) {
+  return /hover that initiates an action/i.test(text) || /hover to initiate an action/i.test(text);
+}
+
+function hasPeDoubleTapCopy(text) {
+  return (
+    /double-tap that modifies content/i.test(text) ||
+    /double-tap gesture to perform an action that modifies/i.test(text)
+  );
+}
+
+function hasPeDistractCopy(text) {
+  return /distraction while people write/i.test(text) || /distracting people while they write/i.test(text);
+}
+
+function scanPeHover(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-hover/.test(f.text)) {
+      out.push(hit(f.path, "hover that initiates an action"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeHoverCopy(f.text)) out.push(hit(f.path, "hover that initiates an action"));
+  }
+  return out;
+}
+
+function scanPeDoubleTap(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-double-tap/.test(f.text)) {
+      out.push(hit(f.path, "double-tap that modifies content"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeDoubleTapCopy(f.text)) out.push(hit(f.path, "double-tap that modifies content"));
+  }
+  return out;
+}
+
+function scanPeDistract(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-distract/.test(f.text)) {
+      out.push(hit(f.path, "distraction while people write"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeDistractCopy(f.text)) out.push(hit(f.path, "distraction while people write"));
+  }
+  return out;
+}
+
+function applyPeHover(text) {
+  return text.replace(/\s*data-pe-hover(?:="[^"]*")?/g, "");
+}
+
+function applyPeDoubleTap(text) {
+  return text.replace(/\s*data-pe-double-tap(?:="[^"]*")?/g, "");
+}
+
+function applyPeDistract(text) {
+  return text.replace(/\s*data-pe-distract(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7659,6 +7734,12 @@ function scanHeuristic(id, files) {
       return scanPtInstruct(files);
     case "pt-decorative":
       return scanPtDecorative(files);
+    case "pe-hover":
+      return scanPeHover(files);
+    case "pe-double-tap":
+      return scanPeDoubleTap(files);
+    case "pe-distract":
+      return scanPeDistract(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8199,6 +8280,12 @@ function applyHeuristic(id, file) {
       return applyPtInstruct(file.text);
     case "pt-decorative":
       return applyPtDecorative(file.text);
+    case "pe-hover":
+      return applyPeHover(file.text);
+    case "pe-double-tap":
+      return applyPeDoubleTap(file.text);
+    case "pe-distract":
+      return applyPeDistract(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
