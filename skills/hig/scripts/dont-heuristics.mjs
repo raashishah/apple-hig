@@ -11275,6 +11275,93 @@ function applyExplainAlertButton(text) {
   return text.replace(/\s*data-al-hint(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function splitContainers(text) {
+  const out = [];
+  const openRe = /<([A-Za-z][\w]*)\b[^>]*\bdata-split(?![\w-])[^>]*>/gi;
+  let m;
+  while ((m = openRe.exec(text))) {
+    const tag = m[1];
+    let i = m.index + m[0].length;
+    let depth = 1;
+    const reopen = new RegExp(`<${tag}\\b`, "gi");
+    const close = new RegExp(`</${tag}\\s*>`, "gi");
+    while (depth > 0 && i < text.length) {
+      reopen.lastIndex = i;
+      close.lastIndex = i;
+      const nOpen = reopen.exec(text);
+      const nClose = close.exec(text);
+      if (!nClose) {
+        i = text.length;
+        break;
+      }
+      if (nOpen && nOpen.index < nClose.index) {
+        depth += 1;
+        i = nOpen.index + nOpen[0].length;
+      } else {
+        depth -= 1;
+        i = nClose.index + nClose[0].length;
+      }
+    }
+    out.push(text.slice(m.index, i));
+  }
+  return out;
+}
+
+function separatorThickness(tag) {
+  const re = /(?<![\w-])(?:width|height)\s*(?:=|:)\s*\{?\s*["']?(\d+(?:\.\d+)?)(px|pt|%)?/gi;
+  let max = 0;
+  let m;
+  while ((m = re.exec(tag))) {
+    if (m[2] === "%") continue;
+    max = Math.max(max, Number(m[1]));
+  }
+  return max;
+}
+
+function hasThickSplitDivider(text) {
+  if (/dividerStyle\s*\(\s*\.thick\b|\bDividerStyle\.thick\b/.test(text)) return true;
+  const sep = /<(div|hr|span)\b[^>]*(?:role=["']separator["']|\bdata-divider(?![\w-]))[^>]*>/gi;
+  for (const region of splitContainers(text)) {
+    sep.lastIndex = 0;
+    let m;
+    while ((m = sep.exec(region))) {
+      if (separatorThickness(m[0]) > 1) return true;
+    }
+  }
+  return false;
+}
+
+function hasThickDividerCopy(text) {
+  return /thicker divider/i.test(text) || /divider thicker than a hairline/i.test(text);
+}
+
+function hasSplitWidget(text) {
+  return (
+    /\bdata-split(?![\w-])/.test(text) ||
+    /\bNavigationSplitView\b/.test(text) ||
+    /\bUISplitViewController\b/.test(text) ||
+    /\bNSSplitView\b/.test(text)
+  );
+}
+
+function scanThickDivider(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-dv-thick(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a split view with a divider thicker than a hairline"));
+      continue;
+    }
+    if (hasThickSplitDivider(f.text) || (hasThickDividerCopy(f.text) && hasSplitWidget(f.text))) {
+      out.push(hit(f.path, "a split view with a divider thicker than a hairline"));
+    }
+  }
+  return out;
+}
+
+function applyThickDivider(text) {
+  return text.replace(/\s*data-dv-thick(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function stripWritingComments(text) {
   return String(text || "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -11517,6 +11604,8 @@ function scanHeuristic(id, files) {
       return scanListCornerMask(files);
     case "hd-punct":
       return scanColumnPunctuation(files);
+    case "dv-thick":
+      return scanThickDivider(files);
     case "equal-weight-submits":
       return scanEqualWeightSubmits(files);
     case "marketing-landing-tab-shell":
@@ -12221,6 +12310,8 @@ function applyHeuristic(id, file) {
       return applyListCornerMask(file.text);
     case "hd-punct":
       return applyColumnPunctuation(file.text);
+    case "dv-thick":
+      return applyThickDivider(file.text);
     case "equal-weight-submits":
       return applyEqualWeightSubmits(file.text);
     case "marketing-landing-tab-shell":

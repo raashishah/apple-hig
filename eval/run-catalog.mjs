@@ -26508,6 +26508,135 @@ ${dots}
   results.push({ case: "catalog-apply-explain-alert-button-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-plain-"));
+  const hairDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-hair-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-outside-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-hold-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-api-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dvt-fix-"));
+  const dirs = [passDir, plainDir, hairDir, outsideDir, holdDir, apiDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const split = (inner) => host(`<div data-split>
+      <div>List</div>
+      ${inner}
+      <div>Detail</div>
+    </div>`);
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), split(""));
+    fs.writeFileSync(
+      path.join(hairDir, "HostWidgets.tsx"),
+      split(`<div role="separator" style={{ width: 1 }}></div>`),
+    );
+    fs.writeFileSync(
+      path.join(outsideDir, "HostWidgets.tsx"),
+      host(`<div role="separator" style={{ width: 8 }}></div>`),
+    );
+    const origHold = split(`<div role="separator" style={{ width: 8 }}></div>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origApi = `export function HostWidgets() {
+  return dividerStyle(.thick);
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origCopy = split(`<p>Avoid using thicker divider styles unless you have a specific need.</p>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid using thicker divider styles unless you have a specific need.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(`<div data-split data-dv-thick>
+      <div>List</div>
+      <div role="separator" style={{ width: 1 }}></div>
+      <div>Detail</div>
+    </div>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "plain", "hair", "outside", "hold", "api", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      hair: hairDir,
+      outside: outsideDir,
+      hold: holdDir,
+      api: apiDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const apiKept = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const lists = (name) => status[name].topics["lists-and-tables"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["lists-and-tables"]?.dontHeuristicIds || []).includes("dv-thick"),
+      split: (catalog.byId["split-views"]?.dontHeuristicIds || []).includes("dv-thick"),
+      mask: (catalog.byId["lists-and-tables"]?.dontHeuristicIds || []).includes("ls-mask"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passLists: lists("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainLists: lists("plain") === "already-compliant",
+      hairLists: lists("hair") === "already-compliant",
+      outsideLists: lists("outside") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdLists: lists("hold") === "pending",
+      widthKept: /width: 8/.test(held),
+      apiUnchanged: apiKept === origApi,
+      apiLists: lists("api") === "pending",
+      thickKept: /dividerStyle\(\.thick\)/.test(apiKept),
+      copyUnchanged: copied === origCopy,
+      copyLists: lists("copy") === "pending",
+      sentenceLists: lists("sentence") === "already-compliant",
+      fixLists: lists("fix") === "applied",
+      markerGone: !/data-dv-thick(?![\w-])/.test(fixed),
+      splitKept: /data-split(?![\w-])/.test(fixed),
+      hairKept: /width: 1/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passLists: lists("pass"),
+      plainLists: lists("plain"),
+      hairLists: lists("hair"),
+      outsideLists: lists("outside"),
+      holdLists: lists("hold"),
+      apiLists: lists("api"),
+      copyLists: lists("copy"),
+      sentenceLists: lists("sentence"),
+      fixLists: lists("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-thick-divider-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

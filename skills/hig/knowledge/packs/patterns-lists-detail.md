@@ -27,6 +27,7 @@
 - A section index on a list that also shows disclosure indicators.
 - An image in a list with a corner mask.
 - A column heading that ends with punctuation.
+- A split view with a divider thicker than a hairline.
 
 ## Interaction states
 

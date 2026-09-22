@@ -172,6 +172,8 @@ heuristics:
     match: image in a list with a corner mask
   - id: hd-punct
     match: column heading that ends with punctuation
+  - id: dv-thick
+    match: split view with a divider thicker than a hairline
   - id: equal-weight-submits
     match: Multiple equal-weight submits fighting each other
   - id: marketing-landing-tab-shell
