@@ -1591,6 +1591,57 @@ function applyAlertErrorTitle(text) {
   return text.replace(/\s*data-al-error(?:="[^"]*")?/g, "");
 }
 
+function hasAlertCancelCopy(text) {
+  return (
+    /don['’]?t make a Cancel button the default/i.test(text) ||
+    /Cancel button the default button/i.test(text) ||
+    /use a Done button, not a Cancel button/i.test(text) ||
+    /Cancel button that is the default button in an alert/i.test(text)
+  );
+}
+
+function hasDefaultCancel(text) {
+  const primary =
+    /<button\b[^>]*\b(?:class|className)=["'][^"']*\bprimary\b[^"']*["'][^>]*>\s*Cancel\s*<\/button>/i;
+  const variant =
+    /<button\b[^>]*\b(?:variant|data-variant)=["']primary["'][^>]*>\s*Cancel\s*<\/button>/i;
+  const submit = /<button\b[^>]*\btype=["']submit["'][^>]*>\s*Cancel\s*<\/button>/i;
+  for (const region of dialogRegions(text)) {
+    if (primary.test(region) || variant.test(region) || submit.test(region)) return true;
+  }
+  if (/\bUIAlertController\b/.test(text)) {
+    if (
+      /UIAlertAction\(\s*title:\s*["']Cancel["']\s*,\s*style:\s*\.default\b/i.test(text)
+    ) {
+      return true;
+    }
+  }
+  if (!hasAlertWidget(text)) return false;
+  const prominent =
+    /Button\(\s*["']Cancel["'][\s\S]{0,240}buttonStyle\(\s*\.borderedProminent\s*\)|buttonStyle\(\s*\.borderedProminent\s*\)[\s\S]{0,240}Button\(\s*["']Cancel["']/i;
+  const shortcut = /Button\(\s*["']Cancel["'][\s\S]{0,240}keyboardShortcut\(\s*\.defaultAction\s*\)/i;
+  return prominent.test(text) || shortcut.test(text);
+}
+
+function scanAlertCancelDefault(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-al-cancel/.test(f.text)) {
+      out.push(hit(f.path, "a Cancel button that is the default button in an alert"));
+      continue;
+    }
+    if (!hasAlertWidget(f.text)) continue;
+    if (hasAlertCancelCopy(f.text) || hasDefaultCancel(f.text)) {
+      out.push(hit(f.path, "a Cancel button that is the default button in an alert"));
+    }
+  }
+  return out;
+}
+
+function applyAlertCancelDefault(text) {
+  return text.replace(/\s*data-al-cancel(?:="[^"]*")?/g, "");
+}
+
 function scanModalSuccess(files) {
   const out = [];
   for (const f of files) {
@@ -8395,6 +8446,8 @@ function scanHeuristic(id, files) {
       return scanNestedModalStacks(files);
     case "al-error":
       return scanAlertErrorTitle(files);
+    case "al-cancel":
+      return scanAlertCancelDefault(files);
     case "slider-as-volume":
       return scanSliderAsVolume(files);
     case "nested-same-axis-scroll":
@@ -8991,6 +9044,8 @@ function applyHeuristic(id, file) {
       return applyNestedModalStacks(file.text);
     case "al-error":
       return applyAlertErrorTitle(file.text);
+    case "al-cancel":
+      return applyAlertCancelDefault(file.text);
     case "slider-as-volume":
       return applySliderAsVolume(file.text);
     case "nested-same-axis-scroll":

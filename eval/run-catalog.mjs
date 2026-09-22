@@ -2741,6 +2741,7 @@ const results = [];
       catalog.byId.modality?.dontCoverageComplete === true &&
       (catalog.byId.sheets?.dontHeuristicIds || []).includes("nested-modal-stacks") &&
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-error") &&
+      (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-cancel") &&
       catalog.byId["dark-mode"]?.dontCoverageComplete === true &&
       catalog.byId["sf-symbols"]?.dontCoverageComplete === true &&
       catalog.byId["context-menus"]?.dontCoverageComplete === true &&
@@ -17409,6 +17410,220 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-alert-error-title-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-hold-"));
+  const primaryDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-primary-"));
+  const submitDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-submit-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-plain-"));
+  const doneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-done-"));
+  const formDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-form-"));
+  const uikitDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-uikit-"));
+  const roleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alc-role-"));
+  const dirs = [passDir, fixDir, holdDir, primaryDir, submitDir, plainDir, doneDir, formDir, uikitDir, roleDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <dialog data-al-cancel>
+      <h2>Discard the draft?</h2>
+      <button type="button">Cancel</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <dialog>
+      <p>Don't make a Cancel button the default button.</p>
+      <button type="button">Cancel</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origPrimary = `export function HostWidgets() {
+  return (
+    <dialog>
+      <h2>Discard the draft?</h2>
+      <button class="primary">Cancel</button>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(primaryDir, "HostWidgets.tsx"), origPrimary);
+    const origSubmit = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button type="submit">Cancel</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(submitDir, "HostWidgets.tsx"), origSubmit);
+    const origPlain = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button type="button">Cancel</button>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origDone = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button class="primary">Done</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(doneDir, "HostWidgets.tsx"), origDone);
+    const origForm = `export function HostWidgets() {
+  return <button class="primary">Cancel</button>;
+}
+`;
+    fs.writeFileSync(path.join(formDir, "HostWidgets.tsx"), origForm);
+    const origUikit = `export function HostWidgets() {
+  let alert = UIAlertController(title: "Discard?", message: nil, preferredStyle: .alert)
+  alert.addAction(UIAlertAction(title: "Cancel", style: .default))
+  return alert
+}
+`;
+    fs.writeFileSync(path.join(uikitDir, "HostWidgets.tsx"), origUikit);
+    const origRole = `export function HostWidgets() {
+  let alert = UIAlertController(title: "Discard?", message: nil, preferredStyle: .alert)
+  alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+  return alert
+}
+`;
+    fs.writeFileSync(path.join(roleDir, "HostWidgets.tsx"), origRole);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const primaryReport = run(primaryDir);
+    const submitReport = run(submitDir);
+    const plainReport = run(plainDir);
+    const doneReport = run(doneDir);
+    const formReport = run(formDir);
+    const uikitReport = run(uikitDir);
+    const roleReport = run(roleDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const primaryStatus = readStatus(primaryDir);
+    const submitStatus = readStatus(submitDir);
+    const plainStatus = readStatus(plainDir);
+    const doneStatus = readStatus(doneDir);
+    const formStatus = readStatus(formDir);
+    const uikitStatus = readStatus(uikitDir);
+    const roleStatus = readStatus(roleDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const primary = fs.readFileSync(path.join(primaryDir, "HostWidgets.tsx"), "utf8");
+    const submitted = fs.readFileSync(path.join(submitDir, "HostWidgets.tsx"), "utf8");
+    const plain = fs.readFileSync(path.join(plainDir, "HostWidgets.tsx"), "utf8");
+    const done = fs.readFileSync(path.join(doneDir, "HostWidgets.tsx"), "utf8");
+    const form = fs.readFileSync(path.join(formDir, "HostWidgets.tsx"), "utf8");
+    const uikit = fs.readFileSync(path.join(uikitDir, "HostWidgets.tsx"), "utf8");
+    const role = fs.readFileSync(path.join(roleDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      primaryChrome: primaryReport.chrome.pass === true,
+      submitChrome: submitReport.chrome.pass === true,
+      plainChrome: plainReport.chrome.pass === true,
+      doneChrome: doneReport.chrome.pass === true,
+      formChrome: formReport.chrome.pass === true,
+      uikitChrome: uikitReport.chrome.pass === true,
+      roleChrome: roleReport.chrome.pass === true,
+      passAlerts: passStatus.topics.alerts?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixAlerts: fixStatus.topics.alerts?.state === "applied",
+      systemKept: />\s*Cancel\s*</.test(fixed),
+      markersGone: !/data-al-cancel/.test(fixed),
+      errorMarkerUntouched: !/data-al-error/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAlerts: holdStatus.topics.alerts?.state === "pending",
+      holdStillPhrase: /Cancel button the default button/.test(held),
+      holdNotInvented: !/>\s*Done\s*</.test(held),
+      primaryUnchanged: primary === origPrimary,
+      primaryAlerts: primaryStatus.topics.alerts?.state === "pending",
+      primaryKept: /class="primary">Cancel/.test(primary),
+      submitUnchanged: submitted === origSubmit,
+      submitAlerts: submitStatus.topics.alerts?.state === "pending",
+      submitKept: /type="submit">Cancel/.test(submitted),
+      plainUnchanged: plain === origPlain,
+      plainAlerts: plainStatus.topics.alerts?.state === "already-compliant",
+      plainKept: /type="button">Cancel/.test(plain),
+      doneUnchanged: done === origDone,
+      doneAlerts: doneStatus.topics.alerts?.state === "already-compliant",
+      doneKept: /class="primary">Done/.test(done),
+      formUnchanged: form === origForm,
+      formAlerts: formStatus.topics.alerts?.state === "skipped-no-affordance",
+      formKept: /class="primary">Cancel/.test(form),
+      uikitUnchanged: uikit === origUikit,
+      uikitAlerts: uikitStatus.topics.alerts?.state === "pending",
+      uikitKept: /style: \.default/.test(uikit),
+      roleUnchanged: role === origRole,
+      roleAlerts: roleStatus.topics.alerts?.state === "already-compliant",
+      roleKept: /style: \.cancel/.test(role),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAlerts: passStatus.topics.alerts?.state,
+      fixAlerts: fixStatus.topics.alerts?.state,
+      holdAlerts: holdStatus.topics.alerts?.state,
+      primaryAlerts: primaryStatus.topics.alerts?.state,
+      submitAlerts: submitStatus.topics.alerts?.state,
+      plainAlerts: plainStatus.topics.alerts?.state,
+      doneAlerts: doneStatus.topics.alerts?.state,
+      formAlerts: formStatus.topics.alerts?.state,
+      uikitAlerts: uikitStatus.topics.alerts?.state,
+      roleAlerts: roleStatus.topics.alerts?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-alert-cancel-default-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
