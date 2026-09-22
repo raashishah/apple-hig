@@ -2596,6 +2596,41 @@ function applyTabDisabled(text) {
   return text.replace(/\s*data-tb-off(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasTabSaleCopy(text) {
+  return (
+    /reserve badges for critical information/i.test(text) ||
+    /marketing word on a tab bar badge/i.test(text)
+  );
+}
+
+function hasMarketingTabBadge(text) {
+  if (!hasTabBar(text)) return false;
+  const regions = tabBarRegions(text);
+  const blob = regions.length ? regions.join("\n") : text;
+  return /<(?:span|sup|small|em)\b[^>]*(?:class(?:Name)?=["'][^"']*\bbadge\b|data-badge\b)[^>]*>\s*(?:Sale|Promo|Offer|Deal)\s*</i.test(
+    blob,
+  );
+}
+
+function scanTabSale(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-tb-sale(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a marketing word on a tab bar badge"));
+      continue;
+    }
+    if (!hasTabBar(f.text)) continue;
+    if (hasTabSaleCopy(f.text) || hasMarketingTabBadge(f.text)) {
+      out.push(hit(f.path, "a marketing word on a tab bar badge"));
+    }
+  }
+  return out;
+}
+
+function applyTabSale(text) {
+  return text.replace(/\s*data-tb-sale(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMarketingTabShell(files) {
   const out = [];
   for (const f of files) {
@@ -10999,6 +11034,8 @@ function scanHeuristic(id, files) {
       return scanMarketingTabShell(files);
     case "tb-off":
       return scanTabDisabled(files);
+    case "tb-sale":
+      return scanTabSale(files);
     case "sb-depth":
       return scanSidebarDepth(files);
     case "wn-app":
@@ -11685,6 +11722,8 @@ function applyHeuristic(id, file) {
       return applyMarketingTabShell(file.text, file);
     case "tb-off":
       return applyTabDisabled(file.text);
+    case "tb-sale":
+      return applyTabSale(file.text);
     case "sb-depth":
       return applySidebarDepth(file.text);
     case "wn-app":

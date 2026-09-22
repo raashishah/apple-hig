@@ -34,6 +34,7 @@
 - Teaching `UIDesignRequiresCompatibility` as a design.
 - Turning a marketing landing into an iOS tab shell.
 - A disabled or hidden tab bar button.
+- A marketing word on a tab bar badge.
 - A third level of hierarchy in a sidebar.
 - A window titled with the app name.
 - A toolbar item with no visible text and no accessible name.

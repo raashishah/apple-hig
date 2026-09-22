@@ -25191,6 +25191,197 @@ ${dots}
   results.push({ case: "catalog-apply-onboarding-again-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-clean-"));
+  const numberDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-number-"));
+  const titleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-title-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-hold-"));
+  const promoDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-promo-"));
+  const viewDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-view-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbs-fix-"));
+  const dirs = [
+    passDir,
+    cleanDir,
+    numberDir,
+    titleDir,
+    holdDir,
+    promoDir,
+    viewDir,
+    copyDir,
+    sentenceDir,
+    fixDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const plain = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <button type="button" role="tab">Home</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), plain);
+    const origNumber = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <button type="button" role="tab">Home<span className="badge">3</span></button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(numberDir, "HostWidgets.tsx"), origNumber);
+    const origTitle = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <button type="button" role="tab">Sale</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(titleDir, "HostWidgets.tsx"), origTitle);
+    const origHold = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <button type="button" role="tab">Home<span className="badge">Sale</span></button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origPromo = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <button type="button" role="tab">Home<span className="badge">Promo</span></button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(promoDir, "HostWidgets.tsx"), origPromo);
+    const origView = `export function HostWidgets() {
+  return (
+    <>
+      <div role="tablist">
+        <button type="button" role="tab">Home<span className="badge">Sale</span></button>
+      </div>
+      <div role="tabpanel">Home</div>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(viewDir, "HostWidgets.tsx"), origView);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <p>Reserve badges for critical information.</p>
+      <button type="button" role="tab">Home</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Reserve badges for critical information.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist" data-tb-sale>
+      <button type="button" role="tab">Home</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = [
+      "pass",
+      "clean",
+      "number",
+      "title",
+      "hold",
+      "promo",
+      "view",
+      "copy",
+      "sentence",
+      "fix",
+    ];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      number: numberDir,
+      title: titleDir,
+      hold: holdDir,
+      promo: promoDir,
+      view: viewDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const tabs = (name) => status[name].topics["tab-bars"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["tab-bars"]?.dontHeuristicIds || []).includes("tb-sale"),
+      off: (catalog.byId["tab-bars"]?.dontHeuristicIds || []).includes("tb-off"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passTabs: tabs("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanTabs: tabs("clean") === "already-compliant",
+      numberTabs: tabs("number") === "already-compliant",
+      titleTabs: tabs("title") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdTabs: tabs("hold") === "pending",
+      badgeKept: /className="badge">Sale</.test(held),
+      promoTabs: tabs("promo") === "pending",
+      viewTabs: tabs("view") === "already-compliant",
+      copyUnchanged: copied === origCopy,
+      copyTabs: tabs("copy") === "pending",
+      sentenceTabs: tabs("sentence") === "already-compliant",
+      fixTabs: tabs("fix") === "applied",
+      markerGone: !/data-tb-sale(?![\w-])/.test(fixed),
+      homeKept: /\bdata-tab-bar\b/.test(fixed) && />\s*Home\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passTabs: tabs("pass"),
+      cleanTabs: tabs("clean"),
+      numberTabs: tabs("number"),
+      titleTabs: tabs("title"),
+      holdTabs: tabs("hold"),
+      promoTabs: tabs("promo"),
+      viewTabs: tabs("view"),
+      copyTabs: tabs("copy"),
+      sentenceTabs: tabs("sentence"),
+      fixTabs: tabs("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-tab-badge-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -176,6 +176,8 @@ heuristics:
     match: Turning a marketing landing into an iOS tab shell
   - id: tb-off
     match: disabled or hidden tab bar button
+  - id: tb-sale
+    match: marketing word on a tab bar badge
   - id: sb-depth
     match: third level of hierarchy in a sidebar
   - id: wn-app
