@@ -2742,6 +2742,7 @@ const results = [];
       (catalog.byId.sheets?.dontHeuristicIds || []).includes("nested-modal-stacks") &&
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-error") &&
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-cancel") &&
+      (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-yes-no") &&
       catalog.byId["dark-mode"]?.dontCoverageComplete === true &&
       catalog.byId["sf-symbols"]?.dontCoverageComplete === true &&
       catalog.byId["context-menus"]?.dontCoverageComplete === true &&
@@ -17624,6 +17625,202 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-alert-cancel-default-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-hold-"));
+  const yesDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-yes-"));
+  const noDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-no-"));
+  const verbDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-verb-"));
+  const phraseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-phrase-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-out-"));
+  const uikitDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aly-uikit-"));
+  const dirs = [passDir, fixDir, holdDir, yesDir, noDir, verbDir, phraseDir, outsideDir, uikitDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <dialog data-al-yes>
+      <h2>Discard the draft?</h2>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <dialog>
+      <p>Prefer verbs, avoiding Yes and No.</p>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origYes = `export function HostWidgets() {
+  return (
+    <dialog>
+      <h2>Discard the draft?</h2>
+      <button type="button">Yes</button>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(yesDir, "HostWidgets.tsx"), origYes);
+    const origNo = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button type="button">No</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(noDir, "HostWidgets.tsx"), origNo);
+    const origVerb = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button type="button">Delete</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(verbDir, "HostWidgets.tsx"), origVerb);
+    const origPhrase = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button type="button">No thanks</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(phraseDir, "HostWidgets.tsx"), origPhrase);
+    const origOutside = `export function HostWidgets() {
+  return <button type="button">Yes</button>;
+}
+`;
+    fs.writeFileSync(path.join(outsideDir, "HostWidgets.tsx"), origOutside);
+    const origUikit = `export function HostWidgets() {
+  let alert = UIAlertController(title: "Discard?", message: nil, preferredStyle: .alert)
+  alert.addAction(UIAlertAction(title: "Yes", style: .default))
+  return alert
+}
+`;
+    fs.writeFileSync(path.join(uikitDir, "HostWidgets.tsx"), origUikit);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const yesReport = run(yesDir);
+    const noReport = run(noDir);
+    const verbReport = run(verbDir);
+    const phraseReport = run(phraseDir);
+    const outsideReport = run(outsideDir);
+    const uikitReport = run(uikitDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const yesStatus = readStatus(yesDir);
+    const noStatus = readStatus(noDir);
+    const verbStatus = readStatus(verbDir);
+    const phraseStatus = readStatus(phraseDir);
+    const outsideStatus = readStatus(outsideDir);
+    const uikitStatus = readStatus(uikitDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const yes = fs.readFileSync(path.join(yesDir, "HostWidgets.tsx"), "utf8");
+    const no = fs.readFileSync(path.join(noDir, "HostWidgets.tsx"), "utf8");
+    const verb = fs.readFileSync(path.join(verbDir, "HostWidgets.tsx"), "utf8");
+    const phrase = fs.readFileSync(path.join(phraseDir, "HostWidgets.tsx"), "utf8");
+    const outside = fs.readFileSync(path.join(outsideDir, "HostWidgets.tsx"), "utf8");
+    const uikit = fs.readFileSync(path.join(uikitDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      yesChrome: yesReport.chrome.pass === true,
+      noChrome: noReport.chrome.pass === true,
+      verbChrome: verbReport.chrome.pass === true,
+      phraseChrome: phraseReport.chrome.pass === true,
+      outsideChrome: outsideReport.chrome.pass === true,
+      uikitChrome: uikitReport.chrome.pass === true,
+      passAlerts: passStatus.topics.alerts?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixAlerts: fixStatus.topics.alerts?.state === "applied",
+      systemKept: />\s*Keep\s*</.test(fixed),
+      markersGone: !/data-al-yes\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAlerts: holdStatus.topics.alerts?.state === "pending",
+      holdStillPhrase: /avoiding Yes and No/.test(held),
+      holdNotInvented: !/<button\b[^>]*>\s*Yes\s*<\/button>/i.test(held),
+      yesUnchanged: yes === origYes,
+      yesAlerts: yesStatus.topics.alerts?.state === "pending",
+      yesKept: />\s*Yes\s*</.test(yes) && />\s*Keep\s*</.test(yes),
+      noUnchanged: no === origNo,
+      noAlerts: noStatus.topics.alerts?.state === "pending",
+      noKept: />\s*No\s*</.test(no),
+      verbUnchanged: verb === origVerb,
+      verbAlerts: verbStatus.topics.alerts?.state === "already-compliant",
+      verbKept: />\s*Delete\s*</.test(verb),
+      phraseUnchanged: phrase === origPhrase,
+      phraseAlerts: phraseStatus.topics.alerts?.state === "already-compliant",
+      phraseKept: />\s*No thanks\s*</.test(phrase),
+      outsideUnchanged: outside === origOutside,
+      outsideAlerts: outsideStatus.topics.alerts?.state === "skipped-no-affordance",
+      outsideKept: />\s*Yes\s*</.test(outside),
+      uikitUnchanged: uikit === origUikit,
+      uikitAlerts: uikitStatus.topics.alerts?.state === "pending",
+      uikitKept: /title: "Yes"/.test(uikit),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAlerts: passStatus.topics.alerts?.state,
+      fixAlerts: fixStatus.topics.alerts?.state,
+      holdAlerts: holdStatus.topics.alerts?.state,
+      yesAlerts: yesStatus.topics.alerts?.state,
+      noAlerts: noStatus.topics.alerts?.state,
+      verbAlerts: verbStatus.topics.alerts?.state,
+      phraseAlerts: phraseStatus.topics.alerts?.state,
+      outsideAlerts: outsideStatus.topics.alerts?.state,
+      uikitAlerts: uikitStatus.topics.alerts?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-alert-yes-no-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -1642,6 +1642,45 @@ function applyAlertCancelDefault(text) {
   return text.replace(/\s*data-al-cancel(?:="[^"]*")?/g, "");
 }
 
+function hasAlertYesNoCopy(text) {
+  return (
+    /avoiding Yes and No/i.test(text) ||
+    /don['’]?t use Yes or No/i.test(text) ||
+    /Yes or No button in an alert/i.test(text)
+  );
+}
+
+function hasYesNoButton(text) {
+  const html = /<button\b[^>]*>\s*(?:Yes|No)\s*<\/button>/i;
+  for (const region of dialogRegions(text)) {
+    if (html.test(region)) return true;
+  }
+  if (/\bUIAlertController\b/.test(text)) {
+    if (/UIAlertAction\(\s*title:\s*["'](?:Yes|No)["']/i.test(text)) return true;
+  }
+  if (!hasAlertWidget(text)) return false;
+  return /Button\(\s*["'](?:Yes|No)["']/i.test(text);
+}
+
+function scanAlertYesNo(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-al-yes\b/.test(f.text)) {
+      out.push(hit(f.path, "a Yes or No button in an alert"));
+      continue;
+    }
+    if (!hasAlertWidget(f.text)) continue;
+    if (hasAlertYesNoCopy(f.text) || hasYesNoButton(f.text)) {
+      out.push(hit(f.path, "a Yes or No button in an alert"));
+    }
+  }
+  return out;
+}
+
+function applyAlertYesNo(text) {
+  return text.replace(/\s*data-al-yes(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanModalSuccess(files) {
   const out = [];
   for (const f of files) {
@@ -8448,6 +8487,8 @@ function scanHeuristic(id, files) {
       return scanAlertErrorTitle(files);
     case "al-cancel":
       return scanAlertCancelDefault(files);
+    case "al-yes-no":
+      return scanAlertYesNo(files);
     case "slider-as-volume":
       return scanSliderAsVolume(files);
     case "nested-same-axis-scroll":
@@ -9046,6 +9087,8 @@ function applyHeuristic(id, file) {
       return applyAlertErrorTitle(file.text);
     case "al-cancel":
       return applyAlertCancelDefault(file.text);
+    case "al-yes-no":
+      return applyAlertYesNo(file.text);
     case "slider-as-volume":
       return applySliderAsVolume(file.text);
     case "nested-same-axis-scroll":

@@ -26,6 +26,7 @@
 - Nested modal stacks without a strong reason.
 - An alert title that is only Error or an error number.
 - A Cancel button that is the default button in an alert.
+- A Yes or No button in an alert.
 
 ## Chrome gates
 

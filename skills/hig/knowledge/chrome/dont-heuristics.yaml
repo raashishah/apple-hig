@@ -220,6 +220,8 @@ heuristics:
     match: alert title that is only Error or an error number
   - id: al-cancel
     match: Cancel button that is the default button in an alert
+  - id: al-yes-no
+    match: Yes or No button in an alert
   - id: slider-as-volume
     match: slider to adjust audio volume
   - id: nested-same-axis-scroll
