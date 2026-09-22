@@ -319,7 +319,18 @@ const results = [];
     selectSurfaces(surfaces, {
       platform: "phone",
       capabilities: ["researchkit"],
-    }).launched.some((s) => s.id === "health-research");
+    }).launched.some((s) => s.id === "health-research") &&
+    surfaces.byId.researchkit?.gate === "capability:researchkit" &&
+    surfaces.byId.researchkit?.affordance === "researchkit" &&
+    !phone.launched.some((s) => s.id === "researchkit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["researchkit"],
+    }).launched.some((s) => s.id === "researchkit") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["carekit"],
+    }).launched.some((s) => s.id === "researchkit");
   results.push({
     case: "bugbot-surface-leases",
     ok,

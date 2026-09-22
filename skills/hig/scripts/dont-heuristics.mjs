@@ -7335,6 +7335,42 @@ function applyCkAd(text) {
   return text.replace(/\s*data-ck-ad(?:="[^"]*")?/g, "");
 }
 
+function hasStudy(text) {
+  return /\bdata-researchkit\b/.test(text);
+}
+
+function hasRkCriticalCopy(text) {
+  return (
+    /data that isn['’]?t critical to (?:your|the) study/i.test(text) ||
+    /isn['’]?t critical to (?:your|the) study/i.test(text) ||
+    /request access to data that isn['’]?t critical/i.test(text)
+  );
+}
+
+function hasRkCriticalSignal(text) {
+  if (!hasStudy(text)) return false;
+  return /\bnot critical to (?:your|the) study\b/i.test(text);
+}
+
+function scanRkCritical(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-rk-critical/.test(f.text)) {
+      out.push(hit(f.path, "data that isn't critical to the study"));
+      continue;
+    }
+    if (!hasStudy(f.text)) continue;
+    if (hasRkCriticalCopy(f.text) || hasRkCriticalSignal(f.text)) {
+      out.push(hit(f.path, "data that isn't critical to the study"));
+    }
+  }
+  return out;
+}
+
+function applyRkCritical(text) {
+  return text.replace(/\s*data-rk-critical(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7898,6 +7934,8 @@ function scanHeuristic(id, files) {
       return scanIdFold(files);
     case "ck-ad":
       return scanCkAd(files);
+    case "rk-critical":
+      return scanRkCritical(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8454,6 +8492,8 @@ function applyHeuristic(id, file) {
       return applyIdFold(file.text);
     case "ck-ad":
       return applyCkAd(file.text);
+    case "rk-critical":
+      return applyRkCritical(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

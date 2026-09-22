@@ -133,6 +133,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["gs-iphone-duo"]?.gate === "duo,capability:duo" &&
     surfaces.byId.carekit?.affordance === "carekit" &&
     surfaces.byId.carekit?.gate === "capability:carekit" &&
+    surfaces.byId.researchkit?.affordance === "researchkit" &&
+    surfaces.byId.researchkit?.gate === "capability:researchkit" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1621,6 +1623,24 @@ const results = [];
       text: "<p>Built with CareKit.</p>",
     },
   ]);
+  const studyOnly = scanAffordances([
+    {
+      path: "Study.tsx",
+      text: "<div data-researchkit></div>",
+    },
+  ]);
+  const rkMarkerOnly = scanAffordances([
+    {
+      path: "Study.tsx",
+      text: "<div data-rk-critical></div>",
+    },
+  ]);
+  const studyPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Built with ResearchKit.</p>",
+    },
+  ]);
   const healthKitWidgetOnly = scanAffordances([
     {
       path: "Health.tsx",
@@ -2207,6 +2227,17 @@ const results = [];
       !formOnly.includes("carekit") &&
       !passList.includes("carekit") &&
       !pageOnly.includes("carekit") &&
+      studyOnly.includes("researchkit") &&
+      !studyOnly.includes("carekit") &&
+      !importResearchOnly.includes("researchkit") &&
+      !importCareOnly.includes("researchkit") &&
+      !rkMarkerOnly.includes("researchkit") &&
+      !studyPhraseOnly.includes("researchkit") &&
+      !carePlanOnly.includes("researchkit") &&
+      !healthKitWidgetOnly.includes("researchkit") &&
+      !formOnly.includes("researchkit") &&
+      !passList.includes("researchkit") &&
+      !pageOnly.includes("researchkit") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -3012,8 +3043,11 @@ const results = [];
       catalog.byId.carekit?.pack === "tech-carekit.md" &&
       catalog.byId.carekit?.surfaceId === "carekit" &&
       catalog.byId.carekit?.appliesWhen === "capability:carekit" &&
-      catalog.byId.researchkit?.dontCoverageComplete !== true &&
-      catalog.byId.researchkit?.pack === "tech-cluster-health-research.md" &&
+      catalog.byId.researchkit?.dontCoverageComplete === true &&
+      (catalog.byId.researchkit?.dontHeuristicIds || []).includes("rk-critical") &&
+      catalog.byId.researchkit?.pack === "tech-researchkit.md" &&
+      catalog.byId.researchkit?.surfaceId === "researchkit" &&
+      catalog.byId.researchkit?.appliesWhen === "capability:researchkit" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -14070,6 +14104,144 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-carekit-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rk-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rk-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rk-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rk-hold-"));
+  const signalDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rk-signal-"));
+  const careDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-rk-care-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, signalDir, careDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeStudyImport = (dir) => {
+      fs.writeFileSync(path.join(dir, "Study.swift"), "import ResearchKit\n");
+    };
+    writeStudyImport(cleanDir);
+    writeStudyImport(fixDir);
+    writeStudyImport(holdDir);
+    writeStudyImport(signalDir);
+    fs.writeFileSync(path.join(careDir, "Care.swift"), "import CareKit\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-researchkit data-rk-critical>
+      <button type="button">Study</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(careDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-researchkit>
+      <p>Don't request access to data that isn't critical to your study.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSignal = `export function HostWidgets() {
+  return (
+    <div data-researchkit>
+      <p>Request access to calendar data. Not critical to the study.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(signalDir, "HostWidgets.tsx"), origSignal);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const signalReport = run(signalDir);
+    const careReport = run(careDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const signalStatus = readStatus(signalDir);
+    const careStatus = readStatus(careDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const signaled = fs.readFileSync(path.join(signalDir, "HostWidgets.tsx"), "utf8");
+    const cared = fs.readFileSync(path.join(careDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      signalChrome: signalReport.chrome.pass === true,
+      careChrome: careReport.chrome.pass === true,
+      passStudy: passStatus.topics.researchkit?.state === "skipped-gate",
+      cleanStudy: cleanStatus.topics.researchkit?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      passCare: passStatus.topics.carekit?.dontCoverageComplete !== true,
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixStudy: fixStatus.topics.researchkit?.state === "applied",
+      systemKept: /\bdata-researchkit\b/.test(fixed) && />\s*Study\s*</.test(fixed),
+      markersGone: !/data-rk-critical/.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Study.swift"), "utf8").includes("import ResearchKit"),
+      holdUnchanged: held === origHold,
+      holdStudy: holdStatus.topics.researchkit?.state === "pending",
+      holdStillPhrase:
+        /\bdata-researchkit\b/.test(held) &&
+        /isn't critical to your study/.test(held),
+      holdNotInvented: !/ORKConsent|HKHealthStore|permission sheet/.test(held),
+      signalUnchanged: signaled === origSignal,
+      signalStudy: signalStatus.topics.researchkit?.state === "pending",
+      signalKept: /Not critical to the study/.test(signaled),
+      careStudy: careStatus.topics.researchkit?.state === "skipped-gate",
+      careMarkersRemain: /data-rk-critical/.test(cared),
+      careCare: careStatus.topics.carekit?.state === "skipped-no-affordance",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passStudy: passStatus.topics.researchkit?.state,
+      cleanStudy: cleanStatus.topics.researchkit?.state,
+      fixStudy: fixStatus.topics.researchkit?.state,
+      holdStudy: holdStatus.topics.researchkit?.state,
+      signalStudy: signalStatus.topics.researchkit?.state,
+      careStudy: careStatus.topics.researchkit?.state,
+      careCare: careStatus.topics.carekit?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-researchkit-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

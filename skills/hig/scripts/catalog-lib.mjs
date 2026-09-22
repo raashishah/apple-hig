@@ -645,6 +645,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "carekit":
       return !present.includes(need);
+    case "researchkit":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1298,6 +1300,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-carekit\b/.test(blob)) {
     found.push("carekit");
+  }
+  if (/\bdata-researchkit\b/.test(blob)) {
+    found.push("researchkit");
   }
   return found;
 }
