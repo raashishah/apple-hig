@@ -198,6 +198,8 @@ heuristics:
     match: eight or more segments
   - id: sg-role
     match: segmented control that both selects and acts
+  - id: tg-sel
+    match: label that explains a button that changes the selection
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large

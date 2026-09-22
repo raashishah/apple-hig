@@ -20571,6 +20571,129 @@ ${dots}
   results.push({ case: "catalog-apply-scrub-animation-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgs-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgs-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgs-hold-"));
+  const titledDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgs-titled-"));
+  const imageDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgs-image-"));
+  const toggleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgs-toggle-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgs-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgs-copy-"));
+  const dirs = [passDir, fixDir, holdDir, titledDir, imageDir, toggleDir, sentenceDir, copyDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  const button = NSButton()
+  button.changesSelectionAsPrimaryAction = true
+  button.image = NSImage(named: "star")
+  return <button data-tg-sel />;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  const button = NSButton()
+  button.changesSelectionAsPrimaryAction = true
+  button.title = "Shows favorites"
+  return <p>Avoid supplying a label that explains the button's purpose.</p>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origTitled = `export function HostWidgets() {
+  const button = NSButton()
+  button.changesSelectionAsPrimaryAction = true
+  button.title = "Shows favorites"
+}
+`;
+    fs.writeFileSync(path.join(titledDir, "HostWidgets.tsx"), origTitled);
+    const origImage = `export function HostWidgets() {
+  const button = NSButton()
+  button.changesSelectionAsPrimaryAction = true
+  button.image = NSImage(named: "star")
+}
+`;
+    fs.writeFileSync(path.join(imageDir, "HostWidgets.tsx"), origImage);
+    const origToggle = `export function HostWidgets() {
+  Toggle("Wi-Fi") { }
+}
+`;
+    fs.writeFileSync(path.join(toggleDir, "HostWidgets.tsx"), origToggle);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid supplying a label that explains the button's purpose.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  const button = NSButton()
+  button.changesSelectionAsPrimaryAction = true
+  button.image = NSImage(named: "star")
+  return <p>Avoid supplying a label that explains the button's purpose.</p>;
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const names = ["pass", "fix", "hold", "titled", "image", "toggle", "sentence", "copy"];
+    const dirBy = { pass: passDir, fix: fixDir, hold: holdDir, titled: titledDir, image: imageDir, toggle: toggleDir, sentence: sentenceDir, copy: copyDir };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const titled = fs.readFileSync(path.join(titledDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const buttons = (name) => status[name].topics.buttons?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.buttons?.dontHeuristicIds || []).includes("tg-sel"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      titledChrome: reports.titled.chrome.pass === true,
+      toggleChrome: reports.toggle.chrome.pass === true,
+      passButtons: buttons("pass") === "already-compliant",
+      passSegments: status.pass.topics["segmented-controls"]?.state === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixButtons: buttons("fix") === "applied",
+      markerGone: !/data-tg-sel(?![\w-])/.test(fixed),
+      imageKept: /NSImage\(named: "star"\)/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdButtons: buttons("hold") === "pending",
+      holdTitle: /title = "Shows favorites"/.test(held),
+      titledUnchanged: titled === origTitled,
+      titledButtons: buttons("titled") === "pending",
+      imageButtons: buttons("image") === "already-compliant",
+      toggleButtons: buttons("toggle") === "already-compliant",
+      sentenceButtons: buttons("sentence") === "already-compliant",
+      copyButtons: buttons("copy") === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: buttons("pass"),
+      fixButtons: buttons("fix"),
+      holdButtons: buttons("hold"),
+      titledButtons: buttons("titled"),
+      imageButtons: buttons("image"),
+      toggleButtons: buttons("toggle"),
+      sentenceButtons: buttons("sentence"),
+      copyButtons: buttons("copy"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-selection-label-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

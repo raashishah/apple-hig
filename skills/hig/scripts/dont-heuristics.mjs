@@ -8920,6 +8920,49 @@ function applyTooManyRadios(text) {
   return text.replace(/\s*data-tg-radios(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasSelectionButton(text) {
+  return /\bchangesSelectionAsPrimaryAction\b/.test(text);
+}
+
+function hasSelectionLabelCopy(text) {
+  return (
+    /supplying a label that explains the button/i.test(text) ||
+    /label that explains a button that changes the selection/i.test(text)
+  );
+}
+
+function selectionButtonLabeled(text) {
+  const re = /changesSelectionAsPrimaryAction/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const window = text.slice(Math.max(0, m.index - 500), m.index + 500);
+    const title = window.match(/\btitle\s*[:=]\s*"([^"]*)"/);
+    if (title && title[1].trim()) return true;
+    const button = window.match(/\bButton\s*\(\s*"([^"]+)"/);
+    if (button && button[1].trim()) return true;
+  }
+  return false;
+}
+
+function scanSelectionLabel(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-tg-sel(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a label that explains a button that changes the selection"));
+      continue;
+    }
+    if (!hasSelectionButton(f.text)) continue;
+    if (hasSelectionLabelCopy(f.text) || selectionButtonLabeled(f.text)) {
+      out.push(hit(f.path, "a label that explains a button that changes the selection"));
+    }
+  }
+  return out;
+}
+
+function applySelectionLabel(text) {
+  return text.replace(/\s*data-tg-sel(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasSegmentedWidget(text) {
   return (
     /role=["']radiogroup["']/i.test(text) ||
@@ -9390,6 +9433,8 @@ function scanHeuristic(id, files) {
       return scanDestructivePrimary(files);
     case "tg-radios":
       return scanTooManyRadios(files);
+    case "tg-sel":
+      return scanSelectionLabel(files);
     case "sg-mix":
       return scanSegmentMix(files);
     case "sg-count":
@@ -10018,6 +10063,8 @@ function applyHeuristic(id, file) {
       return applyDestructivePrimary(file.text);
     case "tg-radios":
       return applyTooManyRadios(file.text);
+    case "tg-sel":
+      return applySelectionLabel(file.text);
     case "sg-mix":
       return applySegmentMix(file.text);
     case "sg-count":

@@ -22,6 +22,7 @@
 - A segmented control that mixes text and images.
 - A segmented control with eight or more segments.
 - A segmented control that both selects and acts.
+- A label that explains a button that changes the selection.
 
 ## Apply in host
 
