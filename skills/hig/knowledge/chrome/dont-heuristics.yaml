@@ -662,3 +662,5 @@ heuristics:
     match: App Clip logo used on its own
   - id: ac-fetch
     match: download of additional data with an App Clip Code
+  - id: ac-splash
+    match: splash screen that makes people wait on launch

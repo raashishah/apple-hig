@@ -9392,6 +9392,38 @@ function applyAcFetch(text) {
   return text.replace(/\s*data-ac-fetch(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcSplashCopy(text) {
+  return (
+    /omit splash screens/i.test(text) ||
+    /never make people wait on launch/i.test(text) ||
+    /splash screen that makes people wait on launch/i.test(text)
+  );
+}
+
+function appClipShowsSplash(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /\bclass(?:Name)?=["'][^"']*\bsplash\b/i.test(text);
+}
+
+function scanAcSplash(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-splash(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a splash screen that makes people wait on launch"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcSplashCopy(f.text) || appClipShowsSplash(f.text)) {
+      out.push(hit(f.path, "a splash screen that makes people wait on launch"));
+    }
+  }
+  return out;
+}
+
+function applyAcSplash(text) {
+  return text.replace(/\s*data-ac-splash(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -11180,6 +11212,8 @@ function scanHeuristic(id, files) {
       return scanAcSolo(files);
     case "ac-fetch":
       return scanAcFetch(files);
+    case "ac-splash":
+      return scanAcSplash(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -11850,6 +11884,8 @@ function applyHeuristic(id, file) {
       return applyAcSolo(file.text);
     case "ac-fetch":
       return applyAcFetch(file.text);
+    case "ac-splash":
+      return applyAcSplash(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
