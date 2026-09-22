@@ -27,6 +27,7 @@
 - An alert title that is only Error or an error number.
 - A Cancel button that is the default button in an alert.
 - A Yes or No button in an alert.
+- A caution symbol on a Save or Empty Trash alert.
 
 ## Chrome gates
 

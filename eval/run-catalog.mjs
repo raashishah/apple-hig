@@ -2743,6 +2743,7 @@ const results = [];
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-error") &&
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-cancel") &&
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-yes-no") &&
+      (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-caution") &&
       catalog.byId["dark-mode"]?.dontCoverageComplete === true &&
       catalog.byId["sf-symbols"]?.dontCoverageComplete === true &&
       catalog.byId["context-menus"]?.dontCoverageComplete === true &&
@@ -17821,6 +17822,209 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-alert-yes-no-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-hold-"));
+  const saveDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-save-"));
+  const trashDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-trash-"));
+  const otherDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-other-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-plain-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-out-"));
+  const uikitDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alcau-uikit-"));
+  const dirs = [passDir, fixDir, holdDir, saveDir, trashDir, otherDir, plainDir, outsideDir, uikitDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <dialog data-al-caution>
+      <h2>Replace the file?</h2>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <dialog>
+      <p>Don't use the symbol for tasks whose only purpose is to overwrite or remove data, such as a save or empty trash.</p>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSave = `export function HostWidgets() {
+  return (
+    <dialog>
+      <p>exclamationmark.triangle</p>
+      <button type="button">Save</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(saveDir, "HostWidgets.tsx"), origSave);
+    const origTrash = `export function HostWidgets() {
+  return (
+    <dialog>
+      <p>exclamationmark.triangle</p>
+      <button type="button">Empty Trash</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(trashDir, "HostWidgets.tsx"), origTrash);
+    const origOther = `export function HostWidgets() {
+  return (
+    <dialog>
+      <p>exclamationmark.triangle</p>
+      <button type="button">Delete</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(otherDir, "HostWidgets.tsx"), origOther);
+    const origPlain = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button type="button">Save</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origOutside = `export function HostWidgets() {
+  return (
+    <p>
+      exclamationmark.triangle
+      <button type="button">Save</button>
+    </p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(outsideDir, "HostWidgets.tsx"), origOutside);
+    const origUikit = `export function HostWidgets() {
+  let alert = UIAlertController(title: "Replace the file?", message: nil, preferredStyle: .alert)
+  let symbol = "exclamationmark.triangle"
+  alert.addAction(UIAlertAction(title: "Save", style: .default))
+  return alert
+}
+`;
+    fs.writeFileSync(path.join(uikitDir, "HostWidgets.tsx"), origUikit);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const saveReport = run(saveDir);
+    const trashReport = run(trashDir);
+    const otherReport = run(otherDir);
+    const plainReport = run(plainDir);
+    const outsideReport = run(outsideDir);
+    const uikitReport = run(uikitDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const saveStatus = readStatus(saveDir);
+    const trashStatus = readStatus(trashDir);
+    const otherStatus = readStatus(otherDir);
+    const plainStatus = readStatus(plainDir);
+    const outsideStatus = readStatus(outsideDir);
+    const uikitStatus = readStatus(uikitDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const save = fs.readFileSync(path.join(saveDir, "HostWidgets.tsx"), "utf8");
+    const trash = fs.readFileSync(path.join(trashDir, "HostWidgets.tsx"), "utf8");
+    const other = fs.readFileSync(path.join(otherDir, "HostWidgets.tsx"), "utf8");
+    const plain = fs.readFileSync(path.join(plainDir, "HostWidgets.tsx"), "utf8");
+    const outside = fs.readFileSync(path.join(outsideDir, "HostWidgets.tsx"), "utf8");
+    const uikit = fs.readFileSync(path.join(uikitDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      saveChrome: saveReport.chrome.pass === true,
+      trashChrome: trashReport.chrome.pass === true,
+      otherChrome: otherReport.chrome.pass === true,
+      plainChrome: plainReport.chrome.pass === true,
+      outsideChrome: outsideReport.chrome.pass === true,
+      uikitChrome: uikitReport.chrome.pass === true,
+      passAlerts: passStatus.topics.alerts?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixAlerts: fixStatus.topics.alerts?.state === "applied",
+      systemKept: />\s*Keep\s*</.test(fixed),
+      markersGone: !/data-al-caution\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAlerts: holdStatus.topics.alerts?.state === "pending",
+      holdStillPhrase: /overwrite or remove data/.test(held),
+      holdNotInvented: !/exclamationmark\.triangle/.test(held) && !/>\s*Save\s*</.test(held),
+      saveUnchanged: save === origSave,
+      saveAlerts: saveStatus.topics.alerts?.state === "pending",
+      saveKept: /exclamationmark\.triangle/.test(save) && />\s*Save\s*</.test(save),
+      trashUnchanged: trash === origTrash,
+      trashAlerts: trashStatus.topics.alerts?.state === "pending",
+      trashKept: />\s*Empty Trash\s*</.test(trash),
+      otherUnchanged: other === origOther,
+      otherAlerts: otherStatus.topics.alerts?.state === "already-compliant",
+      otherKept: />\s*Delete\s*</.test(other) && /exclamationmark\.triangle/.test(other),
+      plainUnchanged: plain === origPlain,
+      plainAlerts: plainStatus.topics.alerts?.state === "already-compliant",
+      plainKept: />\s*Save\s*</.test(plain),
+      outsideUnchanged: outside === origOutside,
+      outsideAlerts: outsideStatus.topics.alerts?.state === "skipped-no-affordance",
+      outsideKept: />\s*Save\s*</.test(outside),
+      uikitUnchanged: uikit === origUikit,
+      uikitAlerts: uikitStatus.topics.alerts?.state === "pending",
+      uikitKept: /title: "Save"/.test(uikit) && /exclamationmark\.triangle/.test(uikit),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAlerts: passStatus.topics.alerts?.state,
+      fixAlerts: fixStatus.topics.alerts?.state,
+      holdAlerts: holdStatus.topics.alerts?.state,
+      saveAlerts: saveStatus.topics.alerts?.state,
+      trashAlerts: trashStatus.topics.alerts?.state,
+      otherAlerts: otherStatus.topics.alerts?.state,
+      plainAlerts: plainStatus.topics.alerts?.state,
+      outsideAlerts: outsideStatus.topics.alerts?.state,
+      uikitAlerts: uikitStatus.topics.alerts?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-alert-caution-save-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

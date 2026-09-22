@@ -222,6 +222,8 @@ heuristics:
     match: Cancel button that is the default button in an alert
   - id: al-yes-no
     match: Yes or No button in an alert
+  - id: al-caution
+    match: caution symbol on a Save or Empty Trash alert
   - id: slider-as-volume
     match: slider to adjust audio volume
   - id: nested-same-axis-scroll

@@ -1681,6 +1681,50 @@ function applyAlertYesNo(text) {
   return text.replace(/\s*data-al-yes(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAlertCautionCopy(text) {
+  return (
+    /don['’]?t use the symbol for tasks whose only purpose is to overwrite or remove data/i.test(
+      text,
+    ) ||
+    /symbol for a save or empty trash/i.test(text) ||
+    /caution symbol on a Save or Empty Trash alert/i.test(text)
+  );
+}
+
+function hasCautionOnSave(text) {
+  const buttonRe = /<button\b[^>]*>\s*(?:Save|Empty Trash)\s*<\/button>/i;
+  for (const region of dialogRegions(text)) {
+    if (region.includes("exclamationmark.triangle") && buttonRe.test(region)) return true;
+  }
+  if (!hasAlertWidget(text) || !text.includes("exclamationmark.triangle")) return false;
+  const titled =
+    /(?:Button\(\s*["'](?:Save|Empty Trash)["']|UIAlertAction\(\s*title:\s*["'](?:Save|Empty Trash)["'])/i;
+  const nearSymbol =
+    /exclamationmark\.triangle[\s\S]{0,400}(?:Button\(\s*["'](?:Save|Empty Trash)["']|UIAlertAction\(\s*title:\s*["'](?:Save|Empty Trash)["'])|(?:Button\(\s*["'](?:Save|Empty Trash)["']|UIAlertAction\(\s*title:\s*["'](?:Save|Empty Trash)["'])[\s\S]{0,400}exclamationmark\.triangle/i;
+  if (/\bUIAlertController\b/.test(text) && titled.test(text) && nearSymbol.test(text)) return true;
+  if (/\.alert\s*\(|confirmationDialog\s*\(/.test(text) && nearSymbol.test(text)) return true;
+  return false;
+}
+
+function scanAlertCautionOnSave(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-al-caution\b/.test(f.text)) {
+      out.push(hit(f.path, "a caution symbol on a Save or Empty Trash alert"));
+      continue;
+    }
+    if (!hasAlertWidget(f.text)) continue;
+    if (hasAlertCautionCopy(f.text) || hasCautionOnSave(f.text)) {
+      out.push(hit(f.path, "a caution symbol on a Save or Empty Trash alert"));
+    }
+  }
+  return out;
+}
+
+function applyAlertCautionOnSave(text) {
+  return text.replace(/\s*data-al-caution(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanModalSuccess(files) {
   const out = [];
   for (const f of files) {
@@ -8489,6 +8533,8 @@ function scanHeuristic(id, files) {
       return scanAlertCancelDefault(files);
     case "al-yes-no":
       return scanAlertYesNo(files);
+    case "al-caution":
+      return scanAlertCautionOnSave(files);
     case "slider-as-volume":
       return scanSliderAsVolume(files);
     case "nested-same-axis-scroll":
@@ -9089,6 +9135,8 @@ function applyHeuristic(id, file) {
       return applyAlertCancelDefault(file.text);
     case "al-yes-no":
       return applyAlertYesNo(file.text);
+    case "al-caution":
+      return applyAlertCautionOnSave(file.text);
     case "slider-as-volume":
       return applySliderAsVolume(file.text);
     case "nested-same-axis-scroll":
