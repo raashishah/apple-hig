@@ -36,6 +36,7 @@
 - A disabled or hidden tab bar button.
 - A third level of hierarchy in a sidebar.
 - A window titled with the app name.
+- A toolbar item with no visible text and no accessible name.
 
 ## Interaction states
 

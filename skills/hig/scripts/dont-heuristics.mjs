@@ -9741,6 +9741,129 @@ function applyWindowAppTitle(text) {
   return text.replace(/\s*data-wn-app(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function elementsWithRole(text, role) {
+  const out = [];
+  const openRe = new RegExp(
+    `<([A-Za-z][\\w]*)\\b[^>]*\\brole=["']${role}["'][^>]*>`,
+    "gi",
+  );
+  let m;
+  while ((m = openRe.exec(text))) {
+    const tag = m[1];
+    let i = m.index + m[0].length;
+    let depth = 1;
+    const reopen = new RegExp(`<${tag}\\b`, "gi");
+    const close = new RegExp(`</${tag}\\s*>`, "gi");
+    while (depth > 0 && i < text.length) {
+      reopen.lastIndex = i;
+      close.lastIndex = i;
+      const nOpen = reopen.exec(text);
+      const nClose = close.exec(text);
+      if (!nClose) {
+        i = text.length;
+        break;
+      }
+      if (nOpen && nOpen.index < nClose.index) {
+        depth += 1;
+        i = nOpen.index + nOpen[0].length;
+      } else {
+        depth -= 1;
+        i = nClose.index + nClose[0].length;
+      }
+    }
+    out.push(text.slice(m.index, i));
+  }
+  return out;
+}
+
+function hasToolbarWidget(text) {
+  return (
+    /role=["']toolbar["']/i.test(text) ||
+    /\.toolbar\s*\{/.test(text) ||
+    /\bUIToolbar\b/.test(text) ||
+    /\bNSToolbar\b/.test(text) ||
+    /\bToolbarItem\b/.test(text)
+  );
+}
+
+function toolbarControlHasName(attrs, inner) {
+  if (/aria-label\s*=\s*(?:["'][^"']*\S[^"']*["']|\{[^}]*\S[^}]*\})/i.test(attrs)) return true;
+  if (/aria-labelledby\s*=\s*["'][^"']+["']/i.test(attrs)) return true;
+  if (/\btitle\s*=\s*["'][^"']*\S[^"']*["']/i.test(attrs)) return true;
+  const visible = inner
+    .replace(/<svg[\s\S]*?<\/svg>/gi, "")
+    .replace(/<img\b[^>]*>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\{[^}]*\}/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return visible.length > 0;
+}
+
+function webToolbarHasUnnamedItem(text) {
+  for (const region of elementsWithRole(text, "toolbar")) {
+    const re = /<(button|a)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+    let m;
+    while ((m = re.exec(region))) {
+      if (!toolbarControlHasName(m[2], m[3])) return true;
+    }
+  }
+  return false;
+}
+
+function swiftToolbarHasUnnamedItem(text) {
+  const re = /\.toolbar\s*\{/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const open = m.index + m[0].lastIndexOf("{");
+    const close = matchingBrace(text, open);
+    if (close < 0) continue;
+    const body = text.slice(open, close + 1);
+    const buttons = /\bButton\s*(\([^)]*\))?\s*\{/g;
+    let b;
+    while ((b = buttons.exec(body))) {
+      const args = b[1] || "";
+      const titled = /["'][^"']*\S[^"']*["']/.test(args);
+      const bOpen = b.index + b[0].lastIndexOf("{");
+      const bClose = matchingBrace(body, bOpen);
+      const inner = bClose > bOpen ? body.slice(bOpen, bClose + 1) : "";
+      const after = body.slice(Math.max(bClose, b.index), Math.min(body.length, b.index + 500));
+      const labeled = /accessibilityLabel\s*\(\s*"[^"]*\S[^"]*"/.test(after);
+      if (!titled && !labeled && /\bImage\s*\(/.test(inner)) return true;
+    }
+  }
+  return false;
+}
+
+function hasToolbarUnnamedCopy(text) {
+  return (
+    /don['’]?t make people guess/i.test(text) ||
+    /toolbar item with no visible text and no accessible name/i.test(text)
+  );
+}
+
+function scanToolbarUnnamed(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-tb-name(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a toolbar item with no visible text and no accessible name"));
+      continue;
+    }
+    if (
+      webToolbarHasUnnamedItem(f.text) ||
+      swiftToolbarHasUnnamedItem(f.text) ||
+      (hasToolbarWidget(f.text) && hasToolbarUnnamedCopy(f.text))
+    ) {
+      out.push(hit(f.path, "a toolbar item with no visible text and no accessible name"));
+    }
+  }
+  return out;
+}
+
+function applyToolbarUnnamed(text) {
+  return text.replace(/\s*data-tb-name(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -9922,6 +10045,8 @@ function scanHeuristic(id, files) {
       return scanSidebarDepth(files);
     case "wn-app":
       return scanWindowAppTitle(files);
+    case "tb-name":
+      return scanToolbarUnnamed(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -10562,6 +10687,8 @@ function applyHeuristic(id, file) {
       return applySidebarDepth(file.text);
     case "wn-app":
       return applyWindowAppTitle(file.text);
+    case "tb-name":
+      return applyToolbarUnnamed(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":

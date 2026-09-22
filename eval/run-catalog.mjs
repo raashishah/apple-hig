@@ -21505,6 +21505,186 @@ ${dots}
   results.push({ case: "catalog-apply-window-app-title-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-hold-"));
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-named-"));
+  const textDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-text-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-outside-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-swift-"));
+  const swiftNamedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbn-swift-named-"));
+  const dirs = [passDir, fixDir, holdDir, namedDir, textDir, outsideDir, sentenceDir, copyDir, swiftDir, swiftNamedDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <header role="toolbar" aria-label="Inventory">
+      <button type="button" data-tb-name aria-label="Delete">
+        <svg width="16" height="16" aria-hidden="true" />
+      </button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <header role="toolbar" aria-label="Inventory">
+      <button type="button">
+        <svg width="16" height="16" aria-hidden="true" />
+      </button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origNamed = `export function HostWidgets() {
+  return (
+    <header role="toolbar" aria-label="Inventory">
+      <button type="button" aria-label="Delete">
+        <svg width="16" height="16" aria-hidden="true" />
+      </button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(namedDir, "HostWidgets.tsx"), origNamed);
+    const origText = `export function HostWidgets() {
+  return (
+    <header role="toolbar" aria-label="Inventory">
+      <button type="button">Edit</button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(textDir, "HostWidgets.tsx"), origText);
+    const origOutside = `export function HostWidgets() {
+  return (
+    <button type="button">
+      <svg width="16" height="16" aria-hidden="true" />
+    </button>
+  );
+}
+`;
+    fs.writeFileSync(path.join(outsideDir, "HostWidgets.tsx"), origOutside);
+    const origSentence = `export function HostWidgets() {
+  return <p>Don't make people guess or experiment to figure out what a toolbar item does.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <header role="toolbar" aria-label="Inventory">
+        <button type="button" aria-label="Delete">
+          <svg width="16" height="16" aria-hidden="true" />
+        </button>
+      </header>
+      <p>Don't make people guess or experiment to figure out what a toolbar item does.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  return .toolbar {
+    ToolbarItem {
+      Button { Image(systemName: "trash") }
+    }
+  };
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftNamed = `export function HostWidgets() {
+  return .toolbar {
+    ToolbarItem {
+      Button("Edit") { }
+    }
+  };
+}
+`;
+    fs.writeFileSync(path.join(swiftNamedDir, "HostWidgets.tsx"), origSwiftNamed);
+    const names = ["pass", "fix", "hold", "named", "text", "outside", "sentence", "copy", "swift", "swiftNamed"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      named: namedDir,
+      text: textDir,
+      outside: outsideDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+      swiftNamed: swiftNamedDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const toolbars = (name) => status[name].topics.toolbars?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.toolbars?.dontHeuristicIds || []).includes("tb-name"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passToolbars: toolbars("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixToolbars: toolbars("fix") === "applied",
+      markerGone: !/data-tb-name(?![\w-])/.test(fixed),
+      labelKept: /aria-label="Delete"/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdToolbars: toolbars("hold") === "pending",
+      holdIcon: /<svg/.test(held),
+      namedToolbars: toolbars("named") === "already-compliant",
+      textToolbars: toolbars("text") === "already-compliant",
+      outsideToolbars: toolbars("outside") === "already-compliant",
+      sentenceToolbars: toolbars("sentence") === "already-compliant",
+      copyUnchanged: copied === origCopy,
+      copyToolbars: toolbars("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftToolbars: toolbars("swift") === "pending",
+      swiftNamedToolbars: toolbars("swiftNamed") === "already-compliant",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passToolbars: toolbars("pass"),
+      fixToolbars: toolbars("fix"),
+      holdToolbars: toolbars("hold"),
+      namedToolbars: toolbars("named"),
+      textToolbars: toolbars("text"),
+      outsideToolbars: toolbars("outside"),
+      sentenceToolbars: toolbars("sentence"),
+      copyToolbars: toolbars("copy"),
+      swiftToolbars: toolbars("swift"),
+      swiftNamedToolbars: toolbars("swiftNamed"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-toolbar-unnamed-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

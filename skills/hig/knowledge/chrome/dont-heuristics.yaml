@@ -166,6 +166,8 @@ heuristics:
     match: third level of hierarchy in a sidebar
   - id: wn-app
     match: window titled with the app name
+  - id: tb-name
+    match: toolbar item with no visible text and no accessible name
   - id: hide-unavailable-menu-items
     match: Hide unavailable items instead of dimming them
   - id: nested-submenus-deep
