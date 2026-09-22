@@ -6561,6 +6561,36 @@ function applyPnHudObscure(text) {
   return text.replace(/\s*data-pn-hud-obscure(?:="[^"]*")?/g, "");
 }
 
+function hasPathControl(text) {
+  return /\bdata-path-control\b/.test(text) || /\bNSPathControl\b/.test(text);
+}
+
+function hasPcToolbarCopy(text) {
+  return (
+    /placed in a toolbar or status bar/i.test(text) ||
+    (/path control/i.test(text) && /toolbar|status bar/i.test(text))
+  );
+}
+
+function scanPcToolbar(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pc-toolbar/.test(f.text)) {
+      out.push(hit(f.path, "a path control placed in a toolbar or status bar"));
+      continue;
+    }
+    if (!hasPathControl(f.text)) continue;
+    if (hasPcToolbarCopy(f.text)) {
+      out.push(hit(f.path, "a path control placed in a toolbar or status bar"));
+    }
+  }
+  return out;
+}
+
+function applyPcToolbar(text) {
+  return text.replace(/\s*data-pc-toolbar(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7074,6 +7104,8 @@ function scanHeuristic(id, files) {
       return scanPnMinimize(files);
     case "pn-hud-obscure":
       return scanPnHudObscure(files);
+    case "pc-toolbar":
+      return scanPcToolbar(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -7580,6 +7612,8 @@ function applyHeuristic(id, file) {
       return applyPnMinimize(file.text);
     case "pn-hud-obscure":
       return applyPnHudObscure(file.text);
+    case "pc-toolbar":
+      return applyPcToolbar(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

@@ -619,6 +619,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "panel":
       return !present.includes(need);
+    case "pathcontrol":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1210,6 +1212,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-panel\b/.test(blob) || /\bNSPanel\b/.test(blob) || /\bdata-hud\b/.test(blob)) {
     found.push("panel");
+  }
+  if (/\bdata-path-control\b/.test(blob) || /\bNSPathControl\b/.test(blob)) {
+    found.push("pathcontrol");
   }
   return found;
 }

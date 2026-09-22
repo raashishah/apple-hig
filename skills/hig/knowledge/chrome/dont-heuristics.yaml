@@ -498,3 +498,5 @@ heuristics:
     match: minimize button on a panel
   - id: pn-hud-obscure
     match: obscures the content it adjusts
+  - id: pc-toolbar
+    match: placed in a toolbar or status bar

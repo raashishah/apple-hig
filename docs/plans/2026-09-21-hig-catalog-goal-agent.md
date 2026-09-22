@@ -133,6 +133,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 79. Panels Don'ts. **Landed on this PR.** Account panels Don'ts when every Don't has a scanner and the host has panel chrome. Skip-unless `panel` affordance stays. Gate is `always` and overlays catalog `desktop`. A panel listed in the Window menu documents list, a minimize button on a panel, and a HUD that obscures the content it adjusts scan from Apple's panels page. Do not invent a panel, a minimize button, or a Window menu. Do not map panels onto a sheet, a regular window, `data-window`, or `NSOpenPanel`. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+80. Path controls Don'ts. **Landed on this PR.** Account path-controls Don'ts when every Don't has a scanner and the host has path-control chrome. Skip-unless `pathcontrol` affordance stays. Gate is `always` and overlays catalog `desktop`. A path control placed in a toolbar or status bar scans from Apple's path-controls page. Do not invent a path bar. Do not map path-controls onto a file browser, the iOS status bar, or a bare path word. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

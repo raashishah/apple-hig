@@ -107,6 +107,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["game-center"]?.gate === "capability:gamecenter" &&
     surfaces.byId.panels?.affordance === "panel" &&
     surfaces.byId.panels?.gate === "always" &&
+    surfaces.byId["path-controls"]?.affordance === "pathcontrol" &&
+    surfaces.byId["path-controls"]?.gate === "always" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -518,6 +520,7 @@ const results = [];
     "sign-in-with-apple",
     "playing-audio",
     "panels",
+    "path-controls",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1133,6 +1136,36 @@ const results = [];
       text: '<div data-pn-window-menu data-pn-minimize data-pn-hud-obscure><button type="button">Inspector</button></div>',
     },
   ]);
+  const pathOnly = scanAffordances([
+    {
+      path: "Trail.tsx",
+      text: '<nav data-path-control><button type="button">Documents</button></nav>',
+    },
+  ]);
+  const nsPathOnly = scanAffordances([
+    {
+      path: "Trail.swift",
+      text: "let path = NSPathControl()",
+    },
+  ]);
+  const pathPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Show the path to the file.</p>",
+    },
+  ]);
+  const pathStatusOnly = scanAffordances([
+    {
+      path: "Clock.tsx",
+      text: '<div data-status-bar>9:41</div>',
+    },
+  ]);
+  const pcMarkerOnly = scanAffordances([
+    {
+      path: "Trail.tsx",
+      text: '<nav data-pc-toolbar><button type="button">Documents</button></nav>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1554,6 +1587,17 @@ const results = [];
       !formOnly.includes("panel") &&
       !passList.includes("panel") &&
       !pageOnly.includes("panel") &&
+      pathOnly.includes("pathcontrol") &&
+      !pathOnly.includes("filebrowser") &&
+      !pathOnly.includes("panel") &&
+      nsPathOnly.includes("pathcontrol") &&
+      !pathPhraseOnly.includes("pathcontrol") &&
+      !pathStatusOnly.includes("pathcontrol") &&
+      !pcMarkerOnly.includes("pathcontrol") &&
+      !fileBrowserOnly.includes("pathcontrol") &&
+      !formOnly.includes("pathcontrol") &&
+      !passList.includes("pathcontrol") &&
+      !pageOnly.includes("pathcontrol") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2284,6 +2328,10 @@ const results = [];
       (catalog.byId.panels?.dontHeuristicIds || []).includes("pn-hud-obscure") &&
       catalog.byId.panels?.pack === "components-panels.md" &&
       catalog.byId.panels?.appliesWhen === "always" &&
+      catalog.byId["path-controls"]?.dontCoverageComplete === true &&
+      (catalog.byId["path-controls"]?.dontHeuristicIds || []).includes("pc-toolbar") &&
+      catalog.byId["path-controls"]?.pack === "components-path-controls.md" &&
+      catalog.byId["path-controls"]?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2444,6 +2492,7 @@ const results = [];
       "sign-in-with-apple",
       "playing-audio",
       "panels",
+      "path-controls",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -11538,6 +11587,131 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-panels-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-path-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-path-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-path-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <nav data-path-control data-pc-toolbar>
+      <button type="button">Documents</button>
+    </nav>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <nav data-path-control>
+      This path control is placed in a toolbar or status bar.
+      <button type="button">Documents</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passPath: passStatus.topics["path-controls"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixPath: fixStatus.topics["path-controls"]?.state === "applied",
+      systemKept: /\bdata-path-control\b/.test(fixed) && />\s*Documents\s*</.test(fixed),
+      markersGone: !/data-pc-toolbar/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPath: holdStatus.topics["path-controls"]?.state === "pending",
+      holdStillPlaced:
+        /\bdata-path-control\b/.test(held) &&
+        /placed in a toolbar or status bar/.test(held) &&
+        /Documents/.test(held),
+      holdNotInvented: !/NSPathControl/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPath: passStatus.topics["path-controls"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixPath: fixStatus.topics["path-controls"]?.state,
+      holdPath: holdStatus.topics["path-controls"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-path-controls-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
