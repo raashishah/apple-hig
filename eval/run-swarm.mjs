@@ -300,6 +300,17 @@ const results = [];
       platform: "phone",
       capabilities: ["wallet"],
     }).launched.some((s) => s.id === "apple-pay") &&
+    surfaces.byId.wallet?.gate === "capability:wallet" &&
+    surfaces.byId.wallet?.affordance === "walletpass" &&
+    !phone.launched.some((s) => s.id === "wallet") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["wallet"],
+    }).launched.some((s) => s.id === "wallet") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["applepay"],
+    }).launched.some((s) => s.id === "wallet") &&
     selectSurfaces(surfaces, {
       platform: "phone",
       capabilities: ["controlcenter"],

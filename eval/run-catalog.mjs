@@ -135,6 +135,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.carekit?.gate === "capability:carekit" &&
     surfaces.byId.researchkit?.affordance === "researchkit" &&
     surfaces.byId.researchkit?.gate === "capability:researchkit" &&
+    surfaces.byId.wallet?.affordance === "walletpass" &&
+    surfaces.byId.wallet?.gate === "capability:wallet" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1641,6 +1643,24 @@ const results = [];
       text: "<p>Built with ResearchKit.</p>",
     },
   ]);
+  const passWidgetOnly = scanAffordances([
+    {
+      path: "Pass.tsx",
+      text: "<div data-wallet></div>",
+    },
+  ]);
+  const wlMarkerOnly = scanAffordances([
+    {
+      path: "Pass.tsx",
+      text: "<div data-wl-marketing></div>",
+    },
+  ]);
+  const walletPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Add this boarding pass to Wallet.</p>",
+    },
+  ]);
   const healthKitWidgetOnly = scanAffordances([
     {
       path: "Health.tsx",
@@ -2238,6 +2258,18 @@ const results = [];
       !formOnly.includes("researchkit") &&
       !passList.includes("researchkit") &&
       !pageOnly.includes("researchkit") &&
+      passWidgetOnly.includes("walletpass") &&
+      !passWidgetOnly.includes("applepay") &&
+      !passKitOnly.includes("walletpass") &&
+      !applePayOnly.includes("walletpass") &&
+      !applePayButtonOnly.includes("walletpass") &&
+      !wlMarkerOnly.includes("walletpass") &&
+      !walletOnly.includes("walletpass") &&
+      !walletPhraseOnly.includes("walletpass") &&
+      !apMarkerOnly.includes("walletpass") &&
+      !formOnly.includes("walletpass") &&
+      !passList.includes("walletpass") &&
+      !pageOnly.includes("walletpass") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -3048,6 +3080,12 @@ const results = [];
       catalog.byId.researchkit?.pack === "tech-researchkit.md" &&
       catalog.byId.researchkit?.surfaceId === "researchkit" &&
       catalog.byId.researchkit?.appliesWhen === "capability:researchkit" &&
+      catalog.byId.wallet?.dontCoverageComplete === true &&
+      (catalog.byId.wallet?.dontHeuristicIds || []).includes("wl-marketing") &&
+      catalog.byId.wallet?.pack === "tech-wallet.md" &&
+      catalog.byId.wallet?.surfaceId === "wallet" &&
+      catalog.byId.wallet?.appliesWhen === "capability:wallet" &&
+      catalog.byId["apple-pay"]?.appliesWhen === "capability:applepay" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -14242,6 +14280,145 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-researchkit-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wl-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wl-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wl-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wl-hold-"));
+  const saleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wl-sale-"));
+  const payDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wl-pay-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, saleDir, payDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writePassKit = (dir) => {
+      fs.writeFileSync(path.join(dir, "Pass.swift"), "import PassKit\nlet library = PKPassLibrary()\n");
+    };
+    writePassKit(cleanDir);
+    writePassKit(fixDir);
+    writePassKit(holdDir);
+    writePassKit(saleDir);
+    fs.writeFileSync(path.join(payDir, "Pay.swift"), "let button = PKPaymentButton()\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-wallet data-wl-marketing>
+      <button type="button">Pass</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(payDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <p>Never use a change message for marketing.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSale = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <p>changeMessage Weekend sale</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(saleDir, "HostWidgets.tsx"), origSale);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const saleReport = run(saleDir);
+    const payReport = run(payDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const saleStatus = readStatus(saleDir);
+    const payStatus = readStatus(payDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const sold = fs.readFileSync(path.join(saleDir, "HostWidgets.tsx"), "utf8");
+    const paid = fs.readFileSync(path.join(payDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      saleChrome: saleReport.chrome.pass === true,
+      payChrome: payReport.chrome.pass === true,
+      passWallet: passStatus.topics.wallet?.state === "skipped-gate",
+      cleanWallet: cleanStatus.topics.wallet?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      passPay: passStatus.topics["apple-pay"]?.state === "skipped-gate",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixWallet: fixStatus.topics.wallet?.state === "applied",
+      systemKept: /\bdata-wallet\b/.test(fixed) && />\s*Pass\s*</.test(fixed),
+      markersGone: !/data-wl-marketing/.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Pass.swift"), "utf8").includes("import PassKit"),
+      holdUnchanged: held === origHold,
+      holdWallet: holdStatus.topics.wallet?.state === "pending",
+      holdStillPhrase: /\bdata-wallet\b/.test(held) && /change message for marketing/.test(held),
+      holdNotInvented: !/PKAddPassesViewController|Add to Apple Wallet/.test(held),
+      saleUnchanged: sold === origSale,
+      saleWallet: saleStatus.topics.wallet?.state === "pending",
+      saleKept: /Weekend sale/.test(sold),
+      payWallet: payStatus.topics.wallet?.state === "skipped-gate",
+      payMarkersRemain: /data-wl-marketing/.test(paid),
+      payButtonKept: fs.readFileSync(path.join(payDir, "Pay.swift"), "utf8").includes("PKPaymentButton"),
+      payPayLaunched:
+        payStatus.topics["apple-pay"]?.state !== "skipped-gate" &&
+        payStatus.topics["apple-pay"]?.state !== "skipped-no-affordance",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWallet: passStatus.topics.wallet?.state,
+      cleanWallet: cleanStatus.topics.wallet?.state,
+      fixWallet: fixStatus.topics.wallet?.state,
+      holdWallet: holdStatus.topics.wallet?.state,
+      saleWallet: saleStatus.topics.wallet?.state,
+      payWallet: payStatus.topics.wallet?.state,
+      payPay: payStatus.topics["apple-pay"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-wallet-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

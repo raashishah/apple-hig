@@ -7371,6 +7371,46 @@ function applyRkCritical(text) {
   return text.replace(/\s*data-rk-critical(?:="[^"]*")?/g, "");
 }
 
+function hasPass(text) {
+  return /\bdata-wallet\b/.test(text);
+}
+
+function hasWlMarketingCopy(text) {
+  return (
+    /change messages? for marketing/i.test(text) ||
+    /change messages? used for marketing/i.test(text) ||
+    /never use a change message for marketing/i.test(text) ||
+    /marketing or other noncritical communication/i.test(text)
+  );
+}
+
+function hasWlMarketingSignal(text) {
+  if (!hasPass(text)) return false;
+  return (
+    /\bchangeMessage\b[\s\S]{0,80}\b(?:sale|offer|discount|promo|marketing)\b/i.test(text) ||
+    /\b(?:sale|offer|discount|promo|marketing)\b[\s\S]{0,80}\bchangeMessage\b/i.test(text)
+  );
+}
+
+function scanWlMarketing(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wl-marketing/.test(f.text)) {
+      out.push(hit(f.path, "a change message used for marketing"));
+      continue;
+    }
+    if (!hasPass(f.text)) continue;
+    if (hasWlMarketingCopy(f.text) || hasWlMarketingSignal(f.text)) {
+      out.push(hit(f.path, "a change message used for marketing"));
+    }
+  }
+  return out;
+}
+
+function applyWlMarketing(text) {
+  return text.replace(/\s*data-wl-marketing(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7936,6 +7976,8 @@ function scanHeuristic(id, files) {
       return scanCkAd(files);
     case "rk-critical":
       return scanRkCritical(files);
+    case "wl-marketing":
+      return scanWlMarketing(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8494,6 +8536,8 @@ function applyHeuristic(id, file) {
       return applyCkAd(file.text);
     case "rk-critical":
       return applyRkCritical(file.text);
+    case "wl-marketing":
+      return applyWlMarketing(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
