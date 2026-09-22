@@ -137,6 +137,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 81. Outline views Don'ts. **Landed on this PR.** Account outline-views Don'ts when every Don't has a scanner and the host has outline chrome. Skip-unless `outline` affordance stays. Gate is `always` and overlays catalog `desktop`. A trailing colon on an outline column heading and a multi-column outline view with no column headings scan from Apple's outline-views page. Do not invent an outline. Do not map outline-views onto a plain list, a disclosure control, or a bare outline word. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+82. iMessage sticker Don'ts. **Landed on this PR.** Account imessage-apps-and-stickers Don'ts when every Don't has a scanner and the host has sticker-pack chrome. Skip-unless `stickerpack` affordance stays. Gate is `always` and overlays catalog `capability:imessage`. Mixed sizes within a single sticker pack scan from Apple's imessage-apps-and-stickers page. A file-size limit is not source-measurable, so it stays unscanned. Do not invent a sticker pack or complete Messages. Do not map imessage-apps-and-stickers onto an image view, a plain list, a bare sticker phrase, or `MSStickerSize`. Dedicated imessage-apps-and-stickers attaches by appleUrl. The platform cluster stays a live-link cluster. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

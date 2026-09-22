@@ -623,6 +623,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "outline":
       return !present.includes(need);
+    case "stickerpack":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1220,6 +1222,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-outline\b/.test(blob) || /\bNSOutlineView\b/.test(blob)) {
     found.push("outline");
+  }
+  if (/\bdata-sticker-pack\b/.test(blob) || /\bMSSticker\b/.test(blob)) {
+    found.push("stickerpack");
   }
   return found;
 }

@@ -504,3 +504,5 @@ heuristics:
     match: trailing colon
   - id: ov-headings
     match: no column headings
+  - id: st-mixed-sizes
+    match: mixed sizes within a single sticker pack

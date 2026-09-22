@@ -6645,6 +6645,33 @@ function applyOvHeadings(text) {
   return text.replace(/\s*data-ov-headings(?:="[^"]*")?/g, "");
 }
 
+function hasStickerPack(text) {
+  return /\bdata-sticker-pack\b/.test(text) || /\bMSSticker\b/.test(text);
+}
+
+function hasStMixedSizesCopy(text) {
+  return /mix(?:ed)? sizes within a single sticker pack/i.test(text);
+}
+
+function scanStMixedSizes(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-st-mixed-sizes/.test(f.text)) {
+      out.push(hit(f.path, "mixed sizes within a single sticker pack"));
+      continue;
+    }
+    if (!hasStickerPack(f.text)) continue;
+    if (hasStMixedSizesCopy(f.text)) {
+      out.push(hit(f.path, "mixed sizes within a single sticker pack"));
+    }
+  }
+  return out;
+}
+
+function applyStMixedSizes(text) {
+  return text.replace(/\s*data-st-mixed-sizes(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7164,6 +7191,8 @@ function scanHeuristic(id, files) {
       return scanOvColon(files);
     case "ov-headings":
       return scanOvHeadings(files);
+    case "st-mixed-sizes":
+      return scanStMixedSizes(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -7676,6 +7705,8 @@ function applyHeuristic(id, file) {
       return applyOvColon(file.text);
     case "ov-headings":
       return applyOvHeadings(file.text);
+    case "st-mixed-sizes":
+      return applyStMixedSizes(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

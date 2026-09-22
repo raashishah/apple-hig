@@ -111,6 +111,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["path-controls"]?.gate === "always" &&
     surfaces.byId["outline-views"]?.affordance === "outline" &&
     surfaces.byId["outline-views"]?.gate === "always" &&
+    surfaces.byId["imessage-apps-and-stickers"]?.affordance === "stickerpack" &&
+    surfaces.byId["imessage-apps-and-stickers"]?.gate === "always" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -524,6 +526,7 @@ const results = [];
     "panels",
     "path-controls",
     "outline-views",
+    "imessage-apps-and-stickers",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1193,6 +1196,36 @@ const results = [];
       text: '<div data-ov-colon data-ov-headings><button type="button">Folder</button></div>',
     },
   ]);
+  const stickerOnly = scanAffordances([
+    {
+      path: "Pack.tsx",
+      text: '<div data-sticker-pack><button type="button">Smile</button></div>',
+    },
+  ]);
+  const msStickerOnly = scanAffordances([
+    {
+      path: "Pack.swift",
+      text: "let sticker = MSSticker()",
+    },
+  ]);
+  const stickerPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Send a sticker pack in the chat.</p>",
+    },
+  ]);
+  const msStickerSizeOnly = scanAffordances([
+    {
+      path: "Pack.swift",
+      text: "let size = MSStickerSize.small",
+    },
+  ]);
+  const stMarkerOnly = scanAffordances([
+    {
+      path: "Pack.tsx",
+      text: '<div data-st-mixed-sizes><button type="button">Smile</button></div>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1636,6 +1669,19 @@ const results = [];
       !formOnly.includes("outline") &&
       !passList.includes("outline") &&
       !pageOnly.includes("outline") &&
+      stickerOnly.includes("stickerpack") &&
+      !stickerOnly.includes("imageview") &&
+      !stickerOnly.includes("list") &&
+      msStickerOnly.includes("stickerpack") &&
+      !stickerPhraseOnly.includes("stickerpack") &&
+      !msStickerSizeOnly.includes("stickerpack") &&
+      !stMarkerOnly.includes("stickerpack") &&
+      !imageViewOnly.includes("stickerpack") &&
+      !imgOnly.includes("stickerpack") &&
+      !listOnly.includes("stickerpack") &&
+      !formOnly.includes("stickerpack") &&
+      !passList.includes("stickerpack") &&
+      !pageOnly.includes("stickerpack") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2375,6 +2421,13 @@ const results = [];
       (catalog.byId["outline-views"]?.dontHeuristicIds || []).includes("ov-headings") &&
       catalog.byId["outline-views"]?.pack === "components-outline-views.md" &&
       catalog.byId["outline-views"]?.appliesWhen === "always" &&
+      catalog.byId["imessage-apps-and-stickers"]?.dontCoverageComplete === true &&
+      (catalog.byId["imessage-apps-and-stickers"]?.dontHeuristicIds || []).includes(
+        "st-mixed-sizes",
+      ) &&
+      catalog.byId["imessage-apps-and-stickers"]?.pack ===
+        "tech-imessage-apps-and-stickers.md" &&
+      catalog.byId["imessage-apps-and-stickers"]?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2537,6 +2590,7 @@ const results = [];
       "panels",
       "path-controls",
       "outline-views",
+      "imessage-apps-and-stickers",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -11881,6 +11935,132 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-outline-views-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sticker-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sticker-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sticker-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-sticker-pack data-st-mixed-sizes>
+      <button type="button">Smile</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-sticker-pack>
+      Don't mix sizes within a single sticker pack.
+      <button type="button">Smile</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passStickers:
+        passStatus.topics["imessage-apps-and-stickers"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixStickers: fixStatus.topics["imessage-apps-and-stickers"]?.state === "applied",
+      systemKept: /\bdata-sticker-pack\b/.test(fixed) && />\s*Smile\s*</.test(fixed),
+      markersGone: !/data-st-mixed-sizes/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdStickers: holdStatus.topics["imessage-apps-and-stickers"]?.state === "pending",
+      holdStillMixed:
+        /\bdata-sticker-pack\b/.test(held) &&
+        /mix sizes within a single sticker pack/.test(held) &&
+        /Smile/.test(held),
+      holdNotInvented: !/MSSticker/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passStickers: passStatus.topics["imessage-apps-and-stickers"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixStickers: fixStatus.topics["imessage-apps-and-stickers"]?.state,
+      holdStickers: holdStatus.topics["imessage-apps-and-stickers"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-imessage-stickers-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
