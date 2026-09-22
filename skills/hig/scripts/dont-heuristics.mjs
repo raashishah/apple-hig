@@ -8947,6 +8947,58 @@ function applySegmentCount(text) {
   return text.replace(/\s*data-sg-count(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasSegmentRoleCopy(text) {
+  return (
+    /assign actions to segments/i.test(text) ||
+    /selection state for segments/i.test(text) ||
+    /segmented control that both selects and acts/i.test(text)
+  );
+}
+
+function regionSelectsAndActs(region) {
+  const selects =
+    /role=["']radio["']/i.test(region) ||
+    /aria-checked(?![\w-])/i.test(region) ||
+    /aria-current=/i.test(region);
+  const acts = /<a\b[^>]*\bhref=/i.test(region) || /type=["']submit["']/i.test(region);
+  return selects && acts;
+}
+
+function webSelectsAndActs(text) {
+  return segmentedRegions(text).some((region) => regionSelectsAndActs(region));
+}
+
+function swiftSelectsAndActs(text) {
+  const re = /\bPicker\b[\s\S]{0,1500}?\.pickerStyle\(\s*\.segmented\s*\)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const body = m[0];
+    const selects = /\bselection\s*:/.test(body) || /\.tag\s*\(/.test(body);
+    const acts = /\bButton\s*\(/.test(body) || /\bNavigationLink\s*\(/.test(body);
+    if (selects && acts) return true;
+  }
+  return false;
+}
+
+function scanSegmentRole(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sg-role(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a segmented control that both selects and acts"));
+      continue;
+    }
+    if (!hasSegmentedWidget(f.text)) continue;
+    if (hasSegmentRoleCopy(f.text) || webSelectsAndActs(f.text) || swiftSelectsAndActs(f.text)) {
+      out.push(hit(f.path, "a segmented control that both selects and acts"));
+    }
+  }
+  return out;
+}
+
+function applySegmentRole(text) {
+  return text.replace(/\s*data-sg-role(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasListWidget(text) {
   return /<(ul|ol|table)\b/i.test(text) || /data-list-pane/.test(text) || /\bList\s*[\({]/.test(text);
 }
@@ -9225,6 +9277,8 @@ function scanHeuristic(id, files) {
       return scanSegmentMix(files);
     case "sg-count":
       return scanSegmentCount(files);
+    case "sg-role":
+      return scanSegmentRole(files);
     case "fake-in-app-widget":
       return scanFakeInAppWidget(files);
     case "stretch-small-widget-large":
@@ -9847,6 +9901,8 @@ function applyHeuristic(id, file) {
       return applySegmentMix(file.text);
     case "sg-count":
       return applySegmentCount(file.text);
+    case "sg-role":
+      return applySegmentRole(file.text);
     case "fake-in-app-widget":
       return applyFakeInAppWidget(file.text, file);
     case "stretch-small-widget-large":

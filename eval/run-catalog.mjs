@@ -19969,6 +19969,221 @@ ${dots}
   results.push({ case: "catalog-apply-minimal-scrub-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-hold-"));
+  const mixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-mix-"));
+  const radiosDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-radios-"));
+  const linksDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-links-"));
+  const currentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-current-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-sentence-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-swift-"));
+  const swiftTagsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgr-swift-tags-"));
+  const dirs = [passDir, fixDir, holdDir, mixDir, radiosDir, linksDir, currentDir, sentenceDir, swiftDir, swiftTagsDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" data-sg-role aria-label="Span">
+      <button type="button" role="radio">Day</button>
+      <button type="button" role="radio">Week</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+      <p>Don't assign actions to segments in a control that otherwise represents selection state.</p>
+      <button type="button" role="radio">Day</button>
+      <button type="button" role="radio">Week</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origMix = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+      <button type="button" role="radio" aria-checked="true">Day</button>
+      <a href="/week">Week</a>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(mixDir, "HostWidgets.tsx"), origMix);
+    const origRadios = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+      <button type="button" role="radio">Day</button>
+      <button type="button" role="radio">Week</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(radiosDir, "HostWidgets.tsx"), origRadios);
+    const origLinks = `export function HostWidgets() {
+  return (
+    <div data-segmented aria-label="Span">
+      <a href="/day">Day</a>
+      <a href="/week">Week</a>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(linksDir, "HostWidgets.tsx"), origLinks);
+    const origCurrent = `export function HostWidgets() {
+  return (
+    <div data-segmented aria-label="Span">
+      <a href="/day" aria-current="page">Day</a>
+      <a href="/week">Week</a>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(currentDir, "HostWidgets.tsx"), origCurrent);
+    const origSentence = `export function HostWidgets() {
+  return <p>Don't assign actions to segments in a control that otherwise represents selection state.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origSwift = `export function HostWidgets() {
+  Picker("Span", selection: $mode) {
+    Text("Day").tag(0)
+    Button("Week") { }
+  }
+  .pickerStyle(.segmented)
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftTags = `export function HostWidgets() {
+  Picker("Span", selection: $mode) {
+    Text("Day").tag(0)
+    Text("Week").tag(1)
+  }
+  .pickerStyle(.segmented)
+}
+`;
+    fs.writeFileSync(path.join(swiftTagsDir, "HostWidgets.tsx"), origSwiftTags);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const mixReport = run(mixDir);
+    const radiosReport = run(radiosDir);
+    const linksReport = run(linksDir);
+    const currentReport = run(currentDir);
+    const sentenceReport = run(sentenceDir);
+    const swiftReport = run(swiftDir);
+    const swiftTagsReport = run(swiftTagsDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const mixStatus = readStatus(mixDir);
+    const radiosStatus = readStatus(radiosDir);
+    const linksStatus = readStatus(linksDir);
+    const currentStatus = readStatus(currentDir);
+    const sentenceStatus = readStatus(sentenceDir);
+    const swiftStatus = readStatus(swiftDir);
+    const swiftTagsStatus = readStatus(swiftTagsDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const mix = fs.readFileSync(path.join(mixDir, "HostWidgets.tsx"), "utf8");
+    const radios = fs.readFileSync(path.join(radiosDir, "HostWidgets.tsx"), "utf8");
+    const links = fs.readFileSync(path.join(linksDir, "HostWidgets.tsx"), "utf8");
+    const current = fs.readFileSync(path.join(currentDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const swiftTags = fs.readFileSync(path.join(swiftTagsDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["segmented-controls"]?.dontHeuristicIds || []).includes("sg-role"),
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      mixChrome: mixReport.chrome.pass === true,
+      radiosChrome: radiosReport.chrome.pass === true,
+      linksChrome: linksReport.chrome.pass === true,
+      currentChrome: currentReport.chrome.pass === true,
+      sentenceChrome: sentenceReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      swiftTagsChrome: swiftTagsReport.chrome.pass === true,
+      passButtons: passStatus.topics.buttons?.state === "already-compliant",
+      passSegments: passStatus.topics["segmented-controls"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      fixSegments: fixStatus.topics["segmented-controls"]?.state === "applied",
+      markerGone: !/data-sg-role(?![\w-])/.test(fixed),
+      radiosKept: /role="radio"/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdSegments: holdStatus.topics["segmented-controls"]?.state === "pending",
+      holdStillPhrase: /assign actions to segments/.test(held),
+      mixUnchanged: mix === origMix,
+      mixSegments: mixStatus.topics["segmented-controls"]?.state === "pending",
+      mixKept: /role="radio"/.test(mix) && /href="\/week"/.test(mix),
+      radiosUnchanged: radios === origRadios,
+      radiosSegments: radiosStatus.topics["segmented-controls"]?.state === "already-compliant",
+      linksUnchanged: links === origLinks,
+      linksSegments: linksStatus.topics["segmented-controls"]?.state === "already-compliant",
+      currentUnchanged: current === origCurrent,
+      currentSegments: currentStatus.topics["segmented-controls"]?.state === "pending",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceSegments: sentenceStatus.topics["segmented-controls"]?.state === "already-compliant",
+      swiftUnchanged: swift === origSwift,
+      swiftSegments: swiftStatus.topics["segmented-controls"]?.state === "pending",
+      swiftTagsUnchanged: swiftTags === origSwiftTags,
+      swiftTagsSegments: swiftTagsStatus.topics["segmented-controls"]?.state === "already-compliant",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: passStatus.topics.buttons?.state,
+      passSegments: passStatus.topics["segmented-controls"]?.state,
+      fixSegments: fixStatus.topics["segmented-controls"]?.state,
+      holdSegments: holdStatus.topics["segmented-controls"]?.state,
+      mixSegments: mixStatus.topics["segmented-controls"]?.state,
+      radiosSegments: radiosStatus.topics["segmented-controls"]?.state,
+      linksSegments: linksStatus.topics["segmented-controls"]?.state,
+      currentSegments: currentStatus.topics["segmented-controls"]?.state,
+      sentenceSegments: sentenceStatus.topics["segmented-controls"]?.state,
+      swiftSegments: swiftStatus.topics["segmented-controls"]?.state,
+      swiftTagsSegments: swiftTagsStatus.topics["segmented-controls"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-segment-role-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

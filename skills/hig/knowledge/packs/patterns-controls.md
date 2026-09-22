@@ -21,6 +21,7 @@
 - A set of more than about five radio buttons.
 - A segmented control that mixes text and images.
 - A segmented control with eight or more segments.
+- A segmented control that both selects and acts.
 
 ## Apply in host
 

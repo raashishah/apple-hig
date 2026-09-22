@@ -196,6 +196,8 @@ heuristics:
     match: segmented control that mixes text and images
   - id: sg-count
     match: eight or more segments
+  - id: sg-role
+    match: segmented control that both selects and acts
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large
