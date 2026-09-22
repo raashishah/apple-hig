@@ -546,3 +546,5 @@ heuristics:
     match: Fixed widths and display-specific dependencies
   - id: id-fold
     match: Extreme layout changes as people fold
+  - id: ck-ad
+    match: Advertising in a care plan

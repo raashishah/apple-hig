@@ -643,6 +643,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "duolayout":
       return !present.includes(need);
+    case "carekit":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1293,6 +1295,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-duo\b/.test(blob)) {
     found.push("duolayout");
+  }
+  if (/\bdata-carekit\b/.test(blob)) {
+    found.push("carekit");
   }
   return found;
 }

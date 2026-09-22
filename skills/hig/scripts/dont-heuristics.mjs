@@ -7296,6 +7296,45 @@ function applyIdFold(text) {
   return text.replace(/\s*data-id-fold(?:="[^"]*")?/g, "");
 }
 
+function hasCarePlan(text) {
+  return /\bdata-carekit\b/.test(text);
+}
+
+function hasCkAdCopy(text) {
+  return (
+    /don['’]?t want to see advertising/i.test(text) ||
+    /advertising in a care plan/i.test(text) ||
+    /distract(?:ing)? people from their care plan/i.test(text)
+  );
+}
+
+function hasCkAdSignal(text) {
+  if (!hasCarePlan(text)) return false;
+  return (
+    /\b(?:Advertisement|Sponsored)\b/.test(text) ||
+    /adsbygoogle/i.test(text)
+  );
+}
+
+function scanCkAd(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ck-ad/.test(f.text)) {
+      out.push(hit(f.path, "advertising in a care plan"));
+      continue;
+    }
+    if (!hasCarePlan(f.text)) continue;
+    if (hasCkAdCopy(f.text) || hasCkAdSignal(f.text)) {
+      out.push(hit(f.path, "advertising in a care plan"));
+    }
+  }
+  return out;
+}
+
+function applyCkAd(text) {
+  return text.replace(/\s*data-ck-ad(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7857,6 +7896,8 @@ function scanHeuristic(id, files) {
       return scanIdFixed(files);
     case "id-fold":
       return scanIdFold(files);
+    case "ck-ad":
+      return scanCkAd(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8411,6 +8452,8 @@ function applyHeuristic(id, file) {
       return applyIdFixed(file.text);
     case "id-fold":
       return applyIdFold(file.text);
+    case "ck-ad":
+      return applyCkAd(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

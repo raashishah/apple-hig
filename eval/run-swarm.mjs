@@ -304,7 +304,22 @@ const results = [];
       platform: "phone",
       capabilities: ["controlcenter"],
     }).launched.some((s) => s.id === "control-center") &&
-    !phone.launched.some((s) => s.id === "control-center");
+    !phone.launched.some((s) => s.id === "control-center") &&
+    surfaces.byId.carekit?.gate === "capability:carekit" &&
+    surfaces.byId.carekit?.affordance === "carekit" &&
+    !phone.launched.some((s) => s.id === "carekit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["carekit"],
+    }).launched.some((s) => s.id === "carekit") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["researchkit"],
+    }).launched.some((s) => s.id === "carekit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["researchkit"],
+    }).launched.some((s) => s.id === "health-research");
   results.push({
     case: "bugbot-surface-leases",
     ok,

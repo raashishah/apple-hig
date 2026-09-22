@@ -157,6 +157,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 91. iPhone Duo Don'ts. **Landed on this PR.** Account designing-for-iphone-duo Don'ts when every Don't has a scanner and the host has Duo layout chrome. Skip-unless `duolayout` affordance stays. Gate stays `duo,capability:duo`. Do not overlay `always`, because unknown chrome-pass and a current iPhone must stay skipped-gate. Reinventing the app when it resizes, fixed widths and display-specific dependencies, and extreme layout changes as people fold scan from Apple's designing-for-iphone-duo page. Do not invent a fold pose or a vertical bar. Do not map designing-for-iphone-duo onto `ArrangementView`, `reservedRegions`, `data-id-*` markers, or a bare iPhone Duo phrase. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+92. CareKit advertising Don'ts. **Landed on this PR.** Account carekit Don'ts when every Don't has a scanner and the host has a care-plan widget. Skip-unless `carekit` affordance stays. Dedicated surface `carekit` attaches by appleUrl so ResearchKit keeps the cluster pack. Gate stays `capability:carekit`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. Advertising in a care plan scans from Apple's CareKit page. Do not invent a care plan or a permission sheet. Do not map carekit onto `import CareKit`, `import ResearchKit`, a HealthKit widget, `data-ck-ad`, or a bare CareKit phrase. Health permission stays human-only. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit
