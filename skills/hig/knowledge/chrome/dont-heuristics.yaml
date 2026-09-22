@@ -444,3 +444,9 @@ heuristics:
     match: iCloud is unavailable
   - id: ic-app-resources
     match: App resources
+  - id: si-advertise
+    match: Advertisements or IAP
+  - id: si-impersonate
+    match: Impersonated Siri
+  - id: si-pronoun
+    match: she, he, or her

@@ -604,6 +604,7 @@ function affordanceMissing(need, present) {
     case "workout":
     case "livephoto":
     case "icloud":
+    case "siri":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1141,6 +1142,13 @@ export function scanAffordances(files) {
     /\bNSUbiquitousKeyValueStore\b/.test(blob)
   ) {
     found.push("icloud");
+  }
+  if (
+    /\bdata-siri\b/.test(blob) ||
+    /\bINInteraction\b/.test(blob) ||
+    /\bSiriKit\b/.test(blob)
+  ) {
+    found.push("siri");
   }
   return found;
 }

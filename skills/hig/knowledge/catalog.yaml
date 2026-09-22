@@ -1031,8 +1031,6 @@ topics:
     appliesWhen: "capability:siri"
     failWhen: "When this topic applies, the host UI does not follow Apple's Siri design rule."
     passWhen: "When this topic applies, the host follows Apple's Siri design rule on existing widgets without changing the typeface or injecting a kit."
-    surfaceId: "siri-app-shortcuts"
-    pack: "tech-siri-app-shortcuts.md"
   - id: sliders
     title: "Sliders"
     group: "Selection and input"
