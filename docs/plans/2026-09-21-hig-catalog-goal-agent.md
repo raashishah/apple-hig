@@ -135,6 +135,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 80. Path controls Don'ts. **Landed on this PR.** Account path-controls Don'ts when every Don't has a scanner and the host has path-control chrome. Skip-unless `pathcontrol` affordance stays. Gate is `always` and overlays catalog `desktop`. A path control placed in a toolbar or status bar scans from Apple's path-controls page. Do not invent a path bar. Do not map path-controls onto a file browser, the iOS status bar, or a bare path word. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+81. Outline views Don'ts. **Landed on this PR.** Account outline-views Don'ts when every Don't has a scanner and the host has outline chrome. Skip-unless `outline` affordance stays. Gate is `always` and overlays catalog `desktop`. A trailing colon on an outline column heading and a multi-column outline view with no column headings scan from Apple's outline-views page. Do not invent an outline. Do not map outline-views onto a plain list, a disclosure control, or a bare outline word. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

@@ -362,6 +362,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "gcaccess",
     "panel",
     "pathcontrol",
+    "outline",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

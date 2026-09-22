@@ -6591,6 +6591,60 @@ function applyPcToolbar(text) {
   return text.replace(/\s*data-pc-toolbar(?:="[^"]*")?/g, "");
 }
 
+function hasOutline(text) {
+  return /\bdata-outline\b/.test(text) || /\bNSOutlineView\b/.test(text);
+}
+
+function hasOvColonCopy(text) {
+  return /trailing colon/i.test(text) || /column heading[^.\n]{0,40}:/.test(text);
+}
+
+function hasOvHeadingsCopy(text) {
+  return (
+    /no column headings/i.test(text) ||
+    /omit column headings/i.test(text) ||
+    (/multi-column outline/i.test(text) && /without column headings/i.test(text))
+  );
+}
+
+function scanOvColon(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ov-colon/.test(f.text)) {
+      out.push(hit(f.path, "a trailing colon on an outline column heading"));
+      continue;
+    }
+    if (!hasOutline(f.text)) continue;
+    if (hasOvColonCopy(f.text)) {
+      out.push(hit(f.path, "a trailing colon on an outline column heading"));
+    }
+  }
+  return out;
+}
+
+function applyOvColon(text) {
+  return text.replace(/\s*data-ov-colon(?:="[^"]*")?/g, "");
+}
+
+function scanOvHeadings(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ov-headings/.test(f.text)) {
+      out.push(hit(f.path, "a multi-column outline view with no column headings"));
+      continue;
+    }
+    if (!hasOutline(f.text)) continue;
+    if (hasOvHeadingsCopy(f.text)) {
+      out.push(hit(f.path, "a multi-column outline view with no column headings"));
+    }
+  }
+  return out;
+}
+
+function applyOvHeadings(text) {
+  return text.replace(/\s*data-ov-headings(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7106,6 +7160,10 @@ function scanHeuristic(id, files) {
       return scanPnHudObscure(files);
     case "pc-toolbar":
       return scanPcToolbar(files);
+    case "ov-colon":
+      return scanOvColon(files);
+    case "ov-headings":
+      return scanOvHeadings(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -7614,6 +7672,10 @@ function applyHeuristic(id, file) {
       return applyPnHudObscure(file.text);
     case "pc-toolbar":
       return applyPcToolbar(file.text);
+    case "ov-colon":
+      return applyOvColon(file.text);
+    case "ov-headings":
+      return applyOvHeadings(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

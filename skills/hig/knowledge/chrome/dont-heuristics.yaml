@@ -500,3 +500,7 @@ heuristics:
     match: obscures the content it adjusts
   - id: pc-toolbar
     match: placed in a toolbar or status bar
+  - id: ov-colon
+    match: trailing colon
+  - id: ov-headings
+    match: no column headings

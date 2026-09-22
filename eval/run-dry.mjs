@@ -154,6 +154,7 @@ const results = [];
     launchedIds.includes("playing-audio") &&
     launchedIds.includes("panels") &&
     launchedIds.includes("path-controls") &&
+    launchedIds.includes("outline-views") &&
     !launchedIds.includes("game-center") &&
     !launchedIds.includes("mac-chrome") &&
     requiredOk;
@@ -198,6 +199,7 @@ const results = [];
     launchedIds.includes("playing-audio") &&
     launchedIds.includes("panels") &&
     launchedIds.includes("path-controls") &&
+    launchedIds.includes("outline-views") &&
     !launchedIds.includes("game-center") &&
     surfaces.requiredIds.length === 12;
   results.push({

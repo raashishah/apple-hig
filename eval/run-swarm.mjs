@@ -173,6 +173,7 @@ const results = [];
     webSkip.launched.some((s) => s.id === "playing-audio") &&
     webSkip.launched.some((s) => s.id === "panels") &&
     webSkip.launched.some((s) => s.id === "path-controls") &&
+    webSkip.launched.some((s) => s.id === "outline-views") &&
     hk.launched.some((s) => s.id === "healthkit") &&
     !webSkip.launched.some((s) => s.id === "game-center") &&
     gc.launched.some((s) => s.id === "game-center") &&
