@@ -620,6 +620,8 @@ heuristics:
     match: squeeze that could result in data loss
   - id: pe-preview
     match: continuously modifying the preview as Apple Pencil moves closer or farther
+  - id: pe-hand
+    match: controls in locations that may be obscured by either hand
   - id: gm-letter
     match: Abstract shapes or A, X, or R1 as artwork
   - id: id-reinvent

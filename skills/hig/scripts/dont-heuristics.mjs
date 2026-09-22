@@ -8664,6 +8664,52 @@ function applyPePreview(text) {
   return text.replace(/\s*data-pe-preview(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasPeHandCopy(text) {
+  return (
+    /obscured by either hand/i.test(text) ||
+    /controls in locations that may be obscured/i.test(text)
+  );
+}
+
+function buttonInPalmZone(tag) {
+  const quoted = tag.match(/(?:style|className|class)\s*=\s*["']([^"']*)["']/i);
+  const brace = tag.match(/style=\{\{([^}]*)\}\}/i);
+  const blob = `${quoted ? quoted[1] : ""} ${brace ? brace[1] : ""}`.toLowerCase();
+  if (!blob.trim()) return false;
+  const bottom = /\bbottom\s*[:=]\s*0\b/.test(blob);
+  const side = /\b(?:left|right)\s*[:=]\s*0\b/.test(blob);
+  return bottom && side;
+}
+
+function pencilControlInPalm(text) {
+  if (!hasPencil(text)) return false;
+  const re = /<button\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    if (buttonInPalmZone(m[0])) return true;
+  }
+  return false;
+}
+
+function scanPeHand(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-hand(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "controls in locations that may be obscured by either hand"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeHandCopy(f.text) || pencilControlInPalm(f.text)) {
+      out.push(hit(f.path, "controls in locations that may be obscured by either hand"));
+    }
+  }
+  return out;
+}
+
+function applyPeHand(text) {
+  return text.replace(/\s*data-pe-hand(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasGameControl(text) {
   return /\bdata-game-controls\b/.test(text);
 }
@@ -11212,6 +11258,8 @@ function scanHeuristic(id, files) {
       return scanPeSqueeze(files);
     case "pe-preview":
       return scanPePreview(files);
+    case "pe-hand":
+      return scanPeHand(files);
     case "gm-letter":
       return scanGmLetter(files);
     case "id-reinvent":
@@ -11886,6 +11934,8 @@ function applyHeuristic(id, file) {
       return applyPeSqueeze(file.text);
     case "pe-preview":
       return applyPePreview(file.text);
+    case "pe-hand":
+      return applyPeHand(file.text);
     case "gm-letter":
       return applyGmLetter(file.text);
     case "id-reinvent":

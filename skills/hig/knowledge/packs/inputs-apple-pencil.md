@@ -38,6 +38,7 @@ Apple lists this page as iPadOS-only. Do not ship a Digital Crown or Eyes pack h
 - Distraction while people write.
 - A squeeze that could result in data loss.
 - Continuously modifying the preview as Apple Pencil moves closer or farther.
+- Controls in locations that may be obscured by either hand.
 
 ## Checklist
 
