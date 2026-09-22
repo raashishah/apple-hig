@@ -25382,6 +25382,183 @@ ${dots}
   results.push({ case: "catalog-apply-tab-badge-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-clean-"));
+  const shortDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-short-"));
+  const maxDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-max-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-plain-"));
+  const barDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-bar-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-hold-"));
+  const minDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-min-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-bare-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnt-fix-"));
+  const dirs = [
+    passDir,
+    cleanDir,
+    shortDir,
+    maxDir,
+    plainDir,
+    barDir,
+    holdDir,
+    minDir,
+    copyDir,
+    sentenceDir,
+    bareDir,
+    fixDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const menu = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const context = (menuTag) =>
+      menu(`<div onContextMenu="open">
+      ${menuTag}
+        <button type="button" role="menuitem">Reply</button>
+      </div>
+    </div>`);
+    const plain = context(`<div role="menu">`);
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), plain);
+    const origShort = context(`<div role="menu" style={{ height: "240px" }}>`);
+    fs.writeFileSync(path.join(shortDir, "HostWidgets.tsx"), origShort);
+    const origMax = context(`<div role="menu" style={{ maxHeight: "100vh" }}>`);
+    fs.writeFileSync(path.join(maxDir, "HostWidgets.tsx"), origMax);
+    const origPlain = menu(`<div role="menu" style={{ height: "100vh" }}>
+      <button type="button" role="menuitem">File</button>
+    </div>`);
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origBar = menu(`<div role="menubar" style={{ height: "100vh" }}>
+      <button type="button" role="menuitem">File</button>
+    </div>`);
+    fs.writeFileSync(path.join(barDir, "HostWidgets.tsx"), origBar);
+    const origHold = context(`<div role="menu" style={{ height: "100vh" }}>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origMin = context(`<div role="menu" style={{ minHeight: "100vh" }}>`);
+    fs.writeFileSync(path.join(minDir, "HostWidgets.tsx"), origMin);
+    const origCopy = menu(`<div onContextMenu="open">
+      <p>In general, avoid letting a context menu height exceed the height of the window.</p>
+      <div role="menu">
+        <button type="button" role="menuitem">Reply</button>
+      </div>
+    </div>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>In general, avoid letting a context menu height exceed the height of the window.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origBare = `export function HostWidgets() {
+  return <div data-mn-tall>Reply</div>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const marked = menu(`<div onContextMenu="open" data-mn-tall>
+      <div role="menu">
+        <button type="button" role="menuitem">Reply</button>
+      </div>
+    </div>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = [
+      "pass",
+      "clean",
+      "short",
+      "max",
+      "plain",
+      "bar",
+      "hold",
+      "min",
+      "copy",
+      "sentence",
+      "bare",
+      "fix",
+    ];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      short: shortDir,
+      max: maxDir,
+      plain: plainDir,
+      bar: barDir,
+      hold: holdDir,
+      min: minDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const menus = (name) => status[name].topics["context-menus"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["context-menus"]?.dontHeuristicIds || []).includes("mn-tall"),
+      key: (catalog.byId["context-menus"]?.dontHeuristicIds || []).includes("mn-key"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passMenus: menus("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanMenus: menus("clean") === "already-compliant",
+      shortMenus: menus("short") === "already-compliant",
+      maxMenus: menus("max") === "already-compliant",
+      plainMenus: menus("plain") === "already-compliant",
+      barMenus: menus("bar") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdMenus: menus("hold") === "pending",
+      heightKept: /height:\s*"100vh"/.test(held),
+      minMenus: menus("min") === "pending",
+      copyUnchanged: copied === origCopy,
+      copyMenus: menus("copy") === "pending",
+      sentenceMenus: menus("sentence") === "skipped-no-affordance",
+      bareMenus: menus("bare") === "skipped-no-affordance",
+      bareKept: /data-mn-tall(?![\w-])/.test(bared),
+      fixMenus: menus("fix") === "applied",
+      markerGone: !/data-mn-tall(?![\w-])/.test(fixed),
+      menuKept: /onContextMenu="open"/.test(fixed) && /role="menuitem"/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passMenus: menus("pass"),
+      cleanMenus: menus("clean"),
+      shortMenus: menus("short"),
+      maxMenus: menus("max"),
+      plainMenus: menus("plain"),
+      barMenus: menus("bar"),
+      holdMenus: menus("hold"),
+      minMenus: menus("min"),
+      copyMenus: menus("copy"),
+      sentenceMenus: menus("sentence"),
+      bareMenus: menus("bare"),
+      fixMenus: menus("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-context-menu-height-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

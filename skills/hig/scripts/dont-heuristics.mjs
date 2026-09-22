@@ -2887,6 +2887,80 @@ function applyContextShortcut(text) {
   return text.replace(/\s*data-mn-key(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasContextMenuLaunch(text) {
+  return (
+    /\.contextMenu\s*\(/.test(text) ||
+    /\bUIContextMenuInteraction\b/.test(text) ||
+    /\bpopUpContextMenu\b/.test(text) ||
+    /\boncontextmenu\b/i.test(text)
+  );
+}
+
+function menuTagIsWindowTall(tag) {
+  return (
+    /(?<![\w-])(?:min-)?height\s*:\s*["']?\s*100vh\b/i.test(tag) ||
+    /\bminHeight\s*:\s*["']100vh["']/.test(tag)
+  );
+}
+
+function regionHasWindowTallMenu(region) {
+  const tags = region.match(/<[A-Za-z][\w]*\b[^>]*>/g) || [];
+  return tags.some((tag) => {
+    const isMenu = /^<menu\b/i.test(tag) || /role=["']menu["']/i.test(tag);
+    return isMenu && menuTagIsWindowTall(tag);
+  });
+}
+
+function launchedContextMenuRegions(text) {
+  const regions = [];
+  for (const attr of ["oncontextmenu", "onContextMenu"]) {
+    for (const block of blocksWithAttr(text, attr)) regions.push(block.text);
+  }
+  const re = /\.contextMenu\s*\(/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const brace = text.indexOf("{", m.index);
+    if (brace < 0 || brace - m.index > 80) continue;
+    const close = matchingBrace(text, brace);
+    if (close < 0) continue;
+    regions.push(text.slice(m.index, close + 1));
+  }
+  const ui = /UIContextMenuInteraction|popUpContextMenu/g;
+  while ((m = ui.exec(text))) regions.push(text.slice(m.index, m.index + 700));
+  return regions;
+}
+
+function contextMenuIsWindowTall(text) {
+  if (!hasContextMenuLaunch(text)) return false;
+  return launchedContextMenuRegions(text).some((region) => regionHasWindowTallMenu(region));
+}
+
+function hasContextMenuHeightCopy(text) {
+  return (
+    /height exceed the height of the window/i.test(text) ||
+    /context menu taller than the window/i.test(text)
+  );
+}
+
+function scanContextMenuHeight(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-mn-tall(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a context menu taller than the window"));
+      continue;
+    }
+    if (!hasContextMenuLaunch(f.text)) continue;
+    if (contextMenuIsWindowTall(f.text) || hasContextMenuHeightCopy(f.text)) {
+      out.push(hit(f.path, "a context menu taller than the window"));
+    }
+  }
+  return out;
+}
+
+function applyContextMenuHeight(text) {
+  return text.replace(/\s*data-mn-tall(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMixMenuIcons(files) {
   const out = [];
   for (const f of files) {
@@ -11056,6 +11130,8 @@ function scanHeuristic(id, files) {
       return scanSubmenuAvailable(files);
     case "mn-key":
       return scanContextShortcut(files);
+    case "mn-tall":
+      return scanContextMenuHeight(files);
     case "picker-owns-the-screen":
       return scanPickerScreen(files);
     case "stepper-no-neighbouring-value":
@@ -11744,6 +11820,8 @@ function applyHeuristic(id, file) {
       return applySubmenuAvailable(file.text);
     case "mn-key":
       return applyContextShortcut(file.text);
+    case "mn-tall":
+      return applyContextMenuHeight(file.text);
     case "picker-owns-the-screen":
       return file.text;
     case "stepper-no-neighbouring-value":

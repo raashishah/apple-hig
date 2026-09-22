@@ -25,6 +25,7 @@
 - Mix icons and no-icons in the same menu group.
 - A submenu item that is unavailable when its nested items are unavailable.
 - A keyboard shortcut inside a context menu.
+- A context menu taller than the window.
 
 ## Apply in host
 
