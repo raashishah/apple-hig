@@ -9929,6 +9929,61 @@ function applyAlertTitleLines(text) {
   return text.replace(/\s*data-al-lines(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function stripWritingComments(text) {
+  return String(text || "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+}
+
+function stripWritingGuidance(text) {
+  return String(text || "")
+    .replace(/avoid using we altogether[.!?]?/gi, "")
+    .replace(/visible copy that says we or we['’]re[.!?]?/gi, "");
+}
+
+function meaningfulWritingCopy(text) {
+  const stripped = stripWritingGuidance(stripWritingComments(text));
+  const bits = [];
+  const nodes = />([^<]+)</g;
+  let m;
+  while ((m = nodes.exec(stripped))) bits.push(m[1]);
+  const quotes = /(["'])([^"'\n]{1,180})\1/g;
+  while ((m = quotes.exec(stripped))) bits.push(m[2]);
+  return bits
+    .map((bit) => bit.replace(/\s+/g, " ").trim())
+    .filter((bit) => /[a-z0-9]/i.test(bit));
+}
+
+function copySaysWe(bits) {
+  return bits.some((bit) => /\bwe\b/i.test(bit));
+}
+
+function hasWeGuidance(text) {
+  return (
+    /avoid using we altogether/i.test(text) ||
+    /visible copy that says we or we['’]re/i.test(text)
+  );
+}
+
+function scanWeCopy(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wr-we(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "visible copy that says we or we're"));
+      continue;
+    }
+    const bits = meaningfulWritingCopy(f.text);
+    if (copySaysWe(bits) || (bits.length > 0 && hasWeGuidance(f.text))) {
+      out.push(hit(f.path, "visible copy that says we or we're"));
+    }
+  }
+  return out;
+}
+
+function applyWeCopy(text) {
+  return text.replace(/\s*data-wr-we(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -10114,6 +10169,8 @@ function scanHeuristic(id, files) {
       return scanToolbarUnnamed(files);
     case "al-lines":
       return scanAlertTitleLines(files);
+    case "wr-we":
+      return scanWeCopy(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -10758,6 +10815,8 @@ function applyHeuristic(id, file) {
       return applyToolbarUnnamed(file.text);
     case "al-lines":
       return applyAlertTitleLines(file.text);
+    case "wr-we":
+      return applyWeCopy(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":

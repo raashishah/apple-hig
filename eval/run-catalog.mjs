@@ -21856,6 +21856,128 @@ ${dots}
   results.push({ case: "catalog-apply-alert-title-lines-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrw-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrw-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrw-hold-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrw-clean-"));
+  const welcomeDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrw-welcome-"));
+  const commentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrw-comment-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrw-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrw-copy-"));
+  const dirs = [passDir, fixDir, holdDir, cleanDir, welcomeDir, commentDir, sentenceDir, copyDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return <p data-wr-we>Unable to load content.</p>;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return <p>We're having trouble loading this content.</p>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origClean = `export function HostWidgets() {
+  return <p>Unable to load content.</p>;
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), origClean);
+    const origWelcome = `export function HostWidgets() {
+  return <p>Welcome back.</p>;
+}
+`;
+    fs.writeFileSync(path.join(welcomeDir, "HostWidgets.tsx"), origWelcome);
+    const origComment = `export function HostWidgets() {
+  // we load content after sign-in
+  return <p>Unable to load content.</p>;
+}
+`;
+    fs.writeFileSync(path.join(commentDir, "HostWidgets.tsx"), origComment);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid using we altogether.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <p>Unable to load content.</p>
+      <p>Avoid using we altogether.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const names = ["pass", "fix", "hold", "clean", "welcome", "comment", "sentence", "copy"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      clean: cleanDir,
+      welcome: welcomeDir,
+      comment: commentDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const writing = (name) => status[name].topics.writing?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.writing?.dontHeuristicIds || []).includes("wr-we"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      passWriting: writing("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixWriting: writing("fix") === "applied",
+      markerGone: !/data-wr-we(?![\w-])/.test(fixed),
+      sentenceKept: /Unable to load content/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdWriting: writing("hold") === "pending",
+      holdWe: /We're having trouble/.test(held),
+      cleanWriting: writing("clean") === "already-compliant",
+      welcomeWriting: writing("welcome") === "already-compliant",
+      commentWriting: writing("comment") === "already-compliant",
+      sentenceWriting: writing("sentence") === "already-compliant",
+      copyUnchanged: copied === origCopy,
+      copyWriting: writing("copy") === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWriting: writing("pass"),
+      fixWriting: writing("fix"),
+      holdWriting: writing("hold"),
+      cleanWriting: writing("clean"),
+      welcomeWriting: writing("welcome"),
+      commentWriting: writing("comment"),
+      sentenceWriting: writing("sentence"),
+      copyWriting: writing("copy"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-we-copy-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
