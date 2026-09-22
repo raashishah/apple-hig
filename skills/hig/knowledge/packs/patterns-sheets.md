@@ -29,6 +29,7 @@
 - A Yes or No button in an alert.
 - A caution symbol on a Save or Empty Trash alert.
 - Cancel, Done, and Back together in a sheet.
+- Relying solely on the Done button to exit a sheet.
 
 ## Chrome gates
 

@@ -1775,6 +1775,59 @@ function applySheetTrio(text) {
   return text.replace(/\s*data-sh-trio(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasSheetDoneOnlyCopy(text) {
+  return (
+    /always pair it with a Cancel button/i.test(text) ||
+    /relying solely on the Done button/i.test(text) ||
+    /Done button to exit a sheet/i.test(text)
+  );
+}
+
+function regionButtonLabels(region) {
+  const labels = [];
+  const re = /<button\b[^>]*>([\s\S]*?)<\/button>/gi;
+  let m;
+  while ((m = re.exec(region))) {
+    labels.push(m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().toLowerCase());
+  }
+  return labels;
+}
+
+function isDoneOnlyExit(labels) {
+  if (!labels.includes("done")) return false;
+  return !labels.includes("cancel") && !labels.includes("close") && !labels.includes("back");
+}
+
+function hasSheetDoneOnlyButtons(text) {
+  for (const region of dialogRegions(text)) {
+    if (isDoneOnlyExit(regionButtonLabels(region))) return true;
+  }
+  if (!/\.sheet\s*\(|\bUISheetPresentationController\b|\bpresentAsSheet\s*\(/.test(text)) return false;
+  const labels = ["done", "cancel", "close", "back"].filter((name) =>
+    new RegExp(`Button\\(\\s*["']${name}["']`, "i").test(text),
+  );
+  return isDoneOnlyExit(labels);
+}
+
+function scanSheetDoneOnly(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sh-done\b/.test(f.text)) {
+      out.push(hit(f.path, "relying solely on the Done button to exit a sheet"));
+      continue;
+    }
+    if (!hasSheetWidget(f.text)) continue;
+    if (hasSheetDoneOnlyCopy(f.text) || hasSheetDoneOnlyButtons(f.text)) {
+      out.push(hit(f.path, "relying solely on the Done button to exit a sheet"));
+    }
+  }
+  return out;
+}
+
+function applySheetDoneOnly(text) {
+  return text.replace(/\s*data-sh-done(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanModalSuccess(files) {
   const out = [];
   for (const f of files) {
@@ -8587,6 +8640,8 @@ function scanHeuristic(id, files) {
       return scanAlertCautionOnSave(files);
     case "sh-trio":
       return scanSheetTrio(files);
+    case "sh-done":
+      return scanSheetDoneOnly(files);
     case "slider-as-volume":
       return scanSliderAsVolume(files);
     case "nested-same-axis-scroll":
@@ -9191,6 +9246,8 @@ function applyHeuristic(id, file) {
       return applyAlertCautionOnSave(file.text);
     case "sh-trio":
       return applySheetTrio(file.text);
+    case "sh-done":
+      return applySheetDoneOnly(file.text);
     case "slider-as-volume":
       return applySliderAsVolume(file.text);
     case "nested-same-axis-scroll":
