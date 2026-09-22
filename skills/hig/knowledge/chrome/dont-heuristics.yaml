@@ -152,6 +152,8 @@ heuristics:
     match: Card grids posing as the master list
   - id: cta-only-in-list-toolbar
     match: only primary CTA only in the list toolbar
+  - id: ix-both
+    match: section index on a list that also shows disclosure indicators
   - id: equal-weight-submits
     match: Multiple equal-weight submits fighting each other
   - id: marketing-landing-tab-shell

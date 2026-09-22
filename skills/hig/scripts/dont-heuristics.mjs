@@ -8651,6 +8651,73 @@ function applySegmentMix(text) {
   return text.replace(/\s*data-sg-mix(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasListWidget(text) {
+  return /<(ul|ol|table)\b/i.test(text) || /data-list-pane/.test(text) || /\bList\s*[\({]/.test(text);
+}
+
+function hasIndexDisclosureCopy(text) {
+  return (
+    /adding an index to a table that displays controls/i.test(text) ||
+    /section index on a list that also shows disclosure indicators/i.test(text)
+  );
+}
+
+function hasSectionIndexToken(text) {
+  return (
+    /data-section-index(?![\w-])/.test(text) ||
+    /\bsectionIndexTitles\b/.test(text) ||
+    /\bsectionIndexMinimumDisplayRowCount\b/.test(text)
+  );
+}
+
+function hasDisclosureIndicatorToken(text) {
+  return (
+    /data-disclosure-indicator(?![\w-])/.test(text) ||
+    /\bdisclosureIndicator\b/.test(text) ||
+    /\bchevron\.right\b/.test(text)
+  );
+}
+
+function listRegions(text) {
+  const out = [];
+  const re = /<(ul|ol|table)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  let m;
+  while ((m = re.exec(text))) out.push(m[0]);
+  return out;
+}
+
+function hasIndexDisclosurePair(text) {
+  if (listRegions(text).some((region) => hasSectionIndexToken(region) && hasDisclosureIndicatorToken(region))) {
+    return true;
+  }
+  if (!hasSectionIndexToken(text) || !hasDisclosureIndicatorToken(text)) return false;
+  return /(?:data-section-index|sectionIndexTitles|sectionIndexMinimumDisplayRowCount)[\s\S]{0,600}(?:data-disclosure-indicator|disclosureIndicator|chevron\.right)|(?:data-disclosure-indicator|disclosureIndicator|chevron\.right)[\s\S]{0,600}(?:data-section-index|sectionIndexTitles|sectionIndexMinimumDisplayRowCount)/.test(
+    text,
+  );
+}
+
+function scanIndexBesideDisclosure(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ix-both(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a section index on a list that also shows disclosure indicators"));
+      continue;
+    }
+    if (hasIndexDisclosurePair(f.text)) {
+      out.push(hit(f.path, "a section index on a list that also shows disclosure indicators"));
+      continue;
+    }
+    if (hasListWidget(f.text) && hasIndexDisclosureCopy(f.text)) {
+      out.push(hit(f.path, "a section index on a list that also shows disclosure indicators"));
+    }
+  }
+  return out;
+}
+
+function applyIndexBesideDisclosure(text) {
+  return text.replace(/\s*data-ix-both(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -8818,6 +8885,8 @@ function scanHeuristic(id, files) {
       return scanCardGridMasterList(files);
     case "cta-only-in-list-toolbar":
       return scanCtaOnlyListToolbar(files);
+    case "ix-both":
+      return scanIndexBesideDisclosure(files);
     case "equal-weight-submits":
       return scanEqualWeightSubmits(files);
     case "marketing-landing-tab-shell":
@@ -9430,6 +9499,8 @@ function applyHeuristic(id, file) {
       return applyCardGridMasterList(file.text);
     case "cta-only-in-list-toolbar":
       return applyCtaOnlyListToolbar(file.text);
+    case "ix-both":
+      return applyIndexBesideDisclosure(file.text);
     case "equal-weight-submits":
       return applyEqualWeightSubmits(file.text);
     case "marketing-landing-tab-shell":

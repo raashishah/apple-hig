@@ -24,6 +24,7 @@
 
 - Card grids posing as the master list.
 - Putting the only primary CTA only in the list toolbar when detail is the work surface.
+- A section index on a list that also shows disclosure indicators.
 
 ## Interaction states
 

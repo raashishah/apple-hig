@@ -2697,6 +2697,8 @@ const results = [];
       catalog.byId.layout?.dontCoverageComplete === true &&
       catalog.byId.materials?.dontCoverageComplete === true &&
       catalog.byId["lists-and-tables"]?.dontCoverageComplete === true &&
+      (catalog.byId["lists-and-tables"]?.dontHeuristicIds || []).includes("ix-both") &&
+      (catalog.byId["split-views"]?.dontHeuristicIds || []).includes("ix-both") &&
       catalog.byId["entering-data"]?.dontCoverageComplete === true &&
       catalog.byId.sidebars?.dontCoverageComplete === true &&
       (catalog.byId["tab-bars"]?.dontHeuristicIds || []).includes("tb-off") &&
@@ -19022,6 +19024,178 @@ ${radios("size", 5)}
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-segment-mix-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ixb-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ixb-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ixb-hold-"));
+  const pairDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ixb-pair-"));
+  const indexDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ixb-index-"));
+  const discDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ixb-disc-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ixb-sentence-"));
+  const kitDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ixb-kit-"));
+  const dirs = [passDir, fixDir, holdDir, pairDir, indexDir, discDir, sentenceDir, kitDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <ul data-ix-both>
+      <li>Inbox</li>
+    </ul>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <ul>
+      <li>Inbox</li>
+      <p>Avoid adding an index to a table that displays controls — like disclosure indicators — in the trailing ends of its rows.</p>
+    </ul>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origPair = `export function HostWidgets() {
+  return (
+    <ul data-section-index>
+      <li data-disclosure-indicator>Inbox</li>
+    </ul>
+  );
+}
+`;
+    fs.writeFileSync(path.join(pairDir, "HostWidgets.tsx"), origPair);
+    const origIndex = `export function HostWidgets() {
+  return (
+    <ul data-section-index>
+      <li>Inbox</li>
+    </ul>
+  );
+}
+`;
+    fs.writeFileSync(path.join(indexDir, "HostWidgets.tsx"), origIndex);
+    const origDisc = `export function HostWidgets() {
+  return (
+    <ul>
+      <li data-disclosure-indicator>Inbox</li>
+    </ul>
+  );
+}
+`;
+    fs.writeFileSync(path.join(discDir, "HostWidgets.tsx"), origDisc);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid adding an index to a table that displays controls — like disclosure indicators — in the trailing ends of its rows.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origKit = `export function HostWidgets() {
+  sectionIndexTitles = ["A", "B"]
+  cell.accessoryType = .disclosureIndicator
+}
+`;
+    fs.writeFileSync(path.join(kitDir, "HostWidgets.tsx"), origKit);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const pairReport = run(pairDir);
+    const indexReport = run(indexDir);
+    const discReport = run(discDir);
+    const sentenceReport = run(sentenceDir);
+    const kitReport = run(kitDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const pairStatus = readStatus(pairDir);
+    const indexStatus = readStatus(indexDir);
+    const discStatus = readStatus(discDir);
+    const sentenceStatus = readStatus(sentenceDir);
+    const kitStatus = readStatus(kitDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const pair = fs.readFileSync(path.join(pairDir, "HostWidgets.tsx"), "utf8");
+    const index = fs.readFileSync(path.join(indexDir, "HostWidgets.tsx"), "utf8");
+    const disc = fs.readFileSync(path.join(discDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const kit = fs.readFileSync(path.join(kitDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      pairChrome: pairReport.chrome.pass === true,
+      indexChrome: indexReport.chrome.pass === true,
+      discChrome: discReport.chrome.pass === true,
+      sentenceChrome: sentenceReport.chrome.pass === true,
+      kitChrome: kitReport.chrome.pass === true,
+      passLists: passStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      passSplit: passStatus.topics["split-views"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixLists: fixStatus.topics["lists-and-tables"]?.state === "applied",
+      rowKept: />\s*Inbox\s*</.test(fixed),
+      markersGone: !/data-ix-both(?![\w-])/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdLists: holdStatus.topics["lists-and-tables"]?.state === "pending",
+      holdStillPhrase: /adding an index to a table that displays controls/.test(held),
+      pairUnchanged: pair === origPair,
+      pairLists: pairStatus.topics["lists-and-tables"]?.state === "pending",
+      pairKept: /data-section-index/.test(pair) && /data-disclosure-indicator/.test(pair),
+      indexUnchanged: index === origIndex,
+      indexLists: indexStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      discUnchanged: disc === origDisc,
+      discLists: discStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceLists: sentenceStatus.topics["lists-and-tables"]?.state === "already-compliant",
+      kitUnchanged: kit === origKit,
+      kitLists: kitStatus.topics["lists-and-tables"]?.state === "pending",
+      kitKept: /sectionIndexTitles/.test(kit) && /disclosureIndicator/.test(kit),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passLists: passStatus.topics["lists-and-tables"]?.state,
+      passSplit: passStatus.topics["split-views"]?.state,
+      fixLists: fixStatus.topics["lists-and-tables"]?.state,
+      holdLists: holdStatus.topics["lists-and-tables"]?.state,
+      pairLists: pairStatus.topics["lists-and-tables"]?.state,
+      indexLists: indexStatus.topics["lists-and-tables"]?.state,
+      discLists: discStatus.topics["lists-and-tables"]?.state,
+      sentenceLists: sentenceStatus.topics["lists-and-tables"]?.state,
+      kitLists: kitStatus.topics["lists-and-tables"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-index-beside-disclosure-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
