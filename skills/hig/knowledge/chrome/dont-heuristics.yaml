@@ -216,6 +216,8 @@ heuristics:
     match: dir=auto on html or the locale root
   - id: nested-modal-stacks
     match: Nested modal stacks
+  - id: al-error
+    match: alert title that is only Error or an error number
   - id: slider-as-volume
     match: slider to adjust audio volume
   - id: nested-same-axis-scroll

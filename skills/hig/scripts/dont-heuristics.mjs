@@ -1542,6 +1542,55 @@ function scanLoadingModalHidesNav(files) {
   return out;
 }
 
+function hasAlertWidget(text) {
+  return (
+    /<dialog\b/i.test(text) ||
+    /role=["'](?:dialog|alertdialog)["']/i.test(text) ||
+    /\bUIAlertController\b/.test(text) ||
+    /\.alert\s*\(/.test(text)
+  );
+}
+
+function hasAlertErrorCopy(text) {
+  return (
+    /avoid writing a title that doesn['’]?t convey useful information/i.test(text) ||
+    /title that doesn['’]?t convey useful information/i.test(text) ||
+    /alert title that is only Error or an error number/i.test(text)
+  );
+}
+
+function hasBareErrorTitle(text) {
+  const title = "Error(?:\\s+\\d+(?:\\s+occurred)?)?";
+  const heading = new RegExp(`<(h[1-3])\\b[^>]*>\\s*${title}\\s*[.!?]?\\s*<\\/\\1>`, "i");
+  for (const region of dialogRegions(text)) {
+    if (heading.test(region)) return true;
+  }
+  const api = new RegExp(
+    `(?:UIAlertController[\\s\\S]{0,240}title:\\s*["']${title}["']|title:\\s*["']${title}["'][\\s\\S]{0,240}UIAlertController|\\.alert\\(\\s*["']${title}["'])`,
+    "i",
+  );
+  return api.test(text);
+}
+
+function scanAlertErrorTitle(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-al-error/.test(f.text)) {
+      out.push(hit(f.path, "an alert title that is only Error or an error number"));
+      continue;
+    }
+    if (!hasAlertWidget(f.text)) continue;
+    if (hasAlertErrorCopy(f.text) || hasBareErrorTitle(f.text)) {
+      out.push(hit(f.path, "an alert title that is only Error or an error number"));
+    }
+  }
+  return out;
+}
+
+function applyAlertErrorTitle(text) {
+  return text.replace(/\s*data-al-error(?:="[^"]*")?/g, "");
+}
+
 function scanModalSuccess(files) {
   const out = [];
   for (const f of files) {
@@ -8344,6 +8393,8 @@ function scanHeuristic(id, files) {
       return scanDirAutoOnLocaleRoot(files);
     case "nested-modal-stacks":
       return scanNestedModalStacks(files);
+    case "al-error":
+      return scanAlertErrorTitle(files);
     case "slider-as-volume":
       return scanSliderAsVolume(files);
     case "nested-same-axis-scroll":
@@ -8938,6 +8989,8 @@ function applyHeuristic(id, file) {
       return applyDirAutoOnLocaleRoot(file.text);
     case "nested-modal-stacks":
       return applyNestedModalStacks(file.text);
+    case "al-error":
+      return applyAlertErrorTitle(file.text);
     case "slider-as-volume":
       return applySliderAsVolume(file.text);
     case "nested-same-axis-scroll":

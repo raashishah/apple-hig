@@ -2740,6 +2740,7 @@ const results = [];
       catalog.byId["action-sheets"]?.dontCoverageComplete === true &&
       catalog.byId.modality?.dontCoverageComplete === true &&
       (catalog.byId.sheets?.dontHeuristicIds || []).includes("nested-modal-stacks") &&
+      (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-error") &&
       catalog.byId["dark-mode"]?.dontCoverageComplete === true &&
       catalog.byId["sf-symbols"]?.dontCoverageComplete === true &&
       catalog.byId["context-menus"]?.dontCoverageComplete === true &&
@@ -17218,6 +17219,196 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-primary-destructive-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-hold-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-bare-"));
+  const numberedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-num-"));
+  const specificDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-spec-"));
+  const toastDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-toast-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-swift-"));
+  const uikitDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ale-uikit-"));
+  const dirs = [passDir, fixDir, holdDir, bareDir, numberedDir, specificDir, toastDir, swiftDir, uikitDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <dialog data-al-error>
+      <h2>Couldn't save the draft.</h2>
+      <button type="button">Retry</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <dialog>
+      <h2>Couldn't save the draft.</h2>
+      <p>Avoid writing a title that doesn't convey useful information.</p>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origBare = `export function HostWidgets() {
+  return (
+    <dialog>
+      <h2>Error</h2>
+      <button type="button">Retry</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const origNumbered = `export function HostWidgets() {
+  return (
+    <dialog>
+      <h2>Error 329347 occurred</h2>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(numberedDir, "HostWidgets.tsx"), origNumbered);
+    const origSpecific = `export function HostWidgets() {
+  return (
+    <dialog>
+      <h2>Couldn't save the draft.</h2>
+      <button type="button">Retry</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(specificDir, "HostWidgets.tsx"), origSpecific);
+    const origToast = `export function HostWidgets() {
+  return <div role="status">Error</div>;
+}
+`;
+    fs.writeFileSync(path.join(toastDir, "HostWidgets.tsx"), origToast);
+    const origSwift = `export function HostWidgets() {
+  return Text("Note").alert("Error")
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origUikit = `export function HostWidgets() {
+  return UIAlertController(title: "Error", message: "Try again", preferredStyle: .alert)
+}
+`;
+    fs.writeFileSync(path.join(uikitDir, "HostWidgets.tsx"), origUikit);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const bareReport = run(bareDir);
+    const numberedReport = run(numberedDir);
+    const specificReport = run(specificDir);
+    const toastReport = run(toastDir);
+    const swiftReport = run(swiftDir);
+    const uikitReport = run(uikitDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const bareStatus = readStatus(bareDir);
+    const numberedStatus = readStatus(numberedDir);
+    const specificStatus = readStatus(specificDir);
+    const toastStatus = readStatus(toastDir);
+    const swiftStatus = readStatus(swiftDir);
+    const uikitStatus = readStatus(uikitDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const bare = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const numbered = fs.readFileSync(path.join(numberedDir, "HostWidgets.tsx"), "utf8");
+    const specific = fs.readFileSync(path.join(specificDir, "HostWidgets.tsx"), "utf8");
+    const toast = fs.readFileSync(path.join(toastDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const uikit = fs.readFileSync(path.join(uikitDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      numberedChrome: numberedReport.chrome.pass === true,
+      specificChrome: specificReport.chrome.pass === true,
+      toastChrome: toastReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      uikitChrome: uikitReport.chrome.pass === true,
+      passAlerts: passStatus.topics.alerts?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixAlerts: fixStatus.topics.alerts?.state === "applied",
+      systemKept: /Couldn't save the draft/.test(fixed) && />\s*Retry\s*</.test(fixed),
+      markersGone: !/data-al-error/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAlerts: holdStatus.topics.alerts?.state === "pending",
+      holdStillPhrase: /doesn't convey useful information/.test(held),
+      holdNotInvented: /Couldn't save the draft/.test(held),
+      bareUnchanged: bare === origBare,
+      bareAlerts: bareStatus.topics.alerts?.state === "pending",
+      bareKept: /<h2>Error<\/h2>/.test(bare),
+      numberedUnchanged: numbered === origNumbered,
+      numberedAlerts: numberedStatus.topics.alerts?.state === "pending",
+      numberedKept: /Error 329347 occurred/.test(numbered),
+      specificUnchanged: specific === origSpecific,
+      specificAlerts: specificStatus.topics.alerts?.state === "already-compliant",
+      specificKept: /Couldn't save the draft/.test(specific),
+      toastUnchanged: toast === origToast,
+      toastAlerts: toastStatus.topics.alerts?.state === "skipped-no-affordance",
+      toastKept: /role="status">Error/.test(toast),
+      swiftUnchanged: swift === origSwift,
+      swiftAlerts: swiftStatus.topics.alerts?.state === "skipped-no-affordance",
+      swiftKept: /\.alert\("Error"\)/.test(swift),
+      uikitUnchanged: uikit === origUikit,
+      uikitAlerts: uikitStatus.topics.alerts?.state === "pending",
+      uikitKept: /title: "Error"/.test(uikit),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAlerts: passStatus.topics.alerts?.state,
+      fixAlerts: fixStatus.topics.alerts?.state,
+      holdAlerts: holdStatus.topics.alerts?.state,
+      bareAlerts: bareStatus.topics.alerts?.state,
+      numberedAlerts: numberedStatus.topics.alerts?.state,
+      specificAlerts: specificStatus.topics.alerts?.state,
+      toastAlerts: toastStatus.topics.alerts?.state,
+      swiftAlerts: swiftStatus.topics.alerts?.state,
+      uikitAlerts: uikitStatus.topics.alerts?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-alert-error-title-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
