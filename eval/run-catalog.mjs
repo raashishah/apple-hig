@@ -25968,6 +25968,132 @@ ${dots}
   results.push({ case: "catalog-apply-square-button-label-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-pass-"));
+  const linkDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-link-"));
+  const earlierDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-earlier-"));
+  const hideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-hide-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-outside-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-hold-"));
+  const payDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-pay-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sbe-fix-"));
+  const dirs = [passDir, linkDir, earlierDir, hideDir, outsideDir, holdDir, payDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const side = (inner) => host(`<aside data-sidebar aria-label="Sidebar">
+      ${inner}
+    </aside>`);
+    fs.writeFileSync(path.join(linkDir, "HostWidgets.tsx"), side(`<a href="/inventory">Inventory</a>`));
+    fs.writeFileSync(
+      path.join(earlierDir, "HostWidgets.tsx"),
+      side(`<button type="button">Delete</button>
+      <a href="/inventory">Inventory</a>`),
+    );
+    fs.writeFileSync(
+      path.join(hideDir, "HostWidgets.tsx"),
+      side(`<button type="button" aria-label="Collapse sidebar">Hide sidebar</button>`),
+    );
+    fs.writeFileSync(path.join(outsideDir, "HostWidgets.tsx"), host(`<button type="button">Pay</button>`));
+    const origHold = side(`<a href="/inventory">Inventory</a>
+      <button type="button">Delete</button>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origPay = side(`<a href="/inventory">Inventory</a>
+      <button type="button" aria-label="Pay"><svg aria-hidden="true" /></button>`);
+    fs.writeFileSync(path.join(payDir, "HostWidgets.tsx"), origPay);
+    const origCopy = side(`<a href="/inventory">Inventory</a>
+      <p>Avoid putting critical information or actions at the bottom of a sidebar.</p>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid putting critical information or actions at the bottom of a sidebar.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = side(`<a href="/inventory" data-sb-end>Inventory</a>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "link", "earlier", "hide", "outside", "hold", "pay", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      link: linkDir,
+      earlier: earlierDir,
+      hide: hideDir,
+      outside: outsideDir,
+      hold: holdDir,
+      pay: payDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const paid = fs.readFileSync(path.join(payDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const sidebars = (name) => status[name].topics.sidebars?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.sidebars?.dontHeuristicIds || []).includes("sb-end"),
+      depth: (catalog.byId.sidebars?.dontHeuristicIds || []).includes("sb-depth"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passSidebars: sidebars("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      linkSidebars: sidebars("link") === "already-compliant",
+      earlierSidebars: sidebars("earlier") === "already-compliant",
+      hideSidebars: sidebars("hide") === "already-compliant",
+      outsideSidebars: sidebars("outside") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdSidebars: sidebars("hold") === "pending",
+      deleteKept: />\s*Delete\s*</.test(held),
+      payUnchanged: paid === origPay,
+      paySidebars: sidebars("pay") === "pending",
+      copyUnchanged: copied === origCopy,
+      copySidebars: sidebars("copy") === "pending",
+      sentenceSidebars: sidebars("sentence") === "already-compliant",
+      fixSidebars: sidebars("fix") === "applied",
+      markerGone: !/data-sb-end(?![\w-])/.test(fixed),
+      inventoryKept: />\s*Inventory\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passSidebars: sidebars("pass"),
+      linkSidebars: sidebars("link"),
+      earlierSidebars: sidebars("earlier"),
+      hideSidebars: sidebars("hide"),
+      outsideSidebars: sidebars("outside"),
+      holdSidebars: sidebars("hold"),
+      paySidebars: sidebars("pay"),
+      copySidebars: sidebars("copy"),
+      sentenceSidebars: sidebars("sentence"),
+      fixSidebars: sidebars("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-sidebar-bottom-action-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

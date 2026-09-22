@@ -36,6 +36,7 @@
 - A disabled or hidden tab bar button.
 - A marketing word on a tab bar badge.
 - A third level of hierarchy in a sidebar.
+- A critical action at the bottom of a sidebar.
 - A window titled with the app name.
 - A toolbar item with no visible text and no accessible name.
 

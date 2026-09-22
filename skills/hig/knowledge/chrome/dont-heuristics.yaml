@@ -182,6 +182,8 @@ heuristics:
     match: marketing word on a tab bar badge
   - id: sb-depth
     match: third level of hierarchy in a sidebar
+  - id: sb-end
+    match: critical action at the bottom of a sidebar
   - id: wn-app
     match: window titled with the app name
   - id: tb-name

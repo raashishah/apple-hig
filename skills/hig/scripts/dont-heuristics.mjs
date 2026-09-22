@@ -10702,6 +10702,53 @@ function applySidebarDepth(text) {
   return text.replace(/\s*data-sb-depth(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function sidebarControlLabel(chunk) {
+  const open = chunk.match(/^<[^>]*>/);
+  const tag = open ? open[0] : "";
+  const aria = tag.match(/\baria-label=["']([^"']+)["']/i);
+  if (aria) return aria[1].trim();
+  return chunk.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function labelIsCriticalAction(label) {
+  return /^(delete|pay|purchase|erase|buy)$/i.test(label);
+}
+
+function sidebarHasCriticalBottom(text) {
+  const re = /<(button|a)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  for (const region of sidebarRegions(text)) {
+    const controls = [];
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(region))) controls.push(m[0]);
+    if (!controls.length) continue;
+    if (labelIsCriticalAction(sidebarControlLabel(controls[controls.length - 1]))) return true;
+  }
+  return false;
+}
+
+function hasSidebarBottomCopy(text) {
+  return /critical (?:information or )?actions? at the bottom of a sidebar/i.test(text);
+}
+
+function scanSidebarBottomAction(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sb-end(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a critical action at the bottom of a sidebar"));
+      continue;
+    }
+    if (sidebarHasCriticalBottom(f.text) || (hasSidebarWidget(f.text) && hasSidebarBottomCopy(f.text))) {
+      out.push(hit(f.path, "a critical action at the bottom of a sidebar"));
+    }
+  }
+  return out;
+}
+
+function applySidebarBottomAction(text) {
+  return text.replace(/\s*data-sb-end(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasNamedAppWindow(text) {
   return hasAppWindow(text) || /\bWindow\s*\(/.test(text);
 }
@@ -11269,6 +11316,8 @@ function scanHeuristic(id, files) {
       return scanTabSale(files);
     case "sb-depth":
       return scanSidebarDepth(files);
+    case "sb-end":
+      return scanSidebarBottomAction(files);
     case "wn-app":
       return scanWindowAppTitle(files);
     case "tb-name":
@@ -11965,6 +12014,8 @@ function applyHeuristic(id, file) {
       return applyTabSale(file.text);
     case "sb-depth":
       return applySidebarDepth(file.text);
+    case "sb-end":
+      return applySidebarBottomAction(file.text);
     case "wn-app":
       return applyWindowAppTitle(file.text);
     case "tb-name":
