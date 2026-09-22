@@ -26637,6 +26637,138 @@ ${dots}
   results.push({ case: "catalog-apply-thick-divider-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-plain-"));
+  const readDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-read-"));
+  const gridDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-grid-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-hold-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-api-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svl-fix-"));
+  const dirs = [passDir, plainDir, readDir, gridDir, holdDir, apiDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(
+      path.join(plainDir, "HostWidgets.tsx"),
+      host(`<div data-scroll-view style={{ overflow: "auto" }}><ul><li>Note</li></ul></div>`),
+    );
+    fs.writeFileSync(
+      path.join(readDir, "HostWidgets.tsx"),
+      host(`<article data-scroll-view data-look-scroll style={{ overflow: "auto" }}><p>A long article about the city.</p></article>`),
+    );
+    fs.writeFileSync(
+      path.join(gridDir, "HostWidgets.tsx"),
+      host(`<div data-scroll-view data-look-scroll style={{ overflow: "auto" }}><div data-collection>Clip</div></div>`),
+    );
+    const origHold = host(
+      `<div data-scroll-view data-look-scroll style={{ overflow: "auto" }}><ul><li>Note</li></ul></div>`,
+    );
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origApi = `export function HostWidgets() {
+  ScrollView {
+    List {
+      Text("Note")
+    }
+  }
+  .scrollInputKind(.look)
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origCopy = host(
+      `<div data-scroll-view style={{ overflow: "auto" }}><ul><li>Avoid using Look to Scroll for secondary content.</li></ul></div>`,
+    );
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid using Look to Scroll for secondary content.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(
+      `<ul data-scroll-view data-sv-look style={{ overflow: "auto" }}><li>Note</li></ul>`,
+    );
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "plain", "read", "grid", "hold", "api", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      read: readDir,
+      grid: gridDir,
+      hold: holdDir,
+      api: apiDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const scrolls = (name) => status[name].topics["scroll-views"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["scroll-views"]?.dontHeuristicIds || []).includes("sv-look"),
+      indicator: (catalog.byId["scroll-views"]?.dontHeuristicIds || []).includes("sv-indicator"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passScrolls: scrolls("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainScrolls: scrolls("plain") === "already-compliant",
+      readScrolls: scrolls("read") === "already-compliant",
+      gridScrolls: scrolls("grid") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdScrolls: scrolls("hold") === "pending",
+      lookKept: /data-look-scroll(?![\w-])/.test(held),
+      apiUnchanged: api === origApi,
+      apiScrolls: scrolls("api") === "pending",
+      apiKept: /scrollInputKind\(\.look\)/.test(api),
+      copyUnchanged: copied === origCopy,
+      copyScrolls: scrolls("copy") === "pending",
+      sentenceScrolls: scrolls("sentence") === "skipped-no-affordance",
+      fixScrolls: scrolls("fix") === "applied",
+      markerGone: !/data-sv-look(?![\w-])/.test(fixed),
+      listKept: /<ul\b/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passScrolls: scrolls("pass"),
+      plainScrolls: scrolls("plain"),
+      readScrolls: scrolls("read"),
+      gridScrolls: scrolls("grid"),
+      holdScrolls: scrolls("hold"),
+      apiScrolls: scrolls("api"),
+      copyScrolls: scrolls("copy"),
+      sentenceScrolls: scrolls("sentence"),
+      fixScrolls: scrolls("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-look-scroll-list-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

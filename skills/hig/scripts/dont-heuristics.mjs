@@ -4061,6 +4061,60 @@ function applyScrollIndicator(text) {
   return text.replace(/\s*data-sv-indicator(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function lookListRegions(text) {
+  return blocksWithAttr(text, "data-look-scroll").filter((block) =>
+    /<(ul|ol|table)\b/i.test(block.text) ||
+    /\bList\s*[\({]/.test(block.text) ||
+    /\bUITableView\b/.test(block.text) ||
+    /\bNSTableView\b/.test(block.text),
+  );
+}
+
+function hasLookOnList(text) {
+  if (/<(ul|ol|table)\b[^>]*\bdata-look-scroll(?![\w-])/i.test(text)) return true;
+  if (lookListRegions(text).length > 0) return true;
+  if (/List\s*[\({][\s\S]{0,800}?scrollInputKind\s*\(\s*\.look\b/.test(text)) return true;
+  if (/scrollInputKind\s*\(\s*\.look\b[\s\S]{0,400}?\bList\s*[\({]/.test(text)) return true;
+  if (/\bUITableView\b[\s\S]{0,600}?scrollInputKind\s*\(\s*\.look\b/.test(text)) return true;
+  if (/\bNSTableView\b[\s\S]{0,600}?scrollInputKind\s*\(\s*\.look\b/.test(text)) return true;
+  if (/\bScrollInputKind\.look\b[\s\S]{0,600}?<(ul|ol|table)\b/i.test(text)) return true;
+  return false;
+}
+
+function hasLookListCopy(text) {
+  return /look to scroll for secondary content/i.test(text) || /look to scroll on a list/i.test(text);
+}
+
+function hasLookListWidget(text) {
+  return (
+    /<(ul|ol|table)\b/i.test(text) ||
+    /\bList\s*[\({]/.test(text) ||
+    /\bUITableView\b/.test(text) ||
+    /\bNSTableView\b/.test(text)
+  );
+}
+
+function scanLookOnList(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sv-look(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "Look to Scroll on a list"));
+      continue;
+    }
+    if (hasLookOnList(f.text)) {
+      out.push(hit(f.path, "Look to Scroll on a list"));
+      continue;
+    }
+    if (!hasScrollPane(f.text) || !hasLookListWidget(f.text)) continue;
+    if (hasLookListCopy(f.text)) out.push(hit(f.path, "Look to Scroll on a list"));
+  }
+  return out;
+}
+
+function applyLookOnList(text) {
+  return text.replace(/\s*data-sv-look(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasNestedPopoverTags(text) {
   return blocksWithAttr(text, "popover").some((b) => {
     const inner = b.text.replace(/^<[^>]+>/, "");
@@ -11736,6 +11790,8 @@ function scanHeuristic(id, files) {
       return scanNestedSameAxisScroll(files);
     case "sv-indicator":
       return scanScrollIndicator(files);
+    case "sv-look":
+      return scanLookOnList(files);
     case "cascade-popover":
       return scanCascadePopover(files);
     case "popover-as-warning":
@@ -12442,6 +12498,8 @@ function applyHeuristic(id, file) {
       return applyNestedSameAxisScroll(file.text);
     case "sv-indicator":
       return applyScrollIndicator(file.text);
+    case "sv-look":
+      return applyLookOnList(file.text);
     case "cascade-popover":
       return applyCascadePopover(file.text);
     case "popover-as-warning":

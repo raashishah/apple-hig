@@ -304,6 +304,8 @@ heuristics:
     match: scroll view inside another scroll view
   - id: sv-indicator
     match: scrolling indicator on a scroll view that also shows a page control
+  - id: sv-look
+    match: look to scroll on a list
   - id: cascade-popover
     match: cascade or hierarchy of popovers
   - id: popover-as-warning

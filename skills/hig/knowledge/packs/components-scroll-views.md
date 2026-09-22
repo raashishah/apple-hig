@@ -20,6 +20,7 @@ A scroll view lets people move content that is larger than the view. The documen
 
 - Putting a scroll view inside another scroll view with the same orientation.
 - A scrolling indicator on a scroll view that also shows a page control.
+- Look to Scroll on a list.
 
 ## Apply in host
 
