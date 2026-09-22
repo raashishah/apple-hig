@@ -9483,6 +9483,102 @@ function applyIndexBesideDisclosure(text) {
   return text.replace(/\s*data-ix-both(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function stripOutlineRegions(text) {
+  return text
+    .replace(/<([A-Za-z][\w]*)\b[^>]*\bdata-outline\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+    .replace(/\bNSOutlineView\b[\s\S]{0,500}/g, "");
+}
+
+function visibleHeading(inner) {
+  return inner
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function headingEndsWithPunctuation(label) {
+  return /[.!?…;:,]$|\.\.\.$/.test(label);
+}
+
+function headingsInTable(chunk) {
+  const heads = [];
+  const th = /<th\b([^>]*)>([\s\S]*?)<\/th>/gi;
+  let m;
+  while ((m = th.exec(chunk))) heads.push(visibleHeading(m[2]));
+  const role = /<([A-Za-z][\w]*)\b([^>]*\brole=["']columnheader["'][^>]*)>([\s\S]*?)<\/\1>/gi;
+  while ((m = role.exec(chunk))) {
+    if (m[1].toLowerCase() === "th") continue;
+    heads.push(visibleHeading(m[3]));
+  }
+  return heads;
+}
+
+function htmlMultiColumnTables(text) {
+  const tables = [];
+  const re = /<table\b[\s\S]*?<\/table>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    const heads = headingsInTable(m[0]);
+    if (heads.length >= 2) tables.push(heads);
+  }
+  return tables;
+}
+
+function swiftMultiColumnTables(text) {
+  const tables = [];
+  const re = /\bTable\b/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const brace = text.indexOf("{", m.index);
+    if (brace < 0 || brace - m.index > 120) continue;
+    const close = matchingBrace(text, brace);
+    if (close < 0) continue;
+    const body = text.slice(brace + 1, close);
+    const heads = [];
+    const col = /TableColumn\s*\(\s*"([^"]*)"/g;
+    let c;
+    while ((c = col.exec(body))) heads.push(c[1].trim());
+    if (heads.length >= 2) tables.push(heads);
+  }
+  return tables;
+}
+
+function multiColumnHeadings(text) {
+  const source = stripOutlineRegions(text);
+  return [...htmlMultiColumnTables(source), ...swiftMultiColumnTables(source)];
+}
+
+function hasPunctuatedColumnHeading(text) {
+  return multiColumnHeadings(text).some((heads) => heads.some((head) => headingEndsWithPunctuation(head)));
+}
+
+function hasColumnPunctuationCopy(text) {
+  return (
+    /don['’]?t add ending punctuation/i.test(text) ||
+    /column heading that ends with punctuation/i.test(text)
+  );
+}
+
+function scanColumnPunctuation(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hd-punct(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a column heading that ends with punctuation"));
+      continue;
+    }
+    const tables = multiColumnHeadings(f.text);
+    if (tables.length === 0) continue;
+    if (hasPunctuatedColumnHeading(f.text) || hasColumnPunctuationCopy(f.text)) {
+      out.push(hit(f.path, "a column heading that ends with punctuation"));
+    }
+  }
+  return out;
+}
+
+function applyColumnPunctuation(text) {
+  return text.replace(/\s*data-hd-punct(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -9652,6 +9748,8 @@ function scanHeuristic(id, files) {
       return scanCtaOnlyListToolbar(files);
     case "ix-both":
       return scanIndexBesideDisclosure(files);
+    case "hd-punct":
+      return scanColumnPunctuation(files);
     case "equal-weight-submits":
       return scanEqualWeightSubmits(files);
     case "marketing-landing-tab-shell":
@@ -10286,6 +10384,8 @@ function applyHeuristic(id, file) {
       return applyCtaOnlyListToolbar(file.text);
     case "ix-both":
       return applyIndexBesideDisclosure(file.text);
+    case "hd-punct":
+      return applyColumnPunctuation(file.text);
     case "equal-weight-submits":
       return applyEqualWeightSubmits(file.text);
     case "marketing-landing-tab-shell":

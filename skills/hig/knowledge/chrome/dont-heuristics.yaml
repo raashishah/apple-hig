@@ -154,6 +154,8 @@ heuristics:
     match: only primary CTA only in the list toolbar
   - id: ix-both
     match: section index on a list that also shows disclosure indicators
+  - id: hd-punct
+    match: column heading that ends with punctuation
   - id: equal-weight-submits
     match: Multiple equal-weight submits fighting each other
   - id: marketing-landing-tab-shell

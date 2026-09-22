@@ -21004,6 +21004,167 @@ ${dots}
   results.push({ case: "catalog-apply-context-shortcut-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-hold-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-plain-"));
+  const singleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-single-"));
+  const outlineDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-outline-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hdp-swift-"));
+  const dirs = [passDir, fixDir, holdDir, plainDir, singleDir, outlineDir, sentenceDir, copyDir, swiftDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <table data-hd-punct>
+      <tr><th>Name</th><th>Qty</th></tr>
+    </table>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <table>
+      <tr><th>Name.</th><th>Qty</th></tr>
+    </table>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origPlain = `export function HostWidgets() {
+  return (
+    <table>
+      <tr><th>Name</th><th>Qty</th></tr>
+    </table>
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origSingle = `export function HostWidgets() {
+  return (
+    <table>
+      <tr><th>Name.</th></tr>
+    </table>
+  );
+}
+`;
+    fs.writeFileSync(path.join(singleDir, "HostWidgets.tsx"), origSingle);
+    const origOutline = `export function HostWidgets() {
+  return (
+    <div data-outline>
+      <table>
+        <tr><th>Name:</th><th>Qty</th></tr>
+      </table>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(outlineDir, "HostWidgets.tsx"), origOutline);
+    const origSentence = `export function HostWidgets() {
+  return <p>Use nouns or short noun phrases, and don't add ending punctuation.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <table>
+        <tr><th>Name</th><th>Qty</th></tr>
+      </table>
+      <p>Use nouns or short noun phrases, and don't add ending punctuation.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  Table(rows) {
+    TableColumn("Name.") { Text(row.name) }
+    TableColumn("Qty") { Text(row.qty) }
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const names = ["pass", "fix", "hold", "plain", "single", "outline", "sentence", "copy", "swift"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      plain: plainDir,
+      single: singleDir,
+      outline: outlineDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const lists = (name) => status[name].topics["lists-and-tables"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["lists-and-tables"]?.dontHeuristicIds || []).includes("hd-punct"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      plainChrome: reports.plain.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passLists: lists("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixLists: lists("fix") === "applied",
+      markerGone: !/data-hd-punct(?![\w-])/.test(fixed),
+      headingKept: /<th>Name<\/th>/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdLists: lists("hold") === "pending",
+      holdPunct: /<th>Name\.<\/th>/.test(held),
+      plainLists: lists("plain") === "already-compliant",
+      singleLists: lists("single") === "already-compliant",
+      outlineLists: lists("outline") === "already-compliant",
+      sentenceLists: lists("sentence") === "already-compliant",
+      copyUnchanged: copied === origCopy,
+      copyLists: lists("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftLists: lists("swift") === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passLists: lists("pass"),
+      fixLists: lists("fix"),
+      holdLists: lists("hold"),
+      plainLists: lists("plain"),
+      singleLists: lists("single"),
+      outlineLists: lists("outline"),
+      sentenceLists: lists("sentence"),
+      copyLists: lists("copy"),
+      swiftLists: lists("swift"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-column-punctuation-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
