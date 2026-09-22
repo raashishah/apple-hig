@@ -8963,6 +8963,192 @@ function applySelectionLabel(text) {
   return text.replace(/\s*data-tg-sel(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+const TOGGLE_COLOR_PROPS = new Set([
+  "color",
+  "background",
+  "background-color",
+  "fill",
+  "stroke",
+  "border-color",
+  "outline-color",
+  "caret-color",
+]);
+
+function cssBlocks(text) {
+  const out = [];
+  const re = /([^{}]+)\{([^{}]*)\}/g;
+  let m;
+  while ((m = re.exec(text))) out.push({ selector: m[1], body: m[2] });
+  return out;
+}
+
+function declMap(body) {
+  const map = new Map();
+  for (const part of String(body).split(/[;\n]/)) {
+    const idx = part.indexOf(":");
+    if (idx < 0) continue;
+    const name = part.slice(0, idx).trim().toLowerCase();
+    const value = part.slice(idx + 1).trim().toLowerCase();
+    if (name) map.set(name, value);
+  }
+  return map;
+}
+
+function colorValue(name, value) {
+  if (!TOGGLE_COLOR_PROPS.has(name)) return false;
+  return !/url\s*\(|image-set\s*\(|linear-gradient|radial-gradient|repeating-/i.test(value);
+}
+
+function mapIsColorOnly(map) {
+  if (map.size === 0) return false;
+  let sawColor = false;
+  for (const [name, value] of map) {
+    if (!colorValue(name, value)) return false;
+    sawColor = true;
+  }
+  return sawColor;
+}
+
+function mapsDifferOnlyByColor(a, b) {
+  const keys = new Set([...a.keys(), ...b.keys()]);
+  let colorDiff = false;
+  for (const key of keys) {
+    const av = a.get(key) || "";
+    const bv = b.get(key) || "";
+    if (av === bv) continue;
+    if (!colorValue(key, av) || !colorValue(key, bv)) return false;
+    colorDiff = true;
+  }
+  return colorDiff;
+}
+
+function pressedPolarity(selector) {
+  if (/aria-pressed\s*=\s*["']?false/i.test(selector)) return "off";
+  if (/aria-pressed\s*=\s*["']?true/i.test(selector)) return "on";
+  return null;
+}
+
+function hasColorOnlyPressedCss(text) {
+  let on = false;
+  let off = false;
+  for (const rule of cssBlocks(text)) {
+    const polarity = pressedPolarity(rule.selector);
+    if (!polarity) continue;
+    if (!mapIsColorOnly(declMap(rule.body))) return false;
+    if (polarity === "on") on = true;
+    else off = true;
+  }
+  return on && off;
+}
+
+function pressedValue(tag) {
+  const m = tag.match(/\baria-pressed\s*=\s*(?:\{)?\s*["']?(true|false)/i);
+  if (m) return m[1].toLowerCase();
+  if (/\baria-pressed\b/.test(tag) && !/\baria-pressed\s*=/.test(tag)) return "true";
+  return null;
+}
+
+function styleDecls(tag) {
+  let body = "";
+  const css = tag.match(/\bstyle\s*=\s*"([^"]*)"/i);
+  if (css) body = css[1];
+  const jsx = tag.match(/\bstyle\s*=\s*\{\{([\s\S]*?)\}\}/);
+  if (jsx) body = jsx[1].replace(/["']/g, "");
+  return declMap(body);
+}
+
+function visibleControlText(block) {
+  const inner = block.text.replace(/^<[^>]+>/, "").replace(/<\/[A-Za-z][\w]*\s*>\s*$/i, "");
+  return inner
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function controlHasIcon(block) {
+  return /<(svg|img)\b/i.test(block.text);
+}
+
+function controlHasCheck(block) {
+  return /[✓✔☑]/.test(visibleControlText(block));
+}
+
+function controlIsSwitch(open) {
+  return (
+    /role\s*=\s*["']switch["']/i.test(open) ||
+    /\btype\s*=\s*["']checkbox["']/i.test(open)
+  );
+}
+
+function customPressedButtons(text) {
+  const out = [];
+  for (const block of blocksWithAttr(text, "aria-pressed")) {
+    const open = block.text.match(/^<[^>]+>/)?.[0] || "";
+    if (controlIsSwitch(open)) continue;
+    if (controlHasIcon(block) || controlHasCheck(block)) continue;
+    out.push({ block, open, text: visibleControlText(block) });
+  }
+  return out;
+}
+
+function inlineColorOnlyPair(buttons) {
+  const usable = [];
+  for (const button of buttons) {
+    const value = pressedValue(button.open);
+    if (!value) continue;
+    const decls = styleDecls(button.open);
+    if (decls.size === 0) continue;
+    usable.push({ value, decls, text: button.text });
+  }
+  const ons = usable.filter((item) => item.value === "true");
+  const offs = usable.filter((item) => item.value === "false");
+  for (const on of ons) {
+    for (const off of offs) {
+      if (on.text !== off.text) continue;
+      if (mapsDifferOnlyByColor(on.decls, off.decls)) return true;
+    }
+  }
+  return false;
+}
+
+function swiftColorOnlyToggle(text) {
+  const re =
+    /(?:configuration\s*\.\s*)?isOn\s*\?\s*Color\s*\.\s*[A-Za-z]+[\s\S]{0,40}?:\s*Color\s*\.\s*[A-Za-z]+/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const window = text.slice(Math.max(0, m.index - 500), m.index + m[0].length + 200);
+    if (/\bToggle\s*\(/.test(window) || /\bUISwitch\b/.test(window)) continue;
+    if (/\bImage\s*\(/.test(window) || /checkmark/i.test(window)) continue;
+    if (/\bButton\s*\(|\bToggleStyle\b|\bButtonStyle\b/.test(window)) return true;
+  }
+  return false;
+}
+
+function hasColorOnlyToggle(text) {
+  const buttons = customPressedButtons(text);
+  if (buttons.length > 0 && hasColorOnlyPressedCss(text)) return true;
+  if (inlineColorOnlyPair(buttons)) return true;
+  return swiftColorOnlyToggle(text);
+}
+
+function scanColorOnlyToggle(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-tg-color(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a toggle that relies solely on different colors to communicate state"));
+      continue;
+    }
+    if (hasColorOnlyToggle(f.text)) {
+      out.push(hit(f.path, "a toggle that relies solely on different colors to communicate state"));
+    }
+  }
+  return out;
+}
+
+function applyColorOnlyToggle(text) {
+  return text.replace(/\s*data-tg-color(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasSegmentedWidget(text) {
   return (
     /role=["']radiogroup["']/i.test(text) ||
@@ -9435,6 +9621,8 @@ function scanHeuristic(id, files) {
       return scanTooManyRadios(files);
     case "tg-sel":
       return scanSelectionLabel(files);
+    case "tg-color":
+      return scanColorOnlyToggle(files);
     case "sg-mix":
       return scanSegmentMix(files);
     case "sg-count":
@@ -10065,6 +10253,8 @@ function applyHeuristic(id, file) {
       return applyTooManyRadios(file.text);
     case "tg-sel":
       return applySelectionLabel(file.text);
+    case "tg-color":
+      return applyColorOnlyToggle(file.text);
     case "sg-mix":
       return applySegmentMix(file.text);
     case "sg-count":

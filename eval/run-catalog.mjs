@@ -20694,6 +20694,164 @@ ${dots}
   results.push({ case: "catalog-apply-selection-label-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-hold-"));
+  const iconDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-icon-"));
+  const checkDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-check-"));
+  const switchDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-switch-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tgc-swift-"));
+  const dirs = [passDir, fixDir, holdDir, iconDir, checkDir, switchDir, sentenceDir, copyDir, swiftDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return <button type="button" aria-pressed={false} data-tg-color><svg width="16" height="16" aria-hidden="true" /></button>;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <>
+      <button type="button" aria-pressed={true} style={{ background: "#34c759" }}>On</button>
+      <button type="button" aria-pressed={false} style={{ background: "#8e8e93" }}>On</button>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origIcon = `export function HostWidgets() {
+  return (
+    <>
+      <style>{\`[aria-pressed="true"] { background-color: #34c759; } [aria-pressed="false"] { background-color: #8e8e93; }\`}</style>
+      <button type="button" aria-pressed={true}><svg width="16" height="16" aria-hidden="true" /></button>
+      <p>Avoid relying solely on different colors to communicate state.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(iconDir, "HostWidgets.tsx"), origIcon);
+    const origCheck = `export function HostWidgets() {
+  return (
+    <>
+      <button type="button" aria-pressed={true} style={{ background: "#34c759" }}>✓</button>
+      <button type="button" aria-pressed={false} style={{ background: "#8e8e93" }}>✓</button>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(checkDir, "HostWidgets.tsx"), origCheck);
+    const origSwitch = `export function HostWidgets() {
+  Toggle("Wi-Fi")
+  return <button type="button" role="switch" aria-checked={true} style={{ background: "#34c759" }}>Wi-Fi</button>;
+}
+`;
+    fs.writeFileSync(path.join(switchDir, "HostWidgets.tsx"), origSwitch);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid relying solely on different colors to communicate state.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <button type="button" aria-pressed={true} style={{ background: "#34c759" }}>On</button>
+      <button type="button" aria-pressed={false} style={{ background: "#8e8e93" }}>On</button>
+      <p>Avoid relying solely on different colors to communicate state.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  Button("On")
+  const fill = isOn ? Color.green : Color.gray
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const names = ["pass", "fix", "hold", "icon", "check", "switch", "sentence", "copy", "swift"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      icon: iconDir,
+      check: checkDir,
+      switch: switchDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const icon = fs.readFileSync(path.join(iconDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const buttons = (name) => status[name].topics.buttons?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.toggles?.dontHeuristicIds || []).includes("tg-color"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      iconChrome: reports.icon.chrome.pass === true,
+      switchChrome: reports.switch.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passButtons: buttons("pass") === "already-compliant",
+      passToggles: status.pass.topics.toggles?.state === "already-compliant",
+      passSegments: status.pass.topics["segmented-controls"]?.state === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixButtons: buttons("fix") === "applied",
+      markerGone: !/data-tg-color(?![\w-])/.test(fixed),
+      iconKept: /<svg/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdButtons: buttons("hold") === "pending",
+      holdColor: /#34c759/.test(held) && /#8e8e93/.test(held),
+      iconUnchanged: icon === origIcon,
+      iconButtons: buttons("icon") === "already-compliant",
+      checkButtons: buttons("check") === "already-compliant",
+      switchButtons: buttons("switch") === "already-compliant",
+      sentenceButtons: buttons("sentence") === "already-compliant",
+      copyUnchanged: copied === origCopy,
+      copyButtons: buttons("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftButtons: buttons("swift") === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: buttons("pass"),
+      fixButtons: buttons("fix"),
+      holdButtons: buttons("hold"),
+      iconButtons: buttons("icon"),
+      checkButtons: buttons("check"),
+      switchButtons: buttons("switch"),
+      sentenceButtons: buttons("sentence"),
+      copyButtons: buttons("copy"),
+      swiftButtons: buttons("swift"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-color-only-toggle-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
