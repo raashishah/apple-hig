@@ -84,6 +84,8 @@ heuristics:
     match: Ability or body jokes in empty states
   - id: locked-skin-tone-defaults
     match: Skin-tone or hair defaults that cannot be changed
+  - id: in-avatar
+    match: specific gender referenced in an avatar
   - id: settings-required-for-first-run
     match: Require Settings to complete first-run
   - id: nested-prefs-no-grouping

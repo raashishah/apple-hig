@@ -1407,6 +1407,41 @@ function scanLockedSkin(files) {
   return out;
 }
 
+function hasInAvatarCopy(text) {
+  return (
+    /specific gender in an avatar/i.test(text) ||
+    /referencing a specific gender in an avatar/i.test(text)
+  );
+}
+
+function hasGenderedAvatar(text) {
+  const tags = text.match(/<(?:img|svg|span)\b[^>]*>/gi) || [];
+  for (const tag of tags) {
+    const isAvatar = /\b(?:avatar|emoji|game-character)\b/i.test(tag);
+    if (!isAvatar) continue;
+    if (/\b(?:she|he|her|him)\b/i.test(tag)) return true;
+  }
+  return false;
+}
+
+function scanInAvatar(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-in-av(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a specific gender referenced in an avatar"));
+      continue;
+    }
+    if (hasInAvatarCopy(f.text) || hasGenderedAvatar(f.text)) {
+      out.push(hit(f.path, "a specific gender referenced in an avatar"));
+    }
+  }
+  return out;
+}
+
+function applyInAvatar(text) {
+  return text.replace(/\s*data-in-av(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function fileHasSettings(file) {
   return (
     /data-settings/.test(file.text) ||
@@ -10536,6 +10571,8 @@ function scanHeuristic(id, files) {
       return scanAbilityJokes(files);
     case "locked-skin-tone-defaults":
       return scanLockedSkin(files);
+    case "in-avatar":
+      return scanInAvatar(files);
     case "settings-required-for-first-run":
       return scanSettingsFirstRun(files);
     case "nested-prefs-no-grouping":
@@ -11202,6 +11239,8 @@ function applyHeuristic(id, file) {
       return file.text;
     case "locked-skin-tone-defaults":
       return file.text;
+    case "in-avatar":
+      return applyInAvatar(file.text);
     case "settings-required-for-first-run":
       return file.text;
     case "nested-prefs-no-grouping":

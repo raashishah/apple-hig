@@ -23651,6 +23651,123 @@ ${dots}
   results.push({ case: "catalog-apply-app-clip-fetch-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ina-pass-"));
+  const neutralDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ina-neutral-"));
+  const genderedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ina-gendered-"));
+  const buttonDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ina-button-"));
+  const heroDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ina-hero-"));
+  const otherDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ina-other-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ina-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ina-fix-"));
+  const dirs = [passDir, neutralDir, genderedDir, buttonDir, heroDir, otherDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const origNeutral = `export function HostWidgets() {
+  return <img className="avatar" alt="figure" />;
+}
+`;
+    fs.writeFileSync(path.join(neutralDir, "HostWidgets.tsx"), origNeutral);
+    const origGendered = `export function HostWidgets() {
+  return <img className="avatar" alt="she" />;
+}
+`;
+    fs.writeFileSync(path.join(genderedDir, "HostWidgets.tsx"), origGendered);
+    const origButton = `export function HostWidgets() {
+  return <button type="button">she</button>;
+}
+`;
+    fs.writeFileSync(path.join(buttonDir, "HostWidgets.tsx"), origButton);
+    const origHero = `export function HostWidgets() {
+  return <img className="avatar" alt="the hero" />;
+}
+`;
+    fs.writeFileSync(path.join(heroDir, "HostWidgets.tsx"), origHero);
+    const origOther = `export function HostWidgets() {
+  return <img className="avatar" alt="other" />;
+}
+`;
+    fs.writeFileSync(path.join(otherDir, "HostWidgets.tsx"), origOther);
+    const origSentence = `export function HostWidgets() {
+  return <p>You can often avoid referencing a specific gender in an avatar, emoji, glyph, or game character.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return <img className="avatar" alt="figure" data-in-av />;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "neutral", "gendered", "button", "hero", "other", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      neutral: neutralDir,
+      gendered: genderedDir,
+      button: buttonDir,
+      hero: heroDir,
+      other: otherDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const gendered = fs.readFileSync(path.join(genderedDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const inclusion = (name) => status[name].topics.inclusion?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.inclusion?.dontHeuristicIds || []).includes("in-avatar"),
+      lockedSkin: (catalog.byId.inclusion?.dontHeuristicIds || []).includes("locked-skin-tone-defaults"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passInclusion: inclusion("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      neutralInclusion: inclusion("neutral") === "already-compliant",
+      genderedUnchanged: gendered === origGendered,
+      genderedInclusion: inclusion("gendered") === "pending",
+      genderedAlt: /alt="she"/.test(gendered),
+      buttonInclusion: inclusion("button") === "already-compliant",
+      heroInclusion: inclusion("hero") === "already-compliant",
+      otherInclusion: inclusion("other") === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceInclusion: inclusion("sentence") === "pending",
+      sentencePhrase: /referencing a specific gender in an avatar/.test(sentence),
+      fixInclusion: inclusion("fix") === "applied",
+      markerGone: !/data-in-av(?![\w-])/.test(fixed),
+      figureKept: /alt="figure"/.test(fixed),
+      noAvatarAttr: !/data-avatar/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passInclusion: inclusion("pass"),
+      neutralInclusion: inclusion("neutral"),
+      genderedInclusion: inclusion("gendered"),
+      buttonInclusion: inclusion("button"),
+      heroInclusion: inclusion("hero"),
+      otherInclusion: inclusion("other"),
+      sentenceInclusion: inclusion("sentence"),
+      fixInclusion: inclusion("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-in-avatar-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
