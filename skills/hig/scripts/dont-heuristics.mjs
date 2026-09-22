@@ -9557,6 +9557,58 @@ function applyAcSmall(text) {
   return text.replace(/\s*data-ac-small(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcGapCopy(text) {
+  return (
+    /enough space between an App Clip Code/i.test(text) ||
+    /minimum clear space around an App Clip Code/i.test(text) ||
+    /App Clip Code without clear space/i.test(text)
+  );
+}
+
+function hasPositiveClearSpace(tag) {
+  const re = /(?<![\w-])(?:margin|gap)\s*[:=]\s*["']?(\d+(?:\.\d+)?)(?:px)?(?![\d.%])/gi;
+  let m;
+  while ((m = re.exec(tag))) {
+    if (Number(m[1]) >= 1) return true;
+  }
+  return false;
+}
+
+function hasZeroMargin(tag) {
+  return /(?<![\w-])margin\s*[:=]\s*["']?0(?:px)?(?![\d.])/i.test(tag);
+}
+
+function appClipCodesAreFlush(text) {
+  if (!hasAppClipCode(text)) return false;
+  const tags = [...text.matchAll(/<[^>]*\bdata-app-clip-code\b[^>]*>/gi)].map((m) => m[0]);
+  if (tags.length >= 2 && tags.every((tag) => !hasPositiveClearSpace(tag))) return true;
+  return (
+    tags.length === 1 &&
+    hasZeroMargin(tags[0]) &&
+    /className=["'][^"']*\bgraphic\b/i.test(text) &&
+    !/<img\b/i.test(text)
+  );
+}
+
+function scanAcGap(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-gap(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an App Clip Code without clear space"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcGapCopy(f.text) || appClipCodesAreFlush(f.text)) {
+      out.push(hit(f.path, "an App Clip Code without clear space"));
+    }
+  }
+  return out;
+}
+
+function applyAcGap(text) {
+  return text.replace(/\s*data-ac-gap(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -11353,6 +11405,8 @@ function scanHeuristic(id, files) {
       return scanAcSplash(files);
     case "ac-small":
       return scanAcSmall(files);
+    case "ac-gap":
+      return scanAcGap(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -12031,6 +12085,8 @@ function applyHeuristic(id, file) {
       return applyAcSplash(file.text);
     case "ac-small":
       return applyAcSmall(file.text);
+    case "ac-gap":
+      return applyAcGap(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

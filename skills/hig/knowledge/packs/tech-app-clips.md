@@ -1,7 +1,7 @@
 # tech-app-clips
 
 **Apple:** [App Clips](https://developer.apple.com/design/human-interface-guidelines/app-clips)  
-**Gate:** `capability:appclips` on surface `app-clips`. Unknown hosts skip. Skip-unless affordance `appclipcode` (`data-app-clip-code`). The App Clip entitlement is the capability, not the widget. Ads, web views, and account walls stay on their packed topics. The App Clip logo on its own is the violation. A generated code stays allowed. A download of extra assets with the code is the violation. The code alone stays allowed. A splash screen that makes people wait on launch is the violation. An App Clip Code with an explicit width or height under 32 pixels is too small to scan. A code with no size stays allowed. Do not invent an App Clip Code. Do not remove the logo. Do not remove the download. Do not remove the splash. Do not resize the code.
+**Gate:** `capability:appclips` on surface `app-clips`. Unknown hosts skip. Skip-unless affordance `appclipcode` (`data-app-clip-code`). The App Clip entitlement is the capability, not the widget. Ads, web views, and account walls stay on their packed topics. The App Clip logo on its own is the violation. A generated code stays allowed. A download of extra assets with the code is the violation. The code alone stays allowed. A splash screen that makes people wait on launch is the violation. An App Clip Code with an explicit width or height under 32 pixels is too small to scan. A code with no size stays allowed. An App Clip Code flush against another code, or set to margin 0 against a graphic, lacks clear space. A code alone stays allowed. Do not invent an App Clip Code. Do not remove the logo. Do not remove the download. Do not remove the splash. Do not resize the code. Do not move the code.
 
 People scan a generated App Clip Code. The code stays the one Apple generated.
 
@@ -22,3 +22,4 @@ People scan a generated App Clip Code. The code stays the one Apple generated.
 - A download of additional data with an App Clip Code.
 - A splash screen that makes people wait on launch.
 - An App Clip Code that is too small.
+- An App Clip Code without clear space.

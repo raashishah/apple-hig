@@ -670,3 +670,5 @@ heuristics:
     match: splash screen that makes people wait on launch
   - id: ac-small
     match: App Clip Code that is too small
+  - id: ac-gap
+    match: App Clip Code without clear space
