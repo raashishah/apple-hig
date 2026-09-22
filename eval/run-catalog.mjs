@@ -1893,6 +1893,12 @@ const results = [];
       text: "<div data-nt-open></div>",
     },
   ]);
+  const ntContentMarkerOnly = scanAffordances([
+    {
+      path: "Badge.tsx",
+      text: "<div data-nt-content></div>",
+    },
+  ]);
   const hltMarkerOnly = scanAffordances([
     {
       path: "Mark.tsx",
@@ -1919,6 +1925,7 @@ const results = [];
       !ntBadgeMarkerOnly.includes("notification") &&
       !ntLabelMarkerOnly.includes("notification") &&
       !ntOpenMarkerOnly.includes("notification") &&
+      !ntContentMarkerOnly.includes("notification") &&
       !passList.includes("loading") &&
       !passList.includes("feedback") &&
       !passList.includes("onboarding") &&
@@ -2739,6 +2746,7 @@ const results = [];
       (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-badge") &&
       (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-label") &&
       (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-open") &&
+      (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-content") &&
       catalog.byId["dark-mode"]?.pack === "foundations-color.md" &&
       catalog.byId["sf-symbols"]?.pack === "foundations-icons.md" &&
       catalog.byId["context-menus"]?.pack === "components-menus.md" &&
@@ -16501,6 +16509,194 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-notification-open-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-hold-"));
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-named-"));
+  const freshDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-fresh-"));
+  const unnamedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-unnamed-"));
+  const actionDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-action-"));
+  const iconDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-icon-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntc-bare-"));
+  const dirs = [passDir, fixDir, holdDir, namedDir, freshDir, unnamedDir, actionDir, iconDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return (
+    <div data-nt-content>
+      <button type="button">Notify</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return (
+    <p>Avoid including your app name or icon.</p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origNamed = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  const info = 'CFBundleDisplayName = "Acme"'
+  content.title = "Acme shipped"
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(namedDir, "HostWidgets.tsx"), origNamed);
+    const origFresh = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  const info = 'CFBundleDisplayName = "Acme"'
+  content.title = "New message"
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(freshDir, "HostWidgets.tsx"), origFresh);
+    const origUnnamed = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  content.title = "Acme shipped"
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(unnamedDir, "HostWidgets.tsx"), origUnnamed);
+    const origAction = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  const info = 'CFBundleDisplayName = "Acme"'
+  UNNotificationAction(title: "Open Acme")
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(actionDir, "HostWidgets.tsx"), origAction);
+    const origIcon = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  const info = 'CFBundleDisplayName = "Acme"'
+  content.title = "New message"
+  UNNotificationAttachment(url: "AppIcon.png")
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(iconDir, "HostWidgets.tsx"), origIcon);
+    const origBare = `export function HostWidgets() {
+  return <div data-nt-content></div>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const namedReport = run(namedDir);
+    const freshReport = run(freshDir);
+    const unnamedReport = run(unnamedDir);
+    const actionReport = run(actionDir);
+    const iconReport = run(iconDir);
+    const bareReport = run(bareDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const namedStatus = readStatus(namedDir);
+    const freshStatus = readStatus(freshDir);
+    const unnamedStatus = readStatus(unnamedDir);
+    const actionStatus = readStatus(actionDir);
+    const iconStatus = readStatus(iconDir);
+    const bareStatus = readStatus(bareDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const named = fs.readFileSync(path.join(namedDir, "HostWidgets.tsx"), "utf8");
+    const fresh = fs.readFileSync(path.join(freshDir, "HostWidgets.tsx"), "utf8");
+    const unnamed = fs.readFileSync(path.join(unnamedDir, "HostWidgets.tsx"), "utf8");
+    const action = fs.readFileSync(path.join(actionDir, "HostWidgets.tsx"), "utf8");
+    const icon = fs.readFileSync(path.join(iconDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      namedChrome: namedReport.chrome.pass === true,
+      freshChrome: freshReport.chrome.pass === true,
+      unnamedChrome: unnamedReport.chrome.pass === true,
+      actionChrome: actionReport.chrome.pass === true,
+      iconChrome: iconReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      passNotes: passStatus.topics.notifications?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixNotes: fixStatus.topics.notifications?.state === "applied",
+      systemKept: /\bUNUserNotificationCenter\b/.test(fixed) && />\s*Notify\s*</.test(fixed),
+      markersGone: !/data-nt-content/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdNotes: holdStatus.topics.notifications?.state === "pending",
+      holdStillPhrase: /app name or icon/.test(held),
+      holdNotInvented: !/content\.title/.test(held),
+      namedUnchanged: named === origNamed,
+      namedNotes: namedStatus.topics.notifications?.state === "pending",
+      namedKept: /content\.title = "Acme shipped"/.test(named),
+      freshUnchanged: fresh === origFresh,
+      freshNotes: freshStatus.topics.notifications?.state === "already-compliant",
+      freshKept: /content\.title = "New message"/.test(fresh),
+      unnamedUnchanged: unnamed === origUnnamed,
+      unnamedNotes: unnamedStatus.topics.notifications?.state === "already-compliant",
+      unnamedKept: /content\.title = "Acme shipped"/.test(unnamed),
+      actionUnchanged: action === origAction,
+      actionNotes: actionStatus.topics.notifications?.state === "pending",
+      actionKept: /title: "Open Acme"/.test(action),
+      iconUnchanged: icon === origIcon,
+      iconNotes: iconStatus.topics.notifications?.state === "already-compliant",
+      iconKept: /AppIcon\.png/.test(icon) && /New message/.test(icon),
+      bareNotes: bareStatus.topics.notifications?.state === "skipped-no-affordance",
+      bareMarkersRemain: /data-nt-content/.test(bared),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passNotes: passStatus.topics.notifications?.state,
+      fixNotes: fixStatus.topics.notifications?.state,
+      holdNotes: holdStatus.topics.notifications?.state,
+      namedNotes: namedStatus.topics.notifications?.state,
+      freshNotes: freshStatus.topics.notifications?.state,
+      unnamedNotes: unnamedStatus.topics.notifications?.state,
+      actionNotes: actionStatus.topics.notifications?.state,
+      iconNotes: iconStatus.topics.notifications?.state,
+      bareNotes: bareStatus.topics.notifications?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-notification-content-name-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

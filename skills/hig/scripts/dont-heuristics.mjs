@@ -4233,6 +4233,49 @@ function applyNtOpen(text) {
   return text.replace(/\s*data-nt-open(?:="[^"]*")?/g, "");
 }
 
+function hasNtContentCopy(text) {
+  return (
+    /avoid including your app name or icon/i.test(text) ||
+    /app name or icon inside the notification content/i.test(text)
+  );
+}
+
+function notificationContentStrings(text) {
+  const withoutActions = text.replace(/UNNotificationAction\s*\([^)]*\)/g, "");
+  const out = [];
+  const re = /(?:\.title|\.body)\s*=\s*"([^"]+)"/g;
+  let found;
+  while ((found = re.exec(withoutActions))) out.push(found[1]);
+  return out;
+}
+
+function hasNtContentSignal(text) {
+  if (!hasNotificationChrome(text)) return false;
+  const name = bundleDisplayName(text);
+  if (!name) return false;
+  const nameRe = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
+  return notificationContentStrings(text).some((value) => nameRe.test(value));
+}
+
+function scanNtContent(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nt-content/.test(f.text)) {
+      out.push(hit(f.path, "the app name or icon inside the notification content"));
+      continue;
+    }
+    if (!hasNotificationChrome(f.text)) continue;
+    if (hasNtContentCopy(f.text) || hasNtContentSignal(f.text)) {
+      out.push(hit(f.path, "the app name or icon inside the notification content"));
+    }
+  }
+  return out;
+}
+
+function applyNtContent(text) {
+  return text.replace(/\s*data-nt-content(?:="[^"]*")?/g, "");
+}
+
 function scanIgnorePrimaryAudioInterrupt(files) {
   const out = [];
   for (const f of files) {
@@ -8058,6 +8101,8 @@ function scanHeuristic(id, files) {
       return scanNtLabel(files);
     case "nt-open":
       return scanNtOpen(files);
+    case "nt-content":
+      return scanNtContent(files);
     case "hidden-drag-no-alternative":
       return scanHiddenDrag(files);
     case "drop-navigates-without-preview":
@@ -8644,6 +8689,8 @@ function applyHeuristic(id, file) {
       return applyNtLabel(file.text);
     case "nt-open":
       return applyNtOpen(file.text);
+    case "nt-content":
+      return applyNtContent(file.text);
     case "hidden-drag-no-alternative":
       return file.text;
     case "drop-navigates-without-preview":

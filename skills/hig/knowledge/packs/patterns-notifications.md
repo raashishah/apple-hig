@@ -40,6 +40,7 @@ Encode **permission and timing**. Widgets / Live Activities are U5. Do not compl
 - A badge that conveys numeric information that isn't related to notifications.
 - The app name in a notification button label.
 - A notification action that merely opens your app.
+- The app name or icon inside the notification content.
 
 ## Checklist
 

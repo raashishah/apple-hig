@@ -118,6 +118,8 @@ heuristics:
     match: app name in a notification button label
   - id: nt-open
     match: action that merely opens your app
+  - id: nt-content
+    match: app name or icon inside the notification content
   - id: hidden-drag-no-alternative
     match: Hidden drag with no alternative
   - id: drop-navigates-without-preview
