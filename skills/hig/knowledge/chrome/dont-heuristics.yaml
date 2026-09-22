@@ -672,3 +672,5 @@ heuristics:
     match: App Clip Code that is too small
   - id: ac-gap
     match: App Clip Code without clear space
+  - id: ac-shot
+    match: screenshot of the app interface on an App Clip Code

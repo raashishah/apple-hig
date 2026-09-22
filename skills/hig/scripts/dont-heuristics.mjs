@@ -9609,6 +9609,38 @@ function applyAcGap(text) {
   return text.replace(/\s*data-ac-gap(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcShotCopy(text) {
+  return (
+    /screenshot of your app/i.test(text) ||
+    /screenshot of the app interface/i.test(text)
+  );
+}
+
+function appClipShowsScreenshot(text) {
+  if (!hasAppClipCode(text)) return false;
+  if (/<img\b/i.test(text)) return false;
+  return /className=["'][^"']*\bscreenshot\b/i.test(text);
+}
+
+function scanAcShot(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-shot(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a screenshot of the app interface on an App Clip Code"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcShotCopy(f.text) || appClipShowsScreenshot(f.text)) {
+      out.push(hit(f.path, "a screenshot of the app interface on an App Clip Code"));
+    }
+  }
+  return out;
+}
+
+function applyAcShot(text) {
+  return text.replace(/\s*data-ac-shot(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -11407,6 +11439,8 @@ function scanHeuristic(id, files) {
       return scanAcSmall(files);
     case "ac-gap":
       return scanAcGap(files);
+    case "ac-shot":
+      return scanAcShot(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -12087,6 +12121,8 @@ function applyHeuristic(id, file) {
       return applyAcSmall(file.text);
     case "ac-gap":
       return applyAcGap(file.text);
+    case "ac-shot":
+      return applyAcShot(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
