@@ -5867,6 +5867,92 @@ function applySiPronoun(text) {
   return text.replace(/\s*data-si-pronoun(?:="[^"]*")?/g, "");
 }
 
+function hasAppShortcut(text) {
+  return (
+    /\bdata-app-shortcuts\b/.test(text) ||
+    /\bAppShortcutsProvider\b/.test(text) ||
+    /\bSiriTipUIView\b/.test(text)
+  );
+}
+
+function hasAsReskinCopy(text) {
+  return (
+    /re-skin/i.test(text) ||
+    /shortcuts editor/i.test(text) ||
+    (/reskin/i.test(text) && /siri|shortcuts/i.test(text))
+  );
+}
+
+function hasAsLowercaseCopy(text) {
+  return /app shortcuts/.test(text) || /the shortcuts app/.test(text);
+}
+
+function hasAsTitleItemCopy(text) {
+  return (
+    /written in title case/i.test(text) ||
+    (/\bShortcut\b/.test(text) &&
+      !/\bApp Shortcuts\b/.test(text) &&
+      !/\bShortcuts\b/.test(text))
+  );
+}
+
+function scanAsReskin(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-as-reskin/.test(f.text)) {
+      out.push(hit(f.path, "re-skin siri or shortcuts editor chrome"));
+      continue;
+    }
+    if (!hasAppShortcut(f.text)) continue;
+    if (hasAsReskinCopy(f.text)) {
+      out.push(hit(f.path, "re-skin siri or shortcuts editor chrome"));
+    }
+  }
+  return out;
+}
+
+function applyAsReskin(text) {
+  return text.replace(/\s*data-as-reskin(?:="[^"]*")?/g, "");
+}
+
+function scanAsLowercase(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-as-lowercase/.test(f.text)) {
+      out.push(hit(f.path, "app shortcuts or shortcuts written in lowercase"));
+      continue;
+    }
+    if (!hasAppShortcut(f.text)) continue;
+    if (hasAsLowercaseCopy(f.text)) {
+      out.push(hit(f.path, "app shortcuts or shortcuts written in lowercase"));
+    }
+  }
+  return out;
+}
+
+function applyAsLowercase(text) {
+  return text.replace(/\s*data-as-lowercase(?:="[^"]*")?/g, "");
+}
+
+function scanAsTitleItem(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-as-title-item/.test(f.text)) {
+      out.push(hit(f.path, "individual shortcuts written in title case"));
+      continue;
+    }
+    if (!hasAppShortcut(f.text)) continue;
+    if (hasAsTitleItemCopy(f.text)) {
+      out.push(hit(f.path, "individual shortcuts written in title case"));
+    }
+  }
+  return out;
+}
+
+function applyAsTitleItem(text) {
+  return text.replace(/\s*data-as-title-item(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -6332,6 +6418,12 @@ function scanHeuristic(id, files) {
       return scanSiImpersonate(files);
     case "si-pronoun":
       return scanSiPronoun(files);
+    case "as-reskin":
+      return scanAsReskin(files);
+    case "as-lowercase":
+      return scanAsLowercase(files);
+    case "as-title-item":
+      return scanAsTitleItem(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -6790,6 +6882,12 @@ function applyHeuristic(id, file) {
       return applySiImpersonate(file.text);
     case "si-pronoun":
       return applySiPronoun(file.text);
+    case "as-reskin":
+      return applyAsReskin(file.text);
+    case "as-lowercase":
+      return applyAsLowercase(file.text);
+    case "as-title-item":
+      return applyAsTitleItem(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

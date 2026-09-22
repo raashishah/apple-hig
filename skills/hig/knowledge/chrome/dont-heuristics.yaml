@@ -450,3 +450,9 @@ heuristics:
     match: Impersonated Siri
   - id: si-pronoun
     match: she, he, or her
+  - id: as-reskin
+    match: Shortcuts editor
+  - id: as-lowercase
+    match: written in lowercase
+  - id: as-title-item
+    match: written in title case

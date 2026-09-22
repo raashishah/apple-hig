@@ -2,12 +2,12 @@
 
 **Apple:** https://developer.apple.com/design/human-interface-guidelines/siri  
 **Also:** https://developer.apple.com/design/human-interface-guidelines/app-shortcuts  
-**Gate:** `capability:siri` / App Shortcuts (Info.plist Siri, App Shortcut providers — **not** `requiredIds`)  
-**Compose:** `system-app-shortcuts.md` in this same worker. Do not launch a second exclusive `app-shortcuts` surface.  
+**Gate:** `always` when the host has App Shortcuts chrome (`AppShortcutsProvider`, `SiriTipUIView`, `data-app-shortcuts`); skip otherwise. Do not launch a second exclusive `app-shortcuts` surface.  
+**Compose:** `system-app-shortcuts.md` in this same worker.  
 Dedicated `siri` surface attaches by appleUrl. This cluster keeps app-shortcuts via `also:`.
 Live pages are **Siri** and **App Shortcuts** only. There is no App Intents HIG article.
 
-Siri and App Shortcuts invariants. Not a React mapping. Do not reprint phrase catalogs. App Intents hosts launch **one** worker.
+Siri and App Shortcuts invariants. Not a React mapping. Do not reprint phrase catalogs. App Intents hosts launch **one** worker. Do not invent App Intents. Do not map this pack onto packed Siri, packed snippets, or a bare App Shortcuts phrase.
 
 ## Human-only
 
@@ -21,6 +21,9 @@ Never complete Siri permission, voice enrollment, or Lock Screen auth. Style chr
 - Results belong in system snippets / Siri UI. Do not hijack with a custom full-screen takeover that fights Siri.
 - Do not require people to remember an exact invocation. Donated shortcuts and App Shortcuts should match what the UI already calls the action.
 - Confirm destructive or paid actions. Do not silently spend or delete via voice.
+- When referring to App Shortcuts or the Shortcuts app, always use title case and make sure that Shortcuts is plural.
+- When referring to individual shortcuts (not App Shortcuts or the Shortcuts app), use lowercase.
+- Treat App Intents as the framework, not a HIG article. Use the Siri and App Shortcuts pages.
 
 ## Do
 
@@ -30,14 +33,17 @@ Never complete Siri permission, voice enrollment, or Lock Screen auth. Style chr
 
 ## Don't
 
-- Treat App Intents as a HIG article. Use the Siri and App Shortcuts pages.
 - Re-skin Siri or Shortcuts editor chrome.
+- App Shortcuts or Shortcuts written in lowercase.
+- Individual shortcuts written in title case.
 - Launch this pack on web-css / brand-veto.
 
 ## Apply in host
+
+Map onto existing App Shortcuts chrome (`AppShortcutsProvider`, `SiriTipUIView`, `data-app-shortcuts`). Do not invent App Intents, a Siri sheet, or a Shortcuts editor. Do not inject a kit.
 
 | Host | How |
 |---|---|
 | SwiftUI / App Intents framework | App Shortcuts provider + Siri result snippets; system UI unmodified |
 | UIKit | Same intents; NSUserActivity donations where still used |
-| Web / CSS | **Skip** |
+| Web / CSS | Existing `data-app-shortcuts`, not packed Siri or a generic App Shortcuts label |

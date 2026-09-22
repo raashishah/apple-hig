@@ -605,6 +605,7 @@ function affordanceMissing(need, present) {
     case "livephoto":
     case "icloud":
     case "siri":
+    case "appshortcut":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1149,6 +1150,13 @@ export function scanAffordances(files) {
     /\bSiriKit\b/.test(blob)
   ) {
     found.push("siri");
+  }
+  if (
+    /\bdata-app-shortcuts\b/.test(blob) ||
+    /\bAppShortcutsProvider\b/.test(blob) ||
+    /\bSiriTipUIView\b/.test(blob)
+  ) {
+    found.push("appshortcut");
   }
   return found;
 }
