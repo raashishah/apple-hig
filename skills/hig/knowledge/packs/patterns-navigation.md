@@ -35,6 +35,7 @@
 - Turning a marketing landing into an iOS tab shell.
 - A disabled or hidden tab bar button.
 - A third level of hierarchy in a sidebar.
+- A window titled with the app name.
 
 ## Interaction states
 

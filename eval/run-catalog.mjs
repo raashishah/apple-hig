@@ -21347,6 +21347,164 @@ ${dots}
   results.push({ case: "catalog-apply-sidebar-depth-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-hold-"));
+  const contentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-content-"));
+  const documentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-document-"));
+  const uiwindowDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-uiwindow-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wn-swift-"));
+  const dirs = [passDir, fixDir, holdDir, contentDir, documentDir, uiwindowDir, sentenceDir, copyDir, swiftDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-window data-wn-app data-app-name="Mail" data-wn-title="Inbox">
+      <h1>Inbox</h1>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  const info = "<key>CFBundleName</key><string>Mail</string>";
+  return (
+    <div data-window data-wn-title="Mail">
+      <h1>Mail</h1>
+      <span>{info}</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origContent = `export function HostWidgets() {
+  return (
+    <div data-window data-app-name="Mail" data-wn-title="Inbox">
+      <h1>Inbox</h1>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(contentDir, "HostWidgets.tsx"), origContent);
+    const origDocument = `export function HostWidgets() {
+  return (
+    <>
+      <title>Mail</title>
+      <meta data-app-name="Mail" />
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(documentDir, "HostWidgets.tsx"), origDocument);
+    const origUiWindow = `export function HostWidgets() {
+  const info = "<key>CFBundleName</key><string>Mail</string>";
+  return UIWindow(info).title = "Mail";
+}
+`;
+    fs.writeFileSync(path.join(uiwindowDir, "HostWidgets.tsx"), origUiWindow);
+    const origSentence = `export function HostWidgets() {
+  return <p>Don't title windows with your app name.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <div data-window data-app-name="Mail" data-wn-title="Inbox">
+        <h1>Inbox</h1>
+      </div>
+      <p>Don't title windows with your app name.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  const info = "<key>CFBundleName</key><string>Mail</string>";
+  return Window("Mail", id: "main") { Text(info) };
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const names = ["pass", "fix", "hold", "content", "document", "uiwindow", "sentence", "copy", "swift"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      content: contentDir,
+      document: documentDir,
+      uiwindow: uiwindowDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const toolbars = (name) => status[name].topics.toolbars?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.toolbars?.dontHeuristicIds || []).includes("wn-app"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      contentChrome: reports.content.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passToolbars: toolbars("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixToolbars: toolbars("fix") === "applied",
+      markerGone: !/data-wn-app(?![\w-])/.test(fixed),
+      windowKept: /data-window/.test(fixed),
+      titleKept: /Inbox/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdToolbars: toolbars("hold") === "pending",
+      holdTitle: /data-wn-title="Mail"/.test(held),
+      contentToolbars: toolbars("content") === "already-compliant",
+      documentToolbars: toolbars("document") === "already-compliant",
+      uiwindowToolbars: toolbars("uiwindow") === "already-compliant",
+      sentenceToolbars: toolbars("sentence") === "already-compliant",
+      copyUnchanged: copied === origCopy,
+      copyToolbars: toolbars("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftToolbars: toolbars("swift") === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passToolbars: toolbars("pass"),
+      fixToolbars: toolbars("fix"),
+      holdToolbars: toolbars("hold"),
+      contentToolbars: toolbars("content"),
+      documentToolbars: toolbars("document"),
+      uiwindowToolbars: toolbars("uiwindow"),
+      sentenceToolbars: toolbars("sentence"),
+      copyToolbars: toolbars("copy"),
+      swiftToolbars: toolbars("swift"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-window-app-title-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

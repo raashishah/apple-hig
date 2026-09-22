@@ -9661,6 +9661,86 @@ function applySidebarDepth(text) {
   return text.replace(/\s*data-sb-depth(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasNamedAppWindow(text) {
+  return hasAppWindow(text) || /\bWindow\s*\(/.test(text);
+}
+
+function declaredAppNames(text) {
+  const names = new Set();
+  const add = (raw) => {
+    const name = String(raw || "").trim();
+    if (name) names.add(name);
+  };
+  const plist = /<key>\s*CFBundle(?:Display)?Name\s*<\/key>\s*<string>([^<]+)<\/string>/gi;
+  let m;
+  while ((m = plist.exec(text))) add(m[1]);
+  const product = /PRODUCT_NAME\s*=\s*"([^"]+)"/g;
+  while ((m = product.exec(text))) add(m[1]);
+  const attr = /data-app-name\s*=\s*"([^"]+)"/gi;
+  while ((m = attr.exec(text))) add(m[1]);
+  return names;
+}
+
+function windowTitles(text) {
+  if (!hasNamedAppWindow(text)) return [];
+  const titles = [];
+  const add = (raw) => {
+    const name = String(raw || "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (name) titles.push(name);
+  };
+  const win = /\bWindow\s*\(\s*"([^"]+)"/g;
+  let m;
+  while ((m = win.exec(text))) add(m[1]);
+  const ns = /\bNSWindow(?:Controller)?\b/g;
+  while ((m = ns.exec(text))) {
+    const titled = text.slice(m.index, m.index + 500).match(/\btitle\s*[:=]\s*"([^"]+)"/);
+    if (titled) add(titled[1]);
+  }
+  for (const attr of ["data-window", "data-app-window"]) {
+    for (const block of blocksWithAttr(text, attr)) {
+      const titled = block.text.match(/\bdata-wn-title\s*=\s*"([^"]+)"/i);
+      if (titled) add(titled[1]);
+      const heading = block.text.match(/<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/i);
+      if (heading) add(heading[1]);
+    }
+  }
+  return titles;
+}
+
+function windowTitleIsAppName(text) {
+  const names = declaredAppNames(text);
+  if (!names.size) return false;
+  return windowTitles(text).some((title) => names.has(title));
+}
+
+function hasWindowAppTitleCopy(text) {
+  return (
+    /don['’]?t title windows with your app name/i.test(text) ||
+    /window titled with the app name/i.test(text)
+  );
+}
+
+function scanWindowAppTitle(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wn-app(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a window titled with the app name"));
+      continue;
+    }
+    if (windowTitleIsAppName(f.text) || (hasNamedAppWindow(f.text) && hasWindowAppTitleCopy(f.text))) {
+      out.push(hit(f.path, "a window titled with the app name"));
+    }
+  }
+  return out;
+}
+
+function applyWindowAppTitle(text) {
+  return text.replace(/\s*data-wn-app(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -9840,6 +9920,8 @@ function scanHeuristic(id, files) {
       return scanTabDisabled(files);
     case "sb-depth":
       return scanSidebarDepth(files);
+    case "wn-app":
+      return scanWindowAppTitle(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -10478,6 +10560,8 @@ function applyHeuristic(id, file) {
       return applyTabDisabled(file.text);
     case "sb-depth":
       return applySidebarDepth(file.text);
+    case "wn-app":
+      return applyWindowAppTitle(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":
