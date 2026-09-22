@@ -7223,6 +7223,79 @@ function applyGmLetter(text) {
   return text.replace(/\s*data-gm-letter(?:="[^"]*")?/g, "");
 }
 
+function hasDuo(text) {
+  return /\bdata-duo\b/.test(text);
+}
+
+function hasIdReinventCopy(text) {
+  return /reinvent (?:your|the) app when it resizes/i.test(text);
+}
+
+function hasIdFixedCopy(text) {
+  return /fixed widths/i.test(text) || /display-specific dependencies/i.test(text);
+}
+
+function hasIdFixedSignal(text) {
+  return /@media[^{]*device-width/i.test(text) || /\bUIScreen\.main\.bounds\b/.test(text);
+}
+
+function hasIdFoldCopy(text) {
+  return /extreme layout changes/i.test(text) || /layout changes as people fold/i.test(text);
+}
+
+function scanIdReinvent(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-id-reinvent/.test(f.text)) {
+      out.push(hit(f.path, "reinvent the app when it resizes"));
+      continue;
+    }
+    if (!hasDuo(f.text)) continue;
+    if (hasIdReinventCopy(f.text)) out.push(hit(f.path, "reinvent the app when it resizes"));
+  }
+  return out;
+}
+
+function scanIdFixed(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-id-fixed/.test(f.text)) {
+      out.push(hit(f.path, "fixed widths and display-specific dependencies"));
+      continue;
+    }
+    if (!hasDuo(f.text)) continue;
+    if (hasIdFixedCopy(f.text) || hasIdFixedSignal(f.text)) {
+      out.push(hit(f.path, "fixed widths and display-specific dependencies"));
+    }
+  }
+  return out;
+}
+
+function scanIdFold(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-id-fold/.test(f.text)) {
+      out.push(hit(f.path, "extreme layout changes as people fold"));
+      continue;
+    }
+    if (!hasDuo(f.text)) continue;
+    if (hasIdFoldCopy(f.text)) out.push(hit(f.path, "extreme layout changes as people fold"));
+  }
+  return out;
+}
+
+function applyIdReinvent(text) {
+  return text.replace(/\s*data-id-reinvent(?:="[^"]*")?/g, "");
+}
+
+function applyIdFixed(text) {
+  return text.replace(/\s*data-id-fixed(?:="[^"]*")?/g, "");
+}
+
+function applyIdFold(text) {
+  return text.replace(/\s*data-id-fold(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7778,6 +7851,12 @@ function scanHeuristic(id, files) {
       return scanPeDistract(files);
     case "gm-letter":
       return scanGmLetter(files);
+    case "id-reinvent":
+      return scanIdReinvent(files);
+    case "id-fixed":
+      return scanIdFixed(files);
+    case "id-fold":
+      return scanIdFold(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8326,6 +8405,12 @@ function applyHeuristic(id, file) {
       return applyPeDistract(file.text);
     case "gm-letter":
       return applyGmLetter(file.text);
+    case "id-reinvent":
+      return applyIdReinvent(file.text);
+    case "id-fixed":
+      return applyIdFixed(file.text);
+    case "id-fold":
+      return applyIdFold(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

@@ -129,6 +129,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["inputs-pencil"]?.gate === "ipad+capability:pencil" &&
     surfaces.byId["inputs-game-controls"]?.affordance === "gamecontrol" &&
     surfaces.byId["inputs-game-controls"]?.gate === "games,capability:games" &&
+    surfaces.byId["gs-iphone-duo"]?.affordance === "duolayout" &&
+    surfaces.byId["gs-iphone-duo"]?.gate === "duo,capability:duo" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1557,6 +1559,36 @@ const results = [];
       text: "<p>Use a game controller.</p>",
     },
   ]);
+  const duoOnly = scanAffordances([
+    {
+      path: "Fold.tsx",
+      text: "<div data-duo></div>",
+    },
+  ]);
+  const arrangementOnly = scanAffordances([
+    {
+      path: "Fold.swift",
+      text: "ArrangementView { Text(\"Outer\") }",
+    },
+  ]);
+  const reservedOnly = scanAffordances([
+    {
+      path: "Fold.swift",
+      text: "GeometryProxy.reservedRegions",
+    },
+  ]);
+  const idMarkerOnly = scanAffordances([
+    {
+      path: "Fold.tsx",
+      text: "<div data-id-reinvent data-id-fixed data-id-fold></div>",
+    },
+  ]);
+  const duoPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Designed for iPhone Duo.</p>",
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -2116,6 +2148,16 @@ const results = [];
       !formOnly.includes("gamecontrol") &&
       !passList.includes("gamecontrol") &&
       !pageOnly.includes("gamecontrol") &&
+      duoOnly.includes("duolayout") &&
+      !duoOnly.includes("gamecontrol") &&
+      !arrangementOnly.includes("duolayout") &&
+      !reservedOnly.includes("duolayout") &&
+      !idMarkerOnly.includes("duolayout") &&
+      !duoPhraseOnly.includes("duolayout") &&
+      !gameControlOnly.includes("duolayout") &&
+      !formOnly.includes("duolayout") &&
+      !passList.includes("duolayout") &&
+      !pageOnly.includes("duolayout") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2910,6 +2952,12 @@ const results = [];
       (catalog.byId["game-controls"]?.dontHeuristicIds || []).includes("gm-letter") &&
       catalog.byId["game-controls"]?.pack === "inputs-game-controls.md" &&
       catalog.byId["game-controls"]?.appliesWhen === "games,capability:games" &&
+      catalog.byId["designing-for-iphone-duo"]?.dontCoverageComplete === true &&
+      (catalog.byId["designing-for-iphone-duo"]?.dontHeuristicIds || []).includes("id-reinvent") &&
+      (catalog.byId["designing-for-iphone-duo"]?.dontHeuristicIds || []).includes("id-fixed") &&
+      (catalog.byId["designing-for-iphone-duo"]?.dontHeuristicIds || []).includes("id-fold") &&
+      catalog.byId["designing-for-iphone-duo"]?.pack === "designing-for-iphone-duo.md" &&
+      catalog.byId["designing-for-iphone-duo"]?.appliesWhen === "duo,capability:duo" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -13677,6 +13725,161 @@ struct OneTorch: ControlWidget {
     }
   }
   results.push({ case: "catalog-apply-game-controls-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-duo-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-duo-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-duo-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-duo-hold-"));
+  const boundsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-duo-bounds-"));
+  const arrangementDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-duo-arrangement-"));
+  const phoneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-duo-phone-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, boundsDir, arrangementDir, phoneDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeDuo = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: duo\nregister: product\nThis product is an iPhone Duo app.\n",
+      );
+    };
+    writeDuo(cleanDir);
+    writeDuo(fixDir);
+    writeDuo(holdDir);
+    writeDuo(boundsDir);
+    fs.writeFileSync(
+      path.join(arrangementDir, "DESIGN.md"),
+      "platform_primary: phone\nregister: product\nThis product is an iPhone app.\n",
+    );
+    fs.writeFileSync(
+      path.join(arrangementDir, "Fold.swift"),
+      "struct Outer: View {\n  var body: some View { ArrangementView { Text(\"Outer\") } }\n}\n",
+    );
+    fs.writeFileSync(
+      path.join(phoneDir, "DESIGN.md"),
+      "platform_primary: phone\nregister: product\nThis product is an iPhone app.\n",
+    );
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-duo data-id-reinvent data-id-fixed data-id-fold>
+      <button type="button">Fold</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(phoneDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-duo>
+      <p>fixed widths and display-specific dependencies.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origBounds = `export function HostWidgets() {
+  return (
+    <div data-duo>
+      <p>{UIScreen.main.bounds.width}</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(boundsDir, "HostWidgets.tsx"), origBounds);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const boundsReport = run(boundsDir);
+    const arrangementReport = run(arrangementDir);
+    const phoneReport = run(phoneDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const boundsStatus = readStatus(boundsDir);
+    const arrangementStatus = readStatus(arrangementDir);
+    const phoneStatus = readStatus(phoneDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const bounded = fs.readFileSync(path.join(boundsDir, "HostWidgets.tsx"), "utf8");
+    const arranged = fs.readFileSync(path.join(arrangementDir, "Fold.swift"), "utf8");
+    const phoneWidgets = fs.readFileSync(path.join(phoneDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      boundsChrome: boundsReport.chrome.pass === true,
+      arrangementChrome: arrangementReport.chrome.pass === true,
+      phoneChrome: phoneReport.chrome.pass === true,
+      passDuo: passStatus.topics["designing-for-iphone-duo"]?.state === "skipped-gate",
+      cleanDuo: cleanStatus.topics["designing-for-iphone-duo"]?.state === "skipped-no-affordance",
+      arrangementDuo:
+        arrangementStatus.topics["designing-for-iphone-duo"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixDuo: fixStatus.topics["designing-for-iphone-duo"]?.state === "applied",
+      systemKept: /\bdata-duo\b/.test(fixed) && />\s*Fold\s*</.test(fixed),
+      markersGone: !/data-id-reinvent|data-id-fixed|data-id-fold/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdDuo: holdStatus.topics["designing-for-iphone-duo"]?.state === "pending",
+      holdStillPhrase: /\bdata-duo\b/.test(held) && /fixed widths/.test(held),
+      holdNotInvented: !/ArrangementView|UIArrangementViewController/.test(held),
+      boundsUnchanged: bounded === origBounds,
+      boundsDuo: boundsStatus.topics["designing-for-iphone-duo"]?.state === "pending",
+      boundsKept: /UIScreen\.main\.bounds/.test(bounded),
+      arrangementKept: /ArrangementView/.test(arranged),
+      phoneDuo: phoneStatus.topics["designing-for-iphone-duo"]?.state === "skipped-gate",
+      phoneMarkersRemain: /data-id-reinvent|data-id-fixed|data-id-fold/.test(phoneWidgets),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passDuo: passStatus.topics["designing-for-iphone-duo"]?.state,
+      cleanDuo: cleanStatus.topics["designing-for-iphone-duo"]?.state,
+      arrangementDuo: arrangementStatus.topics["designing-for-iphone-duo"]?.state,
+      fixDuo: fixStatus.topics["designing-for-iphone-duo"]?.state,
+      holdDuo: holdStatus.topics["designing-for-iphone-duo"]?.state,
+      boundsDuo: boundsStatus.topics["designing-for-iphone-duo"]?.state,
+      phoneDuo: phoneStatus.topics["designing-for-iphone-duo"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-iphone-duo-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

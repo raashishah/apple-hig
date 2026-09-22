@@ -1,7 +1,7 @@
 # designing-for-iphone-duo
 
 **Apple:** https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo  
-**Gate:** `duo,capability:duo` (`platform_primary: duo`, `capabilities: [duo]`, or Duo layout APIs — **not** `requiredIds`, **not** every `phone` host)  
+**Gate:** `duo,capability:duo` on surface `gs-iphone-duo`. A current iPhone, Mac, and unknown chrome-pass skip. Skip-unless affordance `duolayout` (`data-duo`). `ArrangementView` and `reservedRegions` are the capability signal, not the widget.  
 **Compose with:** designing-for-ios, foundations-layout, patterns-lists-detail, patterns-navigation
 
 iPhone Duo Getting started. Two displays, one continuous app. Not a stretched current iPhone. Not Watch / TV / Vision.
@@ -27,11 +27,9 @@ iPhone Duo Getting started. Two displays, one continuous app. Not a stretched cu
 
 ## Don't
 
-- Apply this pack on a current iPhone host (`platform: phone` with no Duo signal).
-- Invent a unique layout per pose, fold pixel tables, or fake vertical bars on web marketing.
-- Put primary tap targets in the fold. Do not displace scrolling lists to dodge it.
-- Stretch a single compact column across the inner display.
-- Teach `UIDesignRequiresCompatibility` as Duo design.
+- Reinvent the app when it resizes.
+- Fixed widths and display-specific dependencies.
+- Extreme layout changes as people fold.
 
 ## Chrome gates
 

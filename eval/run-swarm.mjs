@@ -328,6 +328,7 @@ const results = [];
     surfaces.requiredIds.length === 12 &&
     !surfaces.requiredIds.includes("gs-iphone-duo") &&
     surfaces.byId["gs-iphone-duo"]?.gate === "duo,capability:duo" &&
+    surfaces.byId["gs-iphone-duo"]?.affordance === "duolayout" &&
     !phone.launched.some((s) => s.id === "gs-iphone-duo") &&
     byCap.launched.some((s) => s.id === "gs-iphone-duo") &&
     byCap.launched.some((s) => s.id === "gs-ios") &&

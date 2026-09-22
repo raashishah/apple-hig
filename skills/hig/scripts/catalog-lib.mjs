@@ -641,6 +641,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "gamecontrol":
       return !present.includes(need);
+    case "duolayout":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1288,6 +1290,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-game-controls\b/.test(blob)) {
     found.push("gamecontrol");
+  }
+  if (/\bdata-duo\b/.test(blob)) {
+    found.push("duolayout");
   }
   return found;
 }

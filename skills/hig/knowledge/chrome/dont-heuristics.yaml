@@ -540,3 +540,9 @@ heuristics:
     match: Distraction while people write
   - id: gm-letter
     match: Abstract shapes or A, X, or R1 as artwork
+  - id: id-reinvent
+    match: Reinvent the app when it resizes
+  - id: id-fixed
+    match: Fixed widths and display-specific dependencies
+  - id: id-fold
+    match: Extreme layout changes as people fold
