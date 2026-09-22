@@ -2858,6 +2858,110 @@ function applySpinnerLabel(text) {
   return text.replace(/\s*data-pg-label(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function isVagueProgressLabel(label) {
+  const n = String(label || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.!?…]+$/g, "")
+    .trim();
+  return /^(loading|authenticating)$/i.test(n);
+}
+
+function hasVagueProgressCopy(text) {
+  return (
+    /vague terms like loading or authenticating/i.test(text) ||
+    /determinate progress indicator labeled loading or authenticating/i.test(text)
+  );
+}
+
+function htmlDeterminateProgressSpans(text) {
+  const spans = [];
+  const progressRe = /<progress\b([^>]*)>/gi;
+  let m;
+  while ((m = progressRe.exec(text))) {
+    if (!/\bvalue\s*=/.test(m[1])) continue;
+    spans.push({ start: m.index, end: m.index + m[0].length });
+  }
+  const barRe = /<([A-Za-z][\w]*)\b([^>]*\brole=["']progressbar["'][^>]*)>/gi;
+  while ((m = barRe.exec(text))) {
+    if (!/\baria-valuenow\s*=/.test(m[2]) && !/\bvalue\s*=/.test(m[2])) continue;
+    spans.push({ start: m.index, end: m.index + m[0].length });
+  }
+  return spans;
+}
+
+function labelsNearDeterminate(text, start, end) {
+  const from = Math.max(0, start - 180);
+  const slice = text.slice(from, Math.min(text.length, end + 180));
+  const relEnd = end - from;
+  const bits = [];
+  const nodes = />([^<]+)</g;
+  let m;
+  while ((m = nodes.exec(slice))) bits.push(m[1]);
+  const after = slice.slice(relEnd, relEnd + 80);
+  const lt = after.search(/[<{]/);
+  const afterText = (lt >= 0 ? after.slice(0, lt) : after).replace(/[);]/g, " ");
+  if (afterText.trim()) bits.push(afterText);
+  return bits
+    .map((bit) => bit.replace(/\s+/g, " ").trim())
+    .filter((bit) => /[A-Za-z]/.test(bit));
+}
+
+function htmlDeterminateVague(text) {
+  return htmlDeterminateProgressSpans(text).some((span) =>
+    labelsNearDeterminate(text, span.start, span.end).some(isVagueProgressLabel),
+  );
+}
+
+function swiftDeterminateVague(text) {
+  const titled = /\bProgressView\s*\(\s*"([^"]*)"/g;
+  let m;
+  while ((m = titled.exec(text))) {
+    const call = text.slice(m.index, m.index + 180);
+    if (!/\bvalue\s*:/.test(call)) continue;
+    if (isVagueProgressLabel(m[1])) return true;
+  }
+  const block = /\bProgressView\s*\(\s*value\s*:/g;
+  while ((m = block.exec(text))) {
+    const body = text.slice(m.index, m.index + 220);
+    const label = body.match(/\bText\s*\(\s*"([^"]*)"/);
+    if (label && isVagueProgressLabel(label[1])) return true;
+  }
+  const bar = /\bUIProgressView\b/g;
+  while ((m = bar.exec(text))) {
+    const window = text.slice(Math.max(0, m.index - 40), Math.min(text.length, m.index + 240));
+    const labels = [
+      ...window.matchAll(/\bText\s*\(\s*"([^"]*)"/g),
+      ...window.matchAll(/\btext\s*=\s*"([^"]*)"/g),
+    ];
+    if (labels.some((hit) => isVagueProgressLabel(hit[1]))) return true;
+  }
+  return false;
+}
+
+function hasDeterminateProgress(text) {
+  return htmlDeterminateProgressSpans(text).length > 0 || swiftDeterminateVague(text) || /\bUIProgressView\b/.test(text) || /\bProgressView\s*\([^)]*\bvalue\s*:/.test(text);
+}
+
+function scanVagueProgress(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pg-vague(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a determinate progress indicator labeled loading or authenticating"));
+      continue;
+    }
+    if (!hasDeterminateProgress(f.text)) continue;
+    if (htmlDeterminateVague(f.text) || swiftDeterminateVague(f.text) || hasVagueProgressCopy(f.text)) {
+      out.push(hit(f.path, "a determinate progress indicator labeled loading or authenticating"));
+    }
+  }
+  return out;
+}
+
+function applyVagueProgress(text) {
+  return text.replace(/\s*data-pg-vague(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMorphProgress(files) {
   const out = [];
   for (const f of files) {
@@ -10191,6 +10295,8 @@ function scanHeuristic(id, files) {
       return scanMorphProgress(files);
     case "pg-label":
       return scanSpinnerLabel(files);
+    case "pg-vague":
+      return scanVagueProgress(files);
     case "jump-progress-ninety":
       return scanJumpNinety(files);
     case "pull-down-to-refresh-title":
@@ -10837,6 +10943,8 @@ function applyHeuristic(id, file) {
       return applyMorphProgress(file.text);
     case "pg-label":
       return applySpinnerLabel(file.text);
+    case "pg-vague":
+      return applyVagueProgress(file.text);
     case "jump-progress-ninety":
       return applyJumpNinety(file.text);
     case "pull-down-to-refresh-title":

@@ -21978,6 +21978,232 @@ ${dots}
   results.push({ case: "catalog-apply-we-copy-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-hold-"));
+  const authDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-auth-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-clean-"));
+  const phraseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-phrase-"));
+  const ariaDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-aria-"));
+  const spinnerDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-spinner-"));
+  const percentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-percent-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-swift-"));
+  const swiftCleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgv-swift-clean-"));
+  const dirs = [
+    passDir,
+    fixDir,
+    holdDir,
+    authDir,
+    cleanDir,
+    phraseDir,
+    ariaDir,
+    spinnerDir,
+    percentDir,
+    sentenceDir,
+    copyDir,
+    swiftDir,
+    swiftCleanDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return <progress data-pg-vague value="40" max="100" />;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <>
+      <p>Loading</p>
+      <progress value="40" max="100" />
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origAuth = `export function HostWidgets() {
+  return (
+    <>
+      <p>Authenticating</p>
+      <progress value="40" max="100" />
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(authDir, "HostWidgets.tsx"), origAuth);
+    const origClean = `export function HostWidgets() {
+  return (
+    <>
+      <p>Saving receipt</p>
+      <progress value="40" max="100" />
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), origClean);
+    const origPhrase = `export function HostWidgets() {
+  return (
+    <>
+      <p>Loading receipt</p>
+      <progress value="40" max="100" />
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(phraseDir, "HostWidgets.tsx"), origPhrase);
+    const origAria = `export function HostWidgets() {
+  return <progress value="40" max="100" aria-label="Loading" />;
+}
+`;
+    fs.writeFileSync(path.join(ariaDir, "HostWidgets.tsx"), origAria);
+    const origSpinner = `export function HostWidgets() {
+  return <progress>Loading</progress>;
+}
+`;
+    fs.writeFileSync(path.join(spinnerDir, "HostWidgets.tsx"), origSpinner);
+    const origPercent = `export function HostWidgets() {
+  return (
+    <>
+      <p>42%</p>
+      <progress value="40" max="100" />
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(percentDir, "HostWidgets.tsx"), origPercent);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid vague terms like loading or authenticating.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <p>Saving receipt</p>
+      <progress value="40" max="100" />
+      <p>Avoid vague terms like loading or authenticating.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  return ProgressView("Loading", value: 0.4);
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftClean = `export function HostWidgets() {
+  return ProgressView("Saving receipt", value: 0.4);
+}
+`;
+    fs.writeFileSync(path.join(swiftCleanDir, "HostWidgets.tsx"), origSwiftClean);
+    const names = [
+      "pass",
+      "fix",
+      "hold",
+      "auth",
+      "clean",
+      "phrase",
+      "aria",
+      "spinner",
+      "percent",
+      "sentence",
+      "copy",
+      "swift",
+      "swiftClean",
+    ];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      auth: authDir,
+      clean: cleanDir,
+      phrase: phraseDir,
+      aria: ariaDir,
+      spinner: spinnerDir,
+      percent: percentDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+      swiftClean: swiftCleanDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const auth = fs.readFileSync(path.join(authDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const spun = fs.readFileSync(path.join(spinnerDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const progress = (name) => status[name].topics["progress-indicators"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["progress-indicators"]?.dontHeuristicIds || []).includes("pg-vague"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      passProgress: progress("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixProgress: progress("fix") === "applied",
+      markerGone: !/data-pg-vague(?![\w-])/.test(fixed),
+      barKept: /<progress\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdProgress: progress("hold") === "pending",
+      holdLabel: />\s*Loading\s*</.test(held),
+      authUnchanged: auth === origAuth,
+      authProgress: progress("auth") === "pending",
+      cleanProgress: progress("clean") === "already-compliant",
+      phraseProgress: progress("phrase") === "already-compliant",
+      ariaProgress: progress("aria") === "already-compliant",
+      spinnerUnchanged: spun === origSpinner,
+      spinnerProgress: progress("spinner") === "pending",
+      percentProgress: progress("percent") === "already-compliant",
+      sentenceProgress: progress("sentence") === "skipped-no-affordance",
+      copyUnchanged: copied === origCopy,
+      copyProgress: progress("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftProgress: progress("swift") === "pending",
+      swiftCleanProgress: progress("swiftClean") === "already-compliant",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passProgress: progress("pass"),
+      fixProgress: progress("fix"),
+      holdProgress: progress("hold"),
+      authProgress: progress("auth"),
+      cleanProgress: progress("clean"),
+      phraseProgress: progress("phrase"),
+      ariaProgress: progress("aria"),
+      spinnerProgress: progress("spinner"),
+      percentProgress: progress("percent"),
+      sentenceProgress: progress("sentence"),
+      copyProgress: progress("copy"),
+      swiftProgress: progress("swift"),
+      swiftCleanProgress: progress("swiftClean"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-vague-progress-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -192,6 +192,8 @@ heuristics:
     match: Morph a circular indicator into a bar mid-task
   - id: pg-label
     match: label on a spinning progress indicator
+  - id: pg-vague
+    match: determinate progress indicator labeled loading or authenticating
   - id: jump-progress-ninety
     match: Jump progress to 90% then stall
   - id: pull-down-to-refresh-title

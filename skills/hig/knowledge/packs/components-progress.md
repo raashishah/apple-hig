@@ -24,6 +24,7 @@
 - Jump progress to 90% then stall.
 - Title pull-to-refresh "pull down to refresh".
 - A label on a spinning progress indicator.
+- A determinate progress indicator labeled Loading or Authenticating.
 
 ## Apply in host
 
