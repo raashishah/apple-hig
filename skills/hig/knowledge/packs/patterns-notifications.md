@@ -41,6 +41,7 @@ Encode **permission and timing**. Widgets / Live Activities are U5. Do not compl
 - The app name in a notification button label.
 - A notification action that merely opens your app.
 - The app name or icon inside the notification content.
+- Multiple notifications for the same thing.
 
 ## Checklist
 

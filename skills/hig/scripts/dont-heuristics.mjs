@@ -5285,6 +5285,55 @@ function applyNtContent(text) {
   return text.replace(/\s*data-nt-content(?:="[^"]*")?/g, "");
 }
 
+function notificationTitles(text) {
+  const titles = [];
+  const web = /new\s+Notification\s*\(\s*(["'])([^"']+)\1/g;
+  let m;
+  while ((m = web.exec(text))) {
+    const title = m[2].trim();
+    if (title) titles.push(title);
+  }
+  const content = /\bUNMutableNotificationContent\b/g;
+  while ((m = content.exec(text))) {
+    const window = text.slice(m.index, m.index + 400);
+    const titled = window.match(/\.title\s*=\s*(["'])([^"']+)\1/);
+    if (titled && titled[2].trim()) titles.push(titled[2].trim());
+  }
+  return titles;
+}
+
+function hasDuplicateNotificationTitle(text) {
+  const seen = new Set();
+  for (const title of notificationTitles(text)) {
+    if (seen.has(title)) return true;
+    seen.add(title);
+  }
+  return false;
+}
+
+function hasDuplicateNotificationCopy(text) {
+  return /multiple notifications for the same thing/i.test(text);
+}
+
+function scanDuplicateNotification(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nt-dup(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "multiple notifications for the same thing"));
+      continue;
+    }
+    if (!hasNotificationChrome(f.text)) continue;
+    if (hasDuplicateNotificationTitle(f.text) || hasDuplicateNotificationCopy(f.text)) {
+      out.push(hit(f.path, "multiple notifications for the same thing"));
+    }
+  }
+  return out;
+}
+
+function applyDuplicateNotification(text) {
+  return text.replace(/\s*data-nt-dup(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanIgnorePrimaryAudioInterrupt(files) {
   const out = [];
   for (const f of files) {
@@ -10227,6 +10276,8 @@ function scanHeuristic(id, files) {
       return scanNtOpen(files);
     case "nt-content":
       return scanNtContent(files);
+    case "nt-dup":
+      return scanDuplicateNotification(files);
     case "hidden-drag-no-alternative":
       return scanHiddenDrag(files);
     case "drop-navigates-without-preview":
@@ -10875,6 +10926,8 @@ function applyHeuristic(id, file) {
       return applyNtOpen(file.text);
     case "nt-content":
       return applyNtContent(file.text);
+    case "nt-dup":
+      return applyDuplicateNotification(file.text);
     case "hidden-drag-no-alternative":
       return file.text;
     case "drop-navigates-without-preview":

@@ -22204,6 +22204,161 @@ ${dots}
   results.push({ case: "catalog-apply-vague-progress-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-hold-"));
+  const differentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-different-"));
+  const oneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-one-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-swift-"));
+  const swiftCleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-swift-clean-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntd-bare-"));
+  const dirs = [passDir, fixDir, holdDir, differentDir, oneDir, sentenceDir, copyDir, swiftDir, swiftCleanDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return <p data-nt-dup>New message</p>;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  new Notification("New message");
+  new Notification("New message");
+  return <p>New message</p>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origDifferent = `export function HostWidgets() {
+  new Notification("New message");
+  new Notification("Reminder");
+  return <p>New message</p>;
+}
+`;
+    fs.writeFileSync(path.join(differentDir, "HostWidgets.tsx"), origDifferent);
+    const origOne = `export function HostWidgets() {
+  new Notification("New message");
+  return <p>New message</p>;
+}
+`;
+    fs.writeFileSync(path.join(oneDir, "HostWidgets.tsx"), origOne);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid sending multiple notifications for the same thing.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  new Notification("Reminder");
+  return <p>Avoid sending multiple notifications for the same thing.</p>;
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  UNMutableNotificationContent()
+  content.title = "New message"
+  UNMutableNotificationContent()
+  content.title = "New message"
+  return <p>New message</p>;
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftClean = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  UNMutableNotificationContent()
+  content.title = "New message"
+  UNMutableNotificationContent()
+  content.title = "Reminder"
+  return <p>New message</p>;
+}
+`;
+    fs.writeFileSync(path.join(swiftCleanDir, "HostWidgets.tsx"), origSwiftClean);
+    const origBare = `export function HostWidgets() {
+  return <p data-nt-dup>New message</p>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const names = ["pass", "fix", "hold", "different", "one", "sentence", "copy", "swift", "swiftClean", "bare"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      different: differentDir,
+      one: oneDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+      swiftClean: swiftCleanDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const notes = (name) => status[name].topics.notifications?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-dup"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      passNotes: notes("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixNotes: notes("fix") === "applied",
+      markerGone: !/data-nt-dup(?![\w-])/.test(fixed),
+      centerKept: /\bUNUserNotificationCenter\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdNotes: notes("hold") === "pending",
+      holdPair: (held.match(/new Notification\("New message"\)/g) || []).length === 2,
+      differentNotes: notes("different") === "already-compliant",
+      oneNotes: notes("one") === "already-compliant",
+      sentenceNotes: notes("sentence") === "skipped-no-affordance",
+      copyUnchanged: copied === origCopy,
+      copyNotes: notes("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftNotes: notes("swift") === "pending",
+      swiftCleanNotes: notes("swiftClean") === "already-compliant",
+      bareNotes: notes("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-nt-dup(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passNotes: notes("pass"),
+      fixNotes: notes("fix"),
+      holdNotes: notes("hold"),
+      differentNotes: notes("different"),
+      oneNotes: notes("one"),
+      sentenceNotes: notes("sentence"),
+      copyNotes: notes("copy"),
+      swiftNotes: notes("swift"),
+      swiftCleanNotes: notes("swiftClean"),
+      bareNotes: notes("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-duplicate-notification-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
