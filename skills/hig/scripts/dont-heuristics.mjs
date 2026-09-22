@@ -2515,6 +2515,91 @@ function scanNestedSubmenus(files) {
   return out;
 }
 
+function isDisabledAttrs(attrs) {
+  return (
+    /(?:^|\s)disabled(?=$|[\s=/>])/i.test(attrs) ||
+    /aria-disabled=["']true["']/i.test(attrs)
+  );
+}
+
+function hasSubmenuWidget(text) {
+  return (
+    /role=["']menuitem["'][^>]*aria-haspopup=["'](?:menu|true)["']/i.test(text) ||
+    /aria-haspopup=["'](?:menu|true)["'][^>]*role=["']menuitem["']/i.test(text) ||
+    /\bMenu\s*\([^)]*\)\s*\{[\s\S]*?\bMenu\s*\(/.test(text)
+  );
+}
+
+function hasSubmenuCopy(text) {
+  return (
+    /submenu remains available/i.test(text) ||
+    /submenu item that is unavailable/i.test(text) ||
+    /nested menu items are unavailable/i.test(text)
+  );
+}
+
+function htmlDisabledSubmenu(text) {
+  const re = /<([A-Za-z][\w]*)\b([^>]*role=["']menuitem["'][^>]*)>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    const attrs = m[2];
+    const body = m[3];
+    const isSub =
+      /aria-haspopup=["'](?:menu|true)["']/i.test(attrs) || /role=["']menu["']/i.test(body);
+    if (isSub && isDisabledAttrs(attrs)) return true;
+  }
+  return false;
+}
+
+function matchingBrace(text, openIndex) {
+  let depth = 0;
+  for (let i = openIndex; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "{") depth += 1;
+    else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function swiftDisabledSubmenu(text) {
+  const re = /\bMenu\s*\([^)]*\)\s*\{/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const open = m.index + m[0].lastIndexOf("{");
+    const close = matchingBrace(text, open);
+    if (close < 0) continue;
+    const body = text.slice(open + 1, close);
+    if (!/\bMenu\s*\(/.test(body)) continue;
+    if (/^\s*\.disabled\s*\(\s*true\s*\)/.test(text.slice(close + 1, close + 40))) return true;
+  }
+  return false;
+}
+
+function scanSubmenuAvailable(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-mn-sub(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a submenu item that is unavailable"));
+      continue;
+    }
+    if (htmlDisabledSubmenu(f.text) || swiftDisabledSubmenu(f.text)) {
+      out.push(hit(f.path, "a submenu item that is unavailable"));
+      continue;
+    }
+    if (hasSubmenuWidget(f.text) && hasSubmenuCopy(f.text)) {
+      out.push(hit(f.path, "a submenu item that is unavailable"));
+    }
+  }
+  return out;
+}
+
+function applySubmenuAvailable(text) {
+  return text.replace(/\s*data-mn-sub(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMixMenuIcons(files) {
   const out = [];
   for (const f of files) {
@@ -9053,6 +9138,8 @@ function scanHeuristic(id, files) {
       return scanNestedSubmenus(files);
     case "mix-menu-icons":
       return scanMixMenuIcons(files);
+    case "mn-sub":
+      return scanSubmenuAvailable(files);
     case "picker-owns-the-screen":
       return scanPickerScreen(files);
     case "stepper-no-neighbouring-value":
@@ -9671,6 +9758,8 @@ function applyHeuristic(id, file) {
       return file.text;
     case "mix-menu-icons":
       return file.text;
+    case "mn-sub":
+      return applySubmenuAvailable(file.text);
     case "picker-owns-the-screen":
       return file.text;
     case "stepper-no-neighbouring-value":

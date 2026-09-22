@@ -19592,6 +19592,196 @@ ${tags(sevenLabels)}
   results.push({ case: "catalog-apply-spinner-label-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-hold-"));
+  const offDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-off-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-plain-"));
+  const openDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-open-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-sentence-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-swift-"));
+  const swiftInnerDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mns-swift-inner-"));
+  const dirs = [passDir, fixDir, holdDir, offDir, plainDir, openDir, sentenceDir, swiftDir, swiftInnerDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div role="menu" data-mn-sub>
+      <button type="button" role="menuitem" aria-haspopup="menu">Sort</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div role="menu">
+      <p>Make sure a submenu remains available even when its nested menu items are unavailable.</p>
+      <button type="button" role="menuitem" aria-haspopup="menu">Sort</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origOff = `export function HostWidgets() {
+  return (
+    <div role="menu">
+      <button type="button" role="menuitem" aria-haspopup="menu" disabled>Sort</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(offDir, "HostWidgets.tsx"), origOff);
+    const origPlain = `export function HostWidgets() {
+  return (
+    <div role="menu">
+      <button type="button" role="menuitem" disabled>Paste</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origOpen = `export function HostWidgets() {
+  return (
+    <div role="menu">
+      <button type="button" role="menuitem" aria-haspopup="menu">Sort</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(openDir, "HostWidgets.tsx"), origOpen);
+    const origSentence = `export function HostWidgets() {
+  return <p>Make sure a submenu remains available even when its nested menu items are unavailable.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origSwift = `export function HostWidgets() {
+  Menu("Sort") {
+    Menu("Date") {
+      Text("A")
+    }
+  }
+  .disabled(true)
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftInner = `export function HostWidgets() {
+  Menu("Sort") {
+    Button("Date") { }
+    .disabled(true)
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftInnerDir, "HostWidgets.tsx"), origSwiftInner);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const offReport = run(offDir);
+    const plainReport = run(plainDir);
+    const openReport = run(openDir);
+    const sentenceReport = run(sentenceDir);
+    const swiftReport = run(swiftDir);
+    const swiftInnerReport = run(swiftInnerDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const offStatus = readStatus(offDir);
+    const plainStatus = readStatus(plainDir);
+    const openStatus = readStatus(openDir);
+    const sentenceStatus = readStatus(sentenceDir);
+    const swiftStatus = readStatus(swiftDir);
+    const swiftInnerStatus = readStatus(swiftInnerDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const off = fs.readFileSync(path.join(offDir, "HostWidgets.tsx"), "utf8");
+    const plain = fs.readFileSync(path.join(plainDir, "HostWidgets.tsx"), "utf8");
+    const open = fs.readFileSync(path.join(openDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const swiftInner = fs.readFileSync(path.join(swiftInnerDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.menus?.dontHeuristicIds || []).includes("mn-sub"),
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      offChrome: offReport.chrome.pass === true,
+      plainChrome: plainReport.chrome.pass === true,
+      openChrome: openReport.chrome.pass === true,
+      sentenceChrome: sentenceReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      swiftInnerChrome: swiftInnerReport.chrome.pass === true,
+      passMenus: passStatus.topics.menus?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      fixMenus: fixStatus.topics.menus?.state === "applied",
+      markerGone: !/data-mn-sub(?![\w-])/.test(fixed),
+      submenuKept: /aria-haspopup=["']menu["']/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdMenus: holdStatus.topics.menus?.state === "pending",
+      holdStillPhrase: /submenu remains available/.test(held),
+      offUnchanged: off === origOff,
+      offMenus: offStatus.topics.menus?.state === "pending",
+      offKept: /disabled/.test(off) && /aria-haspopup=["']menu["']/.test(off),
+      plainUnchanged: plain === origPlain,
+      plainMenus: plainStatus.topics.menus?.state === "already-compliant",
+      openUnchanged: open === origOpen,
+      openMenus: openStatus.topics.menus?.state === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceMenus: sentenceStatus.topics.menus?.state === "skipped-no-affordance",
+      swiftUnchanged: swift === origSwift,
+      swiftMenus: swiftStatus.topics.menus?.state === "pending",
+      swiftInnerUnchanged: swiftInner === origSwiftInner,
+      swiftInnerMenus: swiftInnerStatus.topics.menus?.state === "already-compliant",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passMenus: passStatus.topics.menus?.state,
+      fixMenus: fixStatus.topics.menus?.state,
+      holdMenus: holdStatus.topics.menus?.state,
+      offMenus: offStatus.topics.menus?.state,
+      plainMenus: plainStatus.topics.menus?.state,
+      openMenus: openStatus.topics.menus?.state,
+      sentenceMenus: sentenceStatus.topics.menus?.state,
+      swiftMenus: swiftStatus.topics.menus?.state,
+      swiftInnerMenus: swiftInnerStatus.topics.menus?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-submenu-available-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -166,6 +166,8 @@ heuristics:
     match: Nested submenus deeper than one level
   - id: mix-menu-icons
     match: Mix icons and no-icons in the same menu group
+  - id: mn-sub
+    match: submenu item that is unavailable
   - id: picker-owns-the-screen
     match: Push a new screen solely to show a picker
   - id: stepper-no-neighbouring-value

@@ -23,6 +23,7 @@
 - Hide unavailable items instead of dimming them.
 - Nested submenus deeper than one level.
 - Mix icons and no-icons in the same menu group.
+- A submenu item that is unavailable when its nested items are unavailable.
 
 ## Apply in host
 
