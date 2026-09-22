@@ -50,6 +50,8 @@ heuristics:
     match: custom tracking screen with an incentive or an Allow button
   - id: pv-leave
     match: Close or Cancel button on a custom tracking screen
+  - id: pv-plain
+    match: password written to a plain-text file
   - id: rewrite-or-automate-system-ui
     match: Rewriting or automating system permission
   - id: opaque-brand-bar-fills

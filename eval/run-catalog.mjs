@@ -22495,6 +22495,182 @@ ${dots}
   results.push({ case: "catalog-apply-fake-badge-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-hold-"));
+  const fieldDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-field-"));
+  const keychainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-key-"));
+  const notesDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-notes-"));
+  const jsonDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-json-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvp-swift-"));
+  const dirs = [
+    passDir,
+    fixDir,
+    holdDir,
+    fieldDir,
+    keychainDir,
+    notesDir,
+    jsonDir,
+    sentenceDir,
+    copyDir,
+    swiftDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return <span data-pv-plain>saved</span>;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  writeFileSync("secrets.txt", password)
+  return <p>Saved</p>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origField = `export function HostWidgets() {
+  return (
+    <label>
+      Password
+      <input type="password" name="password" />
+    </label>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fieldDir, "HostWidgets.tsx"), origField);
+    const origKeychain = `export function HostWidgets() {
+  SecItemAdd({ kSecValueData: password })
+  return <p>Saved</p>;
+}
+`;
+    fs.writeFileSync(path.join(keychainDir, "HostWidgets.tsx"), origKeychain);
+    const origNotes = `export function HostWidgets() {
+  writeFileSync("notes.txt", "hello")
+  return <p>Saved</p>;
+}
+`;
+    fs.writeFileSync(path.join(notesDir, "HostWidgets.tsx"), origNotes);
+    const origJson = `export function HostWidgets() {
+  writeFileSync("secrets.json", password)
+  return <p>Saved</p>;
+}
+`;
+    fs.writeFileSync(path.join(jsonDir, "HostWidgets.tsx"), origJson);
+    const origSentence = `export function HostWidgets() {
+  return <p>Never store passwords or other secure content in plain-text files.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  writeFileSync("secrets.txt", password)
+  return <p>Never store passwords or other secure content in plain-text files.</p>;
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  const sample = \`try password.write(to: URL(fileURLWithPath: "secrets.txt"), atomically: true, encoding: .utf8)\`;
+  return <p>{sample}</p>;
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const names = [
+      "pass",
+      "fix",
+      "hold",
+      "field",
+      "keychain",
+      "notes",
+      "json",
+      "sentence",
+      "copy",
+      "swift",
+    ];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      field: fieldDir,
+      keychain: keychainDir,
+      notes: notesDir,
+      json: jsonDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const privacy = (name) => status[name].topics.privacy?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.privacy?.dontHeuristicIds || []).includes("pv-plain"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      fieldChrome: reports.field.chrome.pass === true,
+      keychainChrome: reports.keychain.chrome.pass === true,
+      notesChrome: reports.notes.chrome.pass === true,
+      jsonChrome: reports.json.chrome.pass === true,
+      sentenceChrome: reports.sentence.chrome.pass === true,
+      copyChrome: reports.copy.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passPrivacy: privacy("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixPrivacy: privacy("fix") === "applied",
+      markerGone: !/data-pv-plain(?![\w-])/.test(fixed),
+      savedKept: />\s*saved\s*</.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPrivacy: privacy("hold") === "pending",
+      holdWrite: /writeFileSync\("secrets\.txt", password\)/.test(held),
+      fieldPrivacy: privacy("field") === "already-compliant",
+      keychainPrivacy: privacy("keychain") === "already-compliant",
+      notesPrivacy: privacy("notes") === "already-compliant",
+      jsonPrivacy: privacy("json") === "already-compliant",
+      sentencePrivacy: privacy("sentence") === "already-compliant",
+      copyUnchanged: copied === origCopy,
+      copyPrivacy: privacy("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftPrivacy: privacy("swift") === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPrivacy: privacy("pass"),
+      fixPrivacy: privacy("fix"),
+      holdPrivacy: privacy("hold"),
+      fieldPrivacy: privacy("field"),
+      keychainPrivacy: privacy("keychain"),
+      notesPrivacy: privacy("notes"),
+      jsonPrivacy: privacy("json"),
+      sentencePrivacy: privacy("sentence"),
+      copyPrivacy: privacy("copy"),
+      swiftPrivacy: privacy("swift"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-plaintext-password-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

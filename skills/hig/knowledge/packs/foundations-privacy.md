@@ -26,6 +26,7 @@ Encode permission **timing and copy**. Do not complete Apple Pay, Sign in with A
 - Rewriting or automating system permission, Pay, or Sign in UI.
 - A custom tracking screen with an incentive or an Allow button.
 - A Close or Cancel button on a custom tracking screen.
+- A password written to a plain-text file.
 
 ## Apply in host
 

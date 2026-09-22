@@ -994,6 +994,32 @@ function applyAttLeave(text) {
   return text.replace(/\s*data-pv-leave(?:="[^"]*")?/g, "");
 }
 
+function hasPlaintextPasswordWrite(text) {
+  const jsWrite =
+    /(?:writeFileSync|writeFile|writeTextFile|appendFileSync|appendFile)\s*\([\s\S]{0,180}?\.(?:txt|text)["'`][\s\S]{0,80}?\bpassword\b/i;
+  const swiftWrite =
+    /\bpassword\b[\s\S]{0,120}?\.write\s*\([\s\S]{0,160}?\.(?:txt|text)\b/i;
+  return jsWrite.test(text) || swiftWrite.test(text);
+}
+
+function scanPlaintextPassword(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pv-plain(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a password written to a plain-text file"));
+      continue;
+    }
+    if (hasPlaintextPasswordWrite(f.text)) {
+      out.push(hit(f.path, "a password written to a plain-text file"));
+    }
+  }
+  return out;
+}
+
+function applyPlaintextPassword(text) {
+  return text.replace(/\s*data-pv-plain(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanRewriteOrAutomate(files) {
   const out = scanRewriteSystemAlerts(files);
   for (const f of files) {
@@ -10236,6 +10262,8 @@ function scanHeuristic(id, files) {
       return scanAttPrealert(files);
     case "pv-leave":
       return scanAttLeave(files);
+    case "pv-plain":
+      return scanPlaintextPassword(files);
     case "rewrite-or-automate-system-ui":
       return scanRewriteOrAutomate(files);
     case "opaque-brand-bar-fills":
@@ -10888,6 +10916,8 @@ function applyHeuristic(id, file) {
       return applyAttPrealert(file.text);
     case "pv-leave":
       return applyAttLeave(file.text);
+    case "pv-plain":
+      return applyPlaintextPassword(file.text);
     case "rewrite-or-automate-system-ui":
       return file.text;
     case "opaque-brand-bar-fills":
