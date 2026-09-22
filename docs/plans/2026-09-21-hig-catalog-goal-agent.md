@@ -171,6 +171,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 98. App Clip Code symbol Don'ts. **Landed on this PR.** Account a symbol added to the code when every Don't has a scanner and the host has the same App Clip Code widget. Skip-unless `appclipcode` stays. Gate stays `capability:appclips`. Do not overlay `always`. Adding a symbol to a generated App Clip Code scans from Apple's App Clips page. Do not invent an App Clip Code. Do not map this Don't onto `data-ac-symbol`, an image overlay, or an SF Symbol. Ads stay unscanned. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+99. Wallet decline Don'ts. **Landed on this PR.** Account a second suggestion after people decline when every Don't has a scanner and the host has the same pass widget. Skip-unless `walletpass` stays. Gate stays `capability:wallet`. Do not overlay `always`. If people decline your suggestion, don't ask them again, from Apple's Wallet page. Do not complete an Add to Wallet sheet. Do not map this Don't onto `data-wl-decline`, the first suggestion, a permission prompt, or Apple Pay. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

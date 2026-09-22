@@ -3,7 +3,7 @@
 **Apple:** [Wallet](https://developer.apple.com/design/human-interface-guidelines/wallet)  
 **Gate:** `capability:wallet` on surface `wallet`. Unknown hosts skip. Skip-unless affordance `walletpass` (`data-wallet`). `import PassKit` and `PKPass` are the capability, not the widget. Apple Pay stays on surface `apple-pay`. Do not complete an Add to Wallet sheet.
 
-A pass can update with a change message. That message is for a real change, not a promotion.
+A pass can update with a change message. That message is for a real change, not a promotion. The first suggestion to add a pass stays allowed. Do not complete an Add to Wallet sheet.
 
 ## Do
 
@@ -13,3 +13,4 @@ A pass can update with a change message. That message is for a real change, not 
 ## Don't
 
 - A change message used for marketing.
+- Asking again after people decline a Wallet suggestion.

@@ -7411,6 +7411,41 @@ function applyWlMarketing(text) {
   return text.replace(/\s*data-wl-marketing(?:="[^"]*")?/g, "");
 }
 
+function hasWlDeclineCopy(text) {
+  return (
+    /if people decline your suggestion, don['’]?t ask them again/i.test(text) ||
+    /decline your suggestion, don['’]?t ask them again/i.test(text) ||
+    /asking again after people decline a Wallet suggestion/i.test(text)
+  );
+}
+
+function hasWlDeclineSignal(text) {
+  if (!hasPass(text)) return false;
+  return (
+    /declined[\s\S]{0,200}(?:ask again|suggest again|add again|suggestAdding)/i.test(text) ||
+    /if\s*\(\s*declined\s*\)[\s\S]{0,180}suggest/i.test(text)
+  );
+}
+
+function scanWlDecline(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wl-decline/.test(f.text)) {
+      out.push(hit(f.path, "asking again after people decline a Wallet suggestion"));
+      continue;
+    }
+    if (!hasPass(f.text)) continue;
+    if (hasWlDeclineCopy(f.text) || hasWlDeclineSignal(f.text)) {
+      out.push(hit(f.path, "asking again after people decline a Wallet suggestion"));
+    }
+  }
+  return out;
+}
+
+function applyWlDecline(text) {
+  return text.replace(/\s*data-wl-decline(?:="[^"]*")?/g, "");
+}
+
 function hasAppClipCode(text) {
   return /\bdata-app-clip-code\b/.test(text);
 }
@@ -8187,6 +8222,8 @@ function scanHeuristic(id, files) {
       return scanRkCritical(files);
     case "wl-marketing":
       return scanWlMarketing(files);
+    case "wl-decline":
+      return scanWlDecline(files);
     case "ac-modified":
       return scanAcModified(files);
     case "ac-overlay":
@@ -8759,6 +8796,8 @@ function applyHeuristic(id, file) {
       return applyRkCritical(file.text);
     case "wl-marketing":
       return applyWlMarketing(file.text);
+    case "wl-decline":
+      return applyWlDecline(file.text);
     case "ac-modified":
       return applyAcModified(file.text);
     case "ac-overlay":

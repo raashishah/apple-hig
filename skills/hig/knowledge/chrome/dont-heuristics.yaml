@@ -552,6 +552,8 @@ heuristics:
     match: data that isn't critical to the study
   - id: wl-marketing
     match: change message used for marketing
+  - id: wl-decline
+    match: decline a Wallet suggestion
   - id: ac-modified
     match: homemade or modified App Clip Code
   - id: ac-overlay

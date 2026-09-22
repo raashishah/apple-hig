@@ -1657,6 +1657,12 @@ const results = [];
       text: "<div data-wl-marketing></div>",
     },
   ]);
+  const wlDeclineMarkerOnly = scanAffordances([
+    {
+      path: "Pass.tsx",
+      text: "<div data-wl-decline></div>",
+    },
+  ]);
   const walletPhraseOnly = scanAffordances([
     {
       path: "Copy.tsx",
@@ -2332,6 +2338,7 @@ const results = [];
       !applePayOnly.includes("walletpass") &&
       !applePayButtonOnly.includes("walletpass") &&
       !wlMarkerOnly.includes("walletpass") &&
+      !wlDeclineMarkerOnly.includes("walletpass") &&
       !walletOnly.includes("walletpass") &&
       !walletPhraseOnly.includes("walletpass") &&
       !apMarkerOnly.includes("walletpass") &&
@@ -3166,6 +3173,7 @@ const results = [];
       catalog.byId.researchkit?.appliesWhen === "capability:researchkit" &&
       catalog.byId.wallet?.dontCoverageComplete === true &&
       (catalog.byId.wallet?.dontHeuristicIds || []).includes("wl-marketing") &&
+      (catalog.byId.wallet?.dontHeuristicIds || []).includes("wl-decline") &&
       catalog.byId.wallet?.pack === "tech-wallet.md" &&
       catalog.byId.wallet?.surfaceId === "wallet" &&
       catalog.byId.wallet?.appliesWhen === "capability:wallet" &&
@@ -15151,6 +15159,163 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-app-clip-symbol-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wld-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wld-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wld-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wld-hold-"));
+  const againDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wld-again-"));
+  const onceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wld-once-"));
+  const payDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wld-pay-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, againDir, onceDir, payDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writePassKit = (dir) => {
+      fs.writeFileSync(path.join(dir, "Pass.swift"), "import PassKit\nlet library = PKPassLibrary()\n");
+    };
+    writePassKit(cleanDir);
+    writePassKit(fixDir);
+    writePassKit(holdDir);
+    writePassKit(againDir);
+    writePassKit(onceDir);
+    fs.writeFileSync(path.join(payDir, "Pay.swift"), "let button = PKPaymentButton()\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-wallet data-wl-decline>
+      <button type="button">Pass</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(payDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <p>If people decline your suggestion, don't ask them again.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origAgain = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      {declined ? <button type="button">Add again</button> : null}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(againDir, "HostWidgets.tsx"), origAgain);
+    const origOnce = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <button type="button">Add to Wallet</button>
+      <p>Don't ask them again for camera access.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(onceDir, "HostWidgets.tsx"), origOnce);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const againReport = run(againDir);
+    const onceReport = run(onceDir);
+    const payReport = run(payDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const againStatus = readStatus(againDir);
+    const onceStatus = readStatus(onceDir);
+    const payStatus = readStatus(payDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const again = fs.readFileSync(path.join(againDir, "HostWidgets.tsx"), "utf8");
+    const once = fs.readFileSync(path.join(onceDir, "HostWidgets.tsx"), "utf8");
+    const paid = fs.readFileSync(path.join(payDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      againChrome: againReport.chrome.pass === true,
+      onceChrome: onceReport.chrome.pass === true,
+      payChrome: payReport.chrome.pass === true,
+      passWallet: passStatus.topics.wallet?.state === "skipped-gate",
+      cleanWallet: cleanStatus.topics.wallet?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixWallet: fixStatus.topics.wallet?.state === "applied",
+      systemKept: /\bdata-wallet\b/.test(fixed) && />\s*Pass\s*</.test(fixed),
+      markersGone: !/data-wl-decline/.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Pass.swift"), "utf8").includes("import PassKit"),
+      holdUnchanged: held === origHold,
+      holdWallet: holdStatus.topics.wallet?.state === "pending",
+      holdStillPhrase: /don't ask them again/.test(held) && /\bdata-wallet\b/.test(held),
+      holdNotInvented: !/PKAddPassesViewController/.test(held),
+      againUnchanged: again === origAgain,
+      againWallet: againStatus.topics.wallet?.state === "pending",
+      againKept: /Add again/.test(again) && /declined/.test(again),
+      onceUnchanged: once === origOnce,
+      onceWallet: onceStatus.topics.wallet?.state === "already-compliant",
+      onceKept: /Add to Wallet/.test(once) && /camera access/.test(once),
+      payWallet: payStatus.topics.wallet?.state === "skipped-gate",
+      payMarkersRemain: /data-wl-decline/.test(paid),
+      payButtonKept: fs.readFileSync(path.join(payDir, "Pay.swift"), "utf8").includes("PKPaymentButton"),
+      payPayLaunched:
+        payStatus.topics["apple-pay"]?.state !== "skipped-gate" &&
+        payStatus.topics["apple-pay"]?.state !== "skipped-no-affordance",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWallet: passStatus.topics.wallet?.state,
+      cleanWallet: cleanStatus.topics.wallet?.state,
+      fixWallet: fixStatus.topics.wallet?.state,
+      holdWallet: holdStatus.topics.wallet?.state,
+      againWallet: againStatus.topics.wallet?.state,
+      onceWallet: onceStatus.topics.wallet?.state,
+      payWallet: payStatus.topics.wallet?.state,
+      payPay: payStatus.topics["apple-pay"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-wallet-decline-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
