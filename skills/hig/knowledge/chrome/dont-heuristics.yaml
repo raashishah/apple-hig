@@ -668,3 +668,5 @@ heuristics:
     match: download of additional data with an App Clip Code
   - id: ac-splash
     match: splash screen that makes people wait on launch
+  - id: ac-small
+    match: App Clip Code that is too small

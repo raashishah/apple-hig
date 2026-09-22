@@ -9512,6 +9512,51 @@ function applyAcSplash(text) {
   return text.replace(/\s*data-ac-splash(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcSmallCopy(text) {
+  return (
+    /App Clip Codes that are too small/i.test(text) ||
+    /App Clip Code that is too small/i.test(text)
+  );
+}
+
+function tagHasTinyAppClipSize(tag) {
+  const re = /(?<![\w-])(?:width|height)\s*[:=]\s*["']?(\d+(?:\.\d+)?)(?:px)?(?![\d.%])/gi;
+  let m;
+  while ((m = re.exec(tag))) {
+    if (Number(m[1]) < 32) return true;
+  }
+  return false;
+}
+
+function appClipCodeIsTiny(text) {
+  if (!hasAppClipCode(text)) return false;
+  const re = /<[^>]*\bdata-app-clip-code\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    if (tagHasTinyAppClipSize(m[0])) return true;
+  }
+  return false;
+}
+
+function scanAcSmall(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-small(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an App Clip Code that is too small"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcSmallCopy(f.text) || appClipCodeIsTiny(f.text)) {
+      out.push(hit(f.path, "an App Clip Code that is too small"));
+    }
+  }
+  return out;
+}
+
+function applyAcSmall(text) {
+  return text.replace(/\s*data-ac-small(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -11306,6 +11351,8 @@ function scanHeuristic(id, files) {
       return scanAcFetch(files);
     case "ac-splash":
       return scanAcSplash(files);
+    case "ac-small":
+      return scanAcSmall(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -11982,6 +12029,8 @@ function applyHeuristic(id, file) {
       return applyAcFetch(file.text);
     case "ac-splash":
       return applyAcSplash(file.text);
+    case "ac-small":
+      return applyAcSmall(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
