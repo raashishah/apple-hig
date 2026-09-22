@@ -112,6 +112,8 @@ heuristics:
     match: Marketing as time-sensitive
   - id: custom-lock-screen-ui
     match: Custom lock-screen UI that fights the system
+  - id: nt-badge
+    match: numeric information that isn't related to notifications
   - id: hidden-drag-no-alternative
     match: Hidden drag with no alternative
   - id: drop-navigates-without-preview

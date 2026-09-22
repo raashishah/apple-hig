@@ -1869,6 +1869,18 @@ const results = [];
       text: '<div data-workout><button type="button">Start</button></div>',
     },
   ]);
+  const badgeCountOnly = scanAffordances([
+    {
+      path: "Badge.swift",
+      text: "applicationIconBadgeNumber = temperature",
+    },
+  ]);
+  const ntBadgeMarkerOnly = scanAffordances([
+    {
+      path: "Badge.tsx",
+      text: "<div data-nt-badge></div>",
+    },
+  ]);
   const hltMarkerOnly = scanAffordances([
     {
       path: "Mark.tsx",
@@ -1891,6 +1903,8 @@ const results = [];
       !passList.includes("progress") &&
       !passList.includes("overlay") &&
       !passList.includes("notification") &&
+      !badgeCountOnly.includes("notification") &&
+      !ntBadgeMarkerOnly.includes("notification") &&
       !passList.includes("loading") &&
       !passList.includes("feedback") &&
       !passList.includes("onboarding") &&
@@ -2708,6 +2722,7 @@ const results = [];
       catalog.byId["pull-down-buttons"]?.dontCoverageComplete === true &&
       catalog.byId["pop-up-buttons"]?.dontCoverageComplete === true &&
       catalog.byId.notifications?.dontCoverageComplete === true &&
+      (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-badge") &&
       catalog.byId["dark-mode"]?.pack === "foundations-color.md" &&
       catalog.byId["sf-symbols"]?.pack === "foundations-icons.md" &&
       catalog.byId["context-menus"]?.pack === "components-menus.md" &&
@@ -15976,6 +15991,162 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-wallet-logo-shadow-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntb-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntb-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntb-hold-"));
+  const weatherDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntb-weather-"));
+  const unreadDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntb-unread-"));
+  const labelDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntb-label-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntb-bare-"));
+  const dirs = [passDir, fixDir, holdDir, weatherDir, unreadDir, labelDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return (
+    <div data-nt-badge>
+      <button type="button">Notify</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return (
+    <div>
+      <p>Don't use a badge to convey numeric information that isn't related to notifications.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origWeather = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  applicationIconBadgeNumber = temperature
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(weatherDir, "HostWidgets.tsx"), origWeather);
+    const origUnread = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  applicationIconBadgeNumber = unread
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(unreadDir, "HostWidgets.tsx"), origUnread);
+    const origLabel = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return (
+    <p>Don't include your app name in the button label.</p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(labelDir, "HostWidgets.tsx"), origLabel);
+    const origBare = `export function HostWidgets() {
+  applicationIconBadgeNumber = temperature
+  return <div data-nt-badge></div>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const weatherReport = run(weatherDir);
+    const unreadReport = run(unreadDir);
+    const labelReport = run(labelDir);
+    const bareReport = run(bareDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const weatherStatus = readStatus(weatherDir);
+    const unreadStatus = readStatus(unreadDir);
+    const labelStatus = readStatus(labelDir);
+    const bareStatus = readStatus(bareDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const weather = fs.readFileSync(path.join(weatherDir, "HostWidgets.tsx"), "utf8");
+    const unread = fs.readFileSync(path.join(unreadDir, "HostWidgets.tsx"), "utf8");
+    const labeled = fs.readFileSync(path.join(labelDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      weatherChrome: weatherReport.chrome.pass === true,
+      unreadChrome: unreadReport.chrome.pass === true,
+      labelChrome: labelReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      passNotes: passStatus.topics.notifications?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixNotes: fixStatus.topics.notifications?.state === "applied",
+      systemKept: /\bUNUserNotificationCenter\b/.test(fixed) && />\s*Notify\s*</.test(fixed),
+      markersGone: !/data-nt-badge/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdNotes: holdStatus.topics.notifications?.state === "pending",
+      holdStillPhrase: /numeric information that isn't related to notifications/.test(held),
+      holdNotInvented: !/setBadgeCount|applicationIconBadgeNumber/.test(held),
+      weatherUnchanged: weather === origWeather,
+      weatherNotes: weatherStatus.topics.notifications?.state === "pending",
+      weatherKept: /applicationIconBadgeNumber = temperature/.test(weather),
+      unreadUnchanged: unread === origUnread,
+      unreadNotes: unreadStatus.topics.notifications?.state === "already-compliant",
+      unreadKept: /applicationIconBadgeNumber = unread/.test(unread),
+      labelUnchanged: labeled === origLabel,
+      labelNotes: labelStatus.topics.notifications?.state === "already-compliant",
+      labelKept: /app name in the button label/.test(labeled),
+      bareNotes: bareStatus.topics.notifications?.state === "skipped-no-affordance",
+      bareMarkersRemain: /data-nt-badge/.test(bared),
+      bareCountKept: /applicationIconBadgeNumber = temperature/.test(bared),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passNotes: passStatus.topics.notifications?.state,
+      fixNotes: fixStatus.topics.notifications?.state,
+      holdNotes: holdStatus.topics.notifications?.state,
+      weatherNotes: weatherStatus.topics.notifications?.state,
+      unreadNotes: unreadStatus.topics.notifications?.state,
+      labelNotes: labelStatus.topics.notifications?.state,
+      bareNotes: bareStatus.topics.notifications?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-notification-badge-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

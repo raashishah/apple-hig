@@ -4089,6 +4089,59 @@ function applyNotifyRoutineTask(text) {
   return text.replace(/\s*data-notify-routine(?:="[^"]*")?/g, "");
 }
 
+function hasNotificationChrome(text) {
+  return (
+    /Notification\.requestPermission/.test(text) ||
+    /Notification\.permission/.test(text) ||
+    /new\s+Notification\s*\(/.test(text) ||
+    /\bUNUserNotificationCenter\b/.test(text) ||
+    /\bUNNotificationRequest\b/.test(text)
+  );
+}
+
+function hasNtBadgeCopy(text) {
+  return (
+    /don['’]?t use a badge to convey numeric information/i.test(text) ||
+    /badge to convey numeric information that isn['’]?t related to notifications/i.test(text) ||
+    /numeric information that isn['’]?t related to notifications/i.test(text)
+  );
+}
+
+function hasNtBadgeSignal(text) {
+  if (!hasNotificationChrome(text)) return false;
+  const topics = ["weather", "temperature", "stockPrice", "stock price", "gameScore", "highScore"];
+  const apis = ["applicationIconBadgeNumber", "setBadgeCount"];
+  for (const api of apis) {
+    if (!new RegExp(`\\b${api}\\b`).test(text)) continue;
+    for (const topic of topics) {
+      const escaped = topic.replace(/\s+/g, "\\s+");
+      const forward = new RegExp(`\\b${api}\\b[\\s\\S]{0,160}\\b${escaped}\\b`, "i");
+      const backward = new RegExp(`\\b${escaped}\\b[\\s\\S]{0,160}\\b${api}\\b`, "i");
+      if (forward.test(text) || backward.test(text)) return true;
+    }
+  }
+  return false;
+}
+
+function scanNtBadge(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nt-badge/.test(f.text)) {
+      out.push(hit(f.path, "a badge that conveys numeric information that isn't related to notifications"));
+      continue;
+    }
+    if (!hasNotificationChrome(f.text)) continue;
+    if (hasNtBadgeCopy(f.text) || hasNtBadgeSignal(f.text)) {
+      out.push(hit(f.path, "a badge that conveys numeric information that isn't related to notifications"));
+    }
+  }
+  return out;
+}
+
+function applyNtBadge(text) {
+  return text.replace(/\s*data-nt-badge(?:="[^"]*")?/g, "");
+}
+
 function scanIgnorePrimaryAudioInterrupt(files) {
   const out = [];
   for (const f of files) {
@@ -7908,6 +7961,8 @@ function scanHeuristic(id, files) {
       return scanMarketingTimeSensitive(files);
     case "custom-lock-screen-ui":
       return scanCustomLockScreen(files);
+    case "nt-badge":
+      return scanNtBadge(files);
     case "hidden-drag-no-alternative":
       return scanHiddenDrag(files);
     case "drop-navigates-without-preview":
@@ -8488,6 +8543,8 @@ function applyHeuristic(id, file) {
       return file.text;
     case "custom-lock-screen-ui":
       return file.text;
+    case "nt-badge":
+      return applyNtBadge(file.text);
     case "hidden-drag-no-alternative":
       return file.text;
     case "drop-navigates-without-preview":
