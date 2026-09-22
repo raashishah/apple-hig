@@ -1253,7 +1253,7 @@ const results = [];
       text: '<div data-ab-label="Start the egg timer now"><button type="button">Start</button></div>',
     },
   ]);
-  const appShortcutOnly = scanAffordances([
+  const appShortcutsProviderOnly = scanAffordances([
     {
       path: "Shortcuts.swift",
       text: "struct Shortcuts: AppShortcutsProvider {}",
@@ -1728,6 +1728,7 @@ const results = [];
       !abMarkerOnly.includes("actionbutton") &&
       !abLabelOnly.includes("actionbutton") &&
       !appShortcutOnly.includes("actionbutton") &&
+      !appShortcutsProviderOnly.includes("actionbutton") &&
       !quickActionOnly.includes("actionbutton") &&
       !stickerOnly.includes("actionbutton") &&
       !formOnly.includes("actionbutton") &&
