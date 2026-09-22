@@ -510,3 +510,5 @@ heuristics:
     match: longer than three words
   - id: ab-settings-repeat
     match: repeats the Settings guidance
+  - id: cc-duplicate
+    match: Duplicating controls in the UI and the Camera Control overlay

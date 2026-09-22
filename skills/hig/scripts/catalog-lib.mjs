@@ -627,6 +627,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "actionbutton":
       return !present.includes(need);
+    case "cameracontrol":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1230,6 +1232,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-action-button\b/.test(blob)) {
     found.push("actionbutton");
+  }
+  if (/\bdata-camera-control\b/.test(blob) || /\bAVCaptureControl\b/.test(blob)) {
+    found.push("cameracontrol");
   }
   return found;
 }

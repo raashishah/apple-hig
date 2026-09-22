@@ -176,6 +176,7 @@ const results = [];
     webSkip.launched.some((s) => s.id === "outline-views") &&
     webSkip.launched.some((s) => s.id === "imessage-apps-and-stickers") &&
     webSkip.launched.some((s) => s.id === "action-button") &&
+    webSkip.launched.some((s) => s.id === "camera-control") &&
     hk.launched.some((s) => s.id === "healthkit") &&
     !webSkip.launched.some((s) => s.id === "game-center") &&
     gc.launched.some((s) => s.id === "game-center") &&

@@ -6729,6 +6729,33 @@ function applyAbSettingsRepeat(text) {
   return text.replace(/\s*data-ab-settings-repeat(?:="[^"]*")?/g, "");
 }
 
+function hasCameraControl(text) {
+  return /\bdata-camera-control\b/.test(text) || /\bAVCaptureControl\b/.test(text);
+}
+
+function hasCcDuplicateCopy(text) {
+  return /duplicating controls/i.test(text);
+}
+
+function scanCcDuplicate(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-cc-duplicate/.test(f.text)) {
+      out.push(hit(f.path, "duplicating controls in the UI and the Camera Control overlay"));
+      continue;
+    }
+    if (!hasCameraControl(f.text)) continue;
+    if (hasCcDuplicateCopy(f.text)) {
+      out.push(hit(f.path, "duplicating controls in the UI and the Camera Control overlay"));
+    }
+  }
+  return out;
+}
+
+function applyCcDuplicate(text) {
+  return text.replace(/\s*data-cc-duplicate(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7254,6 +7281,8 @@ function scanHeuristic(id, files) {
       return scanAbLongLabel(files);
     case "ab-settings-repeat":
       return scanAbSettingsRepeat(files);
+    case "cc-duplicate":
+      return scanCcDuplicate(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -7772,6 +7801,8 @@ function applyHeuristic(id, file) {
       return applyAbLongLabel(file.text);
     case "ab-settings-repeat":
       return applyAbSettingsRepeat(file.text);
+    case "cc-duplicate":
+      return applyCcDuplicate(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

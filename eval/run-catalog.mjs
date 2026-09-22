@@ -115,6 +115,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["imessage-apps-and-stickers"]?.gate === "always" &&
     surfaces.byId["action-button"]?.affordance === "actionbutton" &&
     surfaces.byId["action-button"]?.gate === "always" &&
+    surfaces.byId["camera-control"]?.affordance === "cameracontrol" &&
+    surfaces.byId["camera-control"]?.gate === "always" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -530,6 +532,7 @@ const results = [];
     "outline-views",
     "imessage-apps-and-stickers",
     "action-button",
+    "camera-control",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1265,6 +1268,36 @@ const results = [];
       text: '<div data-quick-action><button type="button">Start</button></div>',
     },
   ]);
+  const cameraControlOnly = scanAffordances([
+    {
+      path: "Camera.tsx",
+      text: '<div data-camera-control><button type="button">Zoom</button></div>',
+    },
+  ]);
+  const avCaptureControlOnly = scanAffordances([
+    {
+      path: "Camera.swift",
+      text: "let control = AVCaptureControl()",
+    },
+  ]);
+  const cameraPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Use the Camera Control to zoom.</p>",
+    },
+  ]);
+  const ccMarkerOnly = scanAffordances([
+    {
+      path: "Camera.tsx",
+      text: '<div data-cc-duplicate><button type="button">Zoom</button></div>',
+    },
+  ]);
+  const captureSessionOnly = scanAffordances([
+    {
+      path: "Camera.swift",
+      text: "let session = AVCaptureSession()",
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1734,6 +1767,17 @@ const results = [];
       !formOnly.includes("actionbutton") &&
       !passList.includes("actionbutton") &&
       !pageOnly.includes("actionbutton") &&
+      cameraControlOnly.includes("cameracontrol") &&
+      !cameraControlOnly.includes("slider") &&
+      avCaptureControlOnly.includes("cameracontrol") &&
+      !cameraPhraseOnly.includes("cameracontrol") &&
+      !ccMarkerOnly.includes("cameracontrol") &&
+      !captureSessionOnly.includes("cameracontrol") &&
+      !rangeOnly.includes("cameracontrol") &&
+      !actionButtonOnly.includes("cameracontrol") &&
+      !formOnly.includes("cameracontrol") &&
+      !passList.includes("cameracontrol") &&
+      !pageOnly.includes("cameracontrol") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2485,6 +2529,10 @@ const results = [];
       (catalog.byId["action-button"]?.dontHeuristicIds || []).includes("ab-settings-repeat") &&
       catalog.byId["action-button"]?.pack === "inputs-action-button.md" &&
       catalog.byId["action-button"]?.appliesWhen === "always" &&
+      catalog.byId["camera-control"]?.dontCoverageComplete === true &&
+      (catalog.byId["camera-control"]?.dontHeuristicIds || []).includes("cc-duplicate") &&
+      catalog.byId["camera-control"]?.pack === "inputs-camera-control.md" &&
+      catalog.byId["camera-control"]?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2649,6 +2697,7 @@ const results = [];
       "outline-views",
       "imessage-apps-and-stickers",
       "action-button",
+      "camera-control",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -12243,6 +12292,131 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-action-button-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-camera-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-camera-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-camera-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-camera-control data-cc-duplicate>
+      <button type="button">Zoom</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-camera-control>
+      Avoid duplicating controls in the UI and the overlay.
+      <button type="button">Zoom</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passCamera: passStatus.topics["camera-control"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixCamera: fixStatus.topics["camera-control"]?.state === "applied",
+      systemKept: /\bdata-camera-control\b/.test(fixed) && />\s*Zoom\s*</.test(fixed),
+      markersGone: !/data-cc-duplicate/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdCamera: holdStatus.topics["camera-control"]?.state === "pending",
+      holdStillDuplicate:
+        /\bdata-camera-control\b/.test(held) &&
+        /duplicating controls/.test(held) &&
+        /Zoom/.test(held),
+      holdNotInvented: !/AVCaptureControl/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passCamera: passStatus.topics["camera-control"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixCamera: fixStatus.topics["camera-control"]?.state,
+      holdCamera: holdStatus.topics["camera-control"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-camera-control-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

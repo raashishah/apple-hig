@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay | idverifier | iap | map | homekit | workout | livephoto | icloud | siri | appshortcut | healthkit | carplay | siwa | applepay | audioplayer | gcaccess | panel | pathcontrol | outline | stickerpack | actionbutton.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay | idverifier | iap | map | homekit | workout | livephoto | icloud | siri | appshortcut | healthkit | carplay | siwa | applepay | audioplayer | gcaccess | panel | pathcontrol | outline | stickerpack | actionbutton | cameracontrol.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -416,6 +416,12 @@ surfaces:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/action-button
     gate: always
     covers: [action-button]
+  - id: camera-control
+    pack: inputs-camera-control.md
+    affordance: cameracontrol
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/camera-control
+    gate: always
+    covers: [camera-control]
   - id: playing-video
     pack: patterns-playing-video.md
     affordance: videoplayer
