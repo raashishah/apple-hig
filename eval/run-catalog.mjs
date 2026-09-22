@@ -23185,6 +23185,151 @@ ${dots}
   results.push({ case: "catalog-apply-care-symbol-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dgm-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dgm-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dgm-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dgm-hold-"));
+  const swapDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dgm-swap-"));
+  const oneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dgm-one-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dgm-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-dgm-bare-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, swapDir, oneDir, sentenceDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const stable = `export function HostWidgets() {
+  return (
+    <div draggable>
+      <img src="/item.png" alt="Item" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), stable);
+    const marked = `export function HostWidgets() {
+  return (
+    <div draggable data-dg-morph>
+      <img src="/item.png" alt="Item" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div draggable>
+      <p>Avoid creating a distracting experience in which the drag image is constantly and radically changing.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwap = `export function HostWidgets() {
+  return (
+    <div
+      draggable
+      onDrag={(e) => {
+        e.currentTarget.querySelector("img").src = e.clientX > 40 ? "/wide.png" : "/tall.png";
+      }}
+    >
+      <img src="/item.png" alt="Item" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(swapDir, "HostWidgets.tsx"), origSwap);
+    const oneImage = `export function HostWidgets() {
+  return (
+    <div draggable onDrag={(e) => { e.currentTarget.querySelector("img").src = "/item.png"; }}>
+      <img src="/item.png" alt="Item" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(oneDir, "HostWidgets.tsx"), oneImage);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid creating a distracting experience in which the drag image is constantly and radically changing.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origBare = `export function HostWidgets() {
+  return <span data-dg-morph>Item</span>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const names = ["pass", "clean", "fix", "hold", "swap", "one", "sentence", "bare"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      fix: fixDir,
+      hold: holdDir,
+      swap: swapDir,
+      one: oneDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const swapped = fs.readFileSync(path.join(swapDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const drag = (name) => status[name].topics["drag-and-drop"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["drag-and-drop"]?.dontHeuristicIds || []).includes("dg-morph"),
+      hiddenHeuristic: (catalog.byId["drag-and-drop"]?.dontHeuristicIds || []).includes(
+        "hidden-drag-no-alternative",
+      ),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passDrag: drag("pass") === "skipped-no-affordance",
+      cleanDrag: drag("clean") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixDrag: drag("fix") === "applied",
+      markerGone: !/data-dg-morph(?![\w-])/.test(fixed),
+      itemKept: /\bdraggable\b/.test(fixed) && /\/item\.png/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdDrag: drag("hold") === "pending",
+      holdPhrase: /constantly and radically changing/.test(held),
+      swapUnchanged: swapped === origSwap,
+      swapDrag: drag("swap") === "pending",
+      bothPreviews: /\/wide\.png/.test(swapped) && /\/tall\.png/.test(swapped),
+      oneDrag: drag("one") === "already-compliant",
+      sentenceDrag: drag("sentence") === "skipped-no-affordance",
+      bareDrag: drag("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-dg-morph(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passDrag: drag("pass"),
+      cleanDrag: drag("clean"),
+      fixDrag: drag("fix"),
+      holdDrag: drag("hold"),
+      swapDrag: drag("swap"),
+      oneDrag: drag("one"),
+      sentenceDrag: drag("sentence"),
+      bareDrag: drag("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-drag-morph-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

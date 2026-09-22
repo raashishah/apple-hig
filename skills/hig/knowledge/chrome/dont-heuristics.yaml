@@ -136,6 +136,8 @@ heuristics:
     match: Drop that navigates away without a preview
   - id: fight-split-view-drops
     match: Fighting system multi-window / split-view drops
+  - id: dg-morph
+    match: drag image that is constantly and radically changing
   - id: animated-splash-after-launch
     match: Animated splash after the system launch screen
   - id: video-sound-on-launch
