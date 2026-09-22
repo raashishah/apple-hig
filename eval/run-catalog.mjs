@@ -21685,6 +21685,177 @@ ${dots}
   results.push({ case: "catalog-apply-toolbar-unnamed-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-hold-"));
+  const twoDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-two-"));
+  const messageDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-message-"));
+  const sheetDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-sheet-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-swift-"));
+  const swiftTwoDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aln-swift-two-"));
+  const dirs = [passDir, fixDir, holdDir, twoDir, messageDir, sheetDir, sentenceDir, copyDir, swiftDir, swiftTwoDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <dialog role="alertdialog" data-al-lines>
+      <h2>Save this draft?</h2>
+      <button type="button">Save</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <dialog role="alertdialog">
+      <h2>Save this<br />draft before<br />you leave</h2>
+      <button type="button">Save</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origTwo = `export function HostWidgets() {
+  return (
+    <dialog role="alertdialog">
+      <h2>Save this<br />draft?</h2>
+      <button type="button">Save</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(twoDir, "HostWidgets.tsx"), origTwo);
+    const origMessage = `export function HostWidgets() {
+  return (
+    <dialog role="alertdialog">
+      <h2>Save this draft?</h2>
+      <p>Line one<br />line two<br />line three</p>
+      <button type="button">Save</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(messageDir, "HostWidgets.tsx"), origMessage);
+    const origSheet = `export function HostWidgets() {
+  return (
+    <dialog>
+      <h2>Save this<br />draft before<br />you leave</h2>
+      <button type="button">Save</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(sheetDir, "HostWidgets.tsx"), origSheet);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid overly long titles that wrap to more than two lines.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <dialog role="alertdialog">
+        <h2>Save this draft?</h2>
+        <button type="button">Save</button>
+      </dialog>
+      <p>Avoid overly long titles that wrap to more than two lines.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  return UIAlertController(title: "Save this\\ndraft before\\nyou leave", message: "Keep it?", preferredStyle: .alert);
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftTwo = `export function HostWidgets() {
+  return UIAlertController(title: "Save this\\ndraft?", message: "Keep it?", preferredStyle: .alert);
+}
+`;
+    fs.writeFileSync(path.join(swiftTwoDir, "HostWidgets.tsx"), origSwiftTwo);
+    const names = ["pass", "fix", "hold", "two", "message", "sheet", "sentence", "copy", "swift", "swiftTwo"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      two: twoDir,
+      message: messageDir,
+      sheet: sheetDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+      swiftTwo: swiftTwoDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const alerts = (name) => status[name].topics.alerts?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-lines"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passAlerts: alerts("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixAlerts: alerts("fix") === "applied",
+      markerGone: !/data-al-lines(?![\w-])/.test(fixed),
+      titleKept: /Save this draft\?/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAlerts: alerts("hold") === "pending",
+      holdLines: /draft before/.test(held),
+      twoAlerts: alerts("two") === "already-compliant",
+      messageAlerts: alerts("message") === "already-compliant",
+      sheetAlerts: alerts("sheet") === "already-compliant",
+      sentenceAlerts: alerts("sentence") === "skipped-no-affordance",
+      copyUnchanged: copied === origCopy,
+      copyAlerts: alerts("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftAlerts: alerts("swift") === "pending",
+      swiftTwoAlerts: alerts("swiftTwo") === "already-compliant",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAlerts: alerts("pass"),
+      fixAlerts: alerts("fix"),
+      holdAlerts: alerts("hold"),
+      twoAlerts: alerts("two"),
+      messageAlerts: alerts("message"),
+      sheetAlerts: alerts("sheet"),
+      sentenceAlerts: alerts("sentence"),
+      copyAlerts: alerts("copy"),
+      swiftAlerts: alerts("swift"),
+      swiftTwoAlerts: alerts("swiftTwo"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-alert-title-lines-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

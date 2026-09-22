@@ -9864,6 +9864,71 @@ function applyToolbarUnnamed(text) {
   return text.replace(/\s*data-tb-name(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function headingLineCount(inner) {
+  const normalized = String(inner || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|div|li)>/gi, "\n");
+  const text = normalized.replace(/<[^>]+>/g, "");
+  return text
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean).length;
+}
+
+function titleLineCount(raw) {
+  return String(raw || "")
+    .replace(/\\n/g, "\n")
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean).length;
+}
+
+function alertTitleTooLong(text) {
+  const roleRe = /<([A-Za-z][\w]*)\b[^>]*role=["']alertdialog["'][^>]*>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = roleRe.exec(text))) {
+    const heading = m[2].match(/<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/i);
+    if (heading && headingLineCount(heading[1]) > 2) return true;
+  }
+  const titles = [];
+  if (/\bUIAlertController\b/.test(text)) {
+    const titled = /\btitle:\s*"([^"]*)"/g;
+    let u;
+    while ((u = titled.exec(text))) titles.push(u[1]);
+  }
+  if (/\.alert\s*\(/.test(text)) {
+    const titled = /\.alert\(\s*"([^"]*)"/g;
+    let u;
+    while ((u = titled.exec(text))) titles.push(u[1]);
+  }
+  return titles.some((title) => titleLineCount(title) > 2);
+}
+
+function hasAlertTitleLinesCopy(text) {
+  return (
+    /wrap to more than two lines/i.test(text) ||
+    /alert title that wraps to more than two lines/i.test(text)
+  );
+}
+
+function scanAlertTitleLines(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-al-lines(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an alert title that wraps to more than two lines"));
+      continue;
+    }
+    if (alertTitleTooLong(f.text) || (hasAlertWidget(f.text) && hasAlertTitleLinesCopy(f.text))) {
+      out.push(hit(f.path, "an alert title that wraps to more than two lines"));
+    }
+  }
+  return out;
+}
+
+function applyAlertTitleLines(text) {
+  return text.replace(/\s*data-al-lines(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -10047,6 +10112,8 @@ function scanHeuristic(id, files) {
       return scanWindowAppTitle(files);
     case "tb-name":
       return scanToolbarUnnamed(files);
+    case "al-lines":
+      return scanAlertTitleLines(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -10689,6 +10756,8 @@ function applyHeuristic(id, file) {
       return applyWindowAppTitle(file.text);
     case "tb-name":
       return applyToolbarUnnamed(file.text);
+    case "al-lines":
+      return applyAlertTitleLines(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":

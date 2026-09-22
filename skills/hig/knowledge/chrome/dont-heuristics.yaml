@@ -168,6 +168,8 @@ heuristics:
     match: window titled with the app name
   - id: tb-name
     match: toolbar item with no visible text and no accessible name
+  - id: al-lines
+    match: alert title that wraps to more than two lines
   - id: hide-unavailable-menu-items
     match: Hide unavailable items instead of dimming them
   - id: nested-submenus-deep
