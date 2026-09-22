@@ -33,6 +33,7 @@
 - Custom opaque fills or tints on nav / tool / tab bars that fight system materials.
 - Teaching `UIDesignRequiresCompatibility` as a design.
 - Turning a marketing landing into an iOS tab shell.
+- A disabled or hidden tab bar button.
 
 ## Interaction states
 

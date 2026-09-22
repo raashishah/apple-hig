@@ -2699,6 +2699,7 @@ const results = [];
       catalog.byId["lists-and-tables"]?.dontCoverageComplete === true &&
       catalog.byId["entering-data"]?.dontCoverageComplete === true &&
       catalog.byId.sidebars?.dontCoverageComplete === true &&
+      (catalog.byId["tab-bars"]?.dontHeuristicIds || []).includes("tb-off") &&
       (catalog.byId.layout?.dontHeuristicIds || []).includes("dashboard-card-grid-home") &&
       (catalog.byId["entering-data"]?.dontHeuristicIds || []).includes("equal-weight-submits") &&
       catalog.byId["design-principles"]?.dontCoverageComplete === false &&
@@ -18450,6 +18451,186 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-sheet-done-only-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbo-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbo-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbo-hold-"));
+  const offDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbo-off-"));
+  const hideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbo-hide-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbo-plain-"));
+  const viewDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbo-view-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbo-swift-"));
+  const dirs = [passDir, fixDir, holdDir, offDir, hideDir, plainDir, viewDir, swiftDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist" data-tb-off>
+      <button type="button" role="tab">Home</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <p>Don't disable or hide tab bar buttons, even when their content is unavailable.</p>
+      <button type="button" role="tab">Home</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origOff = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <button type="button" role="tab" disabled>Home</button>
+      <button type="button" role="tab">Search</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(offDir, "HostWidgets.tsx"), origOff);
+    const origHide = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <button type="button" role="tab" hidden>Home</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(hideDir, "HostWidgets.tsx"), origHide);
+    const origPlain = `export function HostWidgets() {
+  return <button type="button" disabled>Save</button>;
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origView = `export function HostWidgets() {
+  return (
+    <div>
+      <div role="tablist">
+        <button type="button" role="tab" disabled>One</button>
+      </div>
+      <div role="tabpanel">Pane</div>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(viewDir, "HostWidgets.tsx"), origView);
+    const origSwift = `export function HostWidgets() {
+  TabView {
+    Text("Home").tabItem { Text("Home") }.disabled(true)
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const offReport = run(offDir);
+    const hideReport = run(hideDir);
+    const plainReport = run(plainDir);
+    const viewReport = run(viewDir);
+    const swiftReport = run(swiftDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const offStatus = readStatus(offDir);
+    const hideStatus = readStatus(hideDir);
+    const plainStatus = readStatus(plainDir);
+    const viewStatus = readStatus(viewDir);
+    const swiftStatus = readStatus(swiftDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const off = fs.readFileSync(path.join(offDir, "HostWidgets.tsx"), "utf8");
+    const hide = fs.readFileSync(path.join(hideDir, "HostWidgets.tsx"), "utf8");
+    const plain = fs.readFileSync(path.join(plainDir, "HostWidgets.tsx"), "utf8");
+    const view = fs.readFileSync(path.join(viewDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      offChrome: offReport.chrome.pass === true,
+      hideChrome: hideReport.chrome.pass === true,
+      plainChrome: plainReport.chrome.pass === true,
+      viewChrome: viewReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      passTabs: passStatus.topics["tab-bars"]?.state === "already-compliant",
+      passSidebars: passStatus.topics.sidebars?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixTabs: fixStatus.topics["tab-bars"]?.state === "applied",
+      systemKept: />\s*Home\s*</.test(fixed),
+      markersGone: !/data-tb-off\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdTabs: holdStatus.topics["tab-bars"]?.state === "pending",
+      holdStillPhrase: /disable or hide tab bar buttons/.test(held),
+      holdNotEnabled: !/\sdisabled(?=[\s=/>])/.test(held),
+      offUnchanged: off === origOff,
+      offTabs: offStatus.topics["tab-bars"]?.state === "pending",
+      offKept: /role="tab" disabled>Home/.test(off),
+      hideUnchanged: hide === origHide,
+      hideTabs: hideStatus.topics["tab-bars"]?.state === "pending",
+      hideKept: /role="tab" hidden>Home/.test(hide),
+      plainUnchanged: plain === origPlain,
+      plainTabs: plainStatus.topics["tab-bars"]?.state === "already-compliant",
+      plainKept: /disabled>Save/.test(plain),
+      viewUnchanged: view === origView,
+      viewTabs: viewStatus.topics["tab-bars"]?.state === "already-compliant",
+      viewKept: /role="tab" disabled>One/.test(view),
+      swiftUnchanged: swift === origSwift,
+      swiftTabs: swiftStatus.topics["tab-bars"]?.state === "pending",
+      swiftKept: /\.disabled\(true\)/.test(swift),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passTabs: passStatus.topics["tab-bars"]?.state,
+      fixTabs: fixStatus.topics["tab-bars"]?.state,
+      holdTabs: holdStatus.topics["tab-bars"]?.state,
+      offTabs: offStatus.topics["tab-bars"]?.state,
+      hideTabs: hideStatus.topics["tab-bars"]?.state,
+      plainTabs: plainStatus.topics["tab-bars"]?.state,
+      viewTabs: viewStatus.topics["tab-bars"]?.state,
+      swiftTabs: swiftStatus.topics["tab-bars"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-tab-disabled-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

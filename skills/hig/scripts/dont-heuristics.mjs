@@ -2321,6 +2321,100 @@ function hasTabShell(text) {
   return /data-tab-bar|role=["']tablist["']|UITabBar|\bTabView\s*\(/.test(text);
 }
 
+function isTabViewFile(text) {
+  return (
+    /\bdata-tab-view\b/.test(text) ||
+    /\bNSTabView\b/.test(text) ||
+    (/role=["']tablist["']/i.test(text) && /role=["']tabpanel["']/i.test(text))
+  );
+}
+
+function hasTabBar(text) {
+  if (isTabViewFile(text)) return false;
+  return /data-tab-bar|role=["']tablist["']|\bUITabBar\b|\bTabView\s*[({\[]/.test(text);
+}
+
+function hasTabDisabledCopy(text) {
+  return (
+    /don['’]?t disable or hide tab bar buttons/i.test(text) ||
+    /disable or hide tab bar buttons/i.test(text) ||
+    /disabled or hidden tab bar button/i.test(text)
+  );
+}
+
+function tagDisablesTab(attrs) {
+  if (/\saria-disabled=["']true["']/i.test(attrs)) return true;
+  if (/\saria-hidden=["']true["']/i.test(attrs)) return true;
+  if (/(?:^|\s)hidden(?=$|[\s=/>])/.test(attrs)) return true;
+  if (/(?:^|\s)disabled(?=$|[\s=/>])/.test(attrs)) {
+    if (/disabled\s*=\s*["'{]\s*false/i.test(attrs)) return false;
+    return true;
+  }
+  return false;
+}
+
+function tabBarRegions(text) {
+  const out = [];
+  const re = /<(nav|div|ul|header)\b[^>]*(?:data-tab-bar|role=["']tablist["'])[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(text))) out.push(m[0]);
+  return out;
+}
+
+function hasSwiftDisabledTab(text) {
+  if (/\bUITabBarItem\b/.test(text)) {
+    if (
+      /UITabBarItem[\s\S]{0,240}isEnabled\s*=\s*false|isEnabled\s*=\s*false[\s\S]{0,240}UITabBarItem/.test(
+        text,
+      )
+    ) {
+      return true;
+    }
+  }
+  if (!/\bTabView\s*[({\[]/.test(text)) return false;
+  return (
+    /\.tabItem\s*[({\[][\s\S]{0,240}\.disabled\s*\(\s*true\s*\)/.test(text) ||
+    /\.disabled\s*\(\s*true\s*\)[\s\S]{0,240}\.tabItem\s*[({\[]/.test(text) ||
+    /Tab\([^)]*\)\s*\.disabled\s*\(\s*true\s*\)/.test(text)
+  );
+}
+
+function hasDisabledTab(text) {
+  if (isTabViewFile(text)) return false;
+  if (
+    openingTags(text).some((t) => /role=["']tab["']/i.test(t.attrs) && tagDisablesTab(t.attrs))
+  ) {
+    return true;
+  }
+  for (const region of tabBarRegions(text)) {
+    if (
+      openingTags(region).some((t) => /^(button|a)$/i.test(t.tag) && tagDisablesTab(t.attrs))
+    ) {
+      return true;
+    }
+  }
+  return hasSwiftDisabledTab(text);
+}
+
+function scanTabDisabled(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-tb-off\b/.test(f.text)) {
+      out.push(hit(f.path, "a disabled or hidden tab bar button"));
+      continue;
+    }
+    if (!hasTabBar(f.text)) continue;
+    if (hasTabDisabledCopy(f.text) || hasDisabledTab(f.text)) {
+      out.push(hit(f.path, "a disabled or hidden tab bar button"));
+    }
+  }
+  return out;
+}
+
+function applyTabDisabled(text) {
+  return text.replace(/\s*data-tb-off(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMarketingTabShell(files) {
   const out = [];
   for (const f of files) {
@@ -8570,6 +8664,8 @@ function scanHeuristic(id, files) {
       return scanEqualWeightSubmits(files);
     case "marketing-landing-tab-shell":
       return scanMarketingTabShell(files);
+    case "tb-off":
+      return scanTabDisabled(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -9176,6 +9272,8 @@ function applyHeuristic(id, file) {
       return applyEqualWeightSubmits(file.text);
     case "marketing-landing-tab-shell":
       return applyMarketingTabShell(file.text, file);
+    case "tb-off":
+      return applyTabDisabled(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":
