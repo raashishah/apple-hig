@@ -18404,7 +18404,7 @@ struct OneTorch: ControlWidget {
       holdStillPhrase: /Relying solely on the Done button/.test(held),
       holdNotInvented: !/<button\b[^>]*>\s*Cancel\s*<\/button>/i.test(held),
       doneUnchanged: done === origDone,
-      doneSheets: doneStatus.topics.sheets?.state === "pending",
+      doneSheets: doneStatus.topics.sheets?.state === "already-compliant",
       doneKept: />\s*Done\s*</.test(done),
       cancelUnchanged: cancel === origCancel,
       cancelSheets: cancelStatus.topics.sheets?.state === "already-compliant",

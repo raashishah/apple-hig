@@ -1799,10 +1799,10 @@ function isDoneOnlyExit(labels) {
 }
 
 function hasSheetDoneOnlyButtons(text) {
+  if (!/\.sheet\s*\(|\bUISheetPresentationController\b|\bpresentAsSheet\s*\(/.test(text)) return false;
   for (const region of dialogRegions(text)) {
     if (isDoneOnlyExit(regionButtonLabels(region))) return true;
   }
-  if (!/\.sheet\s*\(|\bUISheetPresentationController\b|\bpresentAsSheet\s*\(/.test(text)) return false;
   const labels = ["done", "cancel", "close", "back"].filter((name) =>
     new RegExp(`Button\\(\\s*["']${name}["']`, "i").test(text),
   );
