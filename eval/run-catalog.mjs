@@ -26219,6 +26219,144 @@ ${dots}
   results.push({ case: "catalog-apply-image-button-border-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-plain-"));
+  const selectDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-select-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-outside-"));
+  const expandedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-expanded-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-hold-"));
+  const popupDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-popup-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbp-fix-"));
+  const dirs = [passDir, plainDir, selectDir, outsideDir, expandedDir, holdDir, popupDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const bar = (inner) => host(`<header role="toolbar" aria-label="Inventory">
+      ${inner}
+    </header>`);
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), bar(`<button type="button">Save</button>`));
+    fs.writeFileSync(
+      path.join(selectDir, "HostWidgets.tsx"),
+      bar(`<select aria-label="Sort"><option>Name</option></select>`),
+    );
+    fs.writeFileSync(
+      path.join(outsideDir, "HostWidgets.tsx"),
+      host(`<header role="toolbar" aria-label="Inventory">
+      <button type="button">Save</button>
+    </header>
+    <div role="menu">
+      <button type="button" role="menuitem">Share</button>
+    </div>`),
+    );
+    fs.writeFileSync(
+      path.join(expandedDir, "HostWidgets.tsx"),
+      bar(`<button type="button" aria-expanded="false">Save</button>`),
+    );
+    const origHold = bar(`<div role="menu">
+      <button type="button" role="menuitem">Share</button>
+    </div>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origPopup = bar(`<button type="button" aria-haspopup="menu">Actions</button>`);
+    fs.writeFileSync(path.join(popupDir, "HostWidgets.tsx"), origPopup);
+    const origCopy = bar(`<button type="button">Save</button>
+      <p>Avoid using a pull-down menu in a toolbar.</p>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid using a pull-down menu in a toolbar.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(`<header role="toolbar" aria-label="Inventory" data-tb-pull>
+      <button type="button">Save</button>
+    </header>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "plain", "select", "outside", "expanded", "hold", "popup", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      select: selectDir,
+      outside: outsideDir,
+      expanded: expandedDir,
+      hold: holdDir,
+      popup: popupDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const popped = fs.readFileSync(path.join(popupDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const toolbars = (name) => status[name].topics.toolbars?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.toolbars?.dontHeuristicIds || []).includes("tb-pull"),
+      named: (catalog.byId.toolbars?.dontHeuristicIds || []).includes("tb-name"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passToolbars: toolbars("pass") === "already-compliant",
+      passTabs: status.pass.topics["tab-bars"]?.state === "already-compliant",
+      passSidebars: status.pass.topics.sidebars?.state === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainToolbars: toolbars("plain") === "already-compliant",
+      selectToolbars: toolbars("select") === "already-compliant",
+      outsideToolbars: toolbars("outside") === "already-compliant",
+      expandedToolbars: toolbars("expanded") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdToolbars: toolbars("hold") === "pending",
+      menuKept: /role="menu"/.test(held),
+      popupUnchanged: popped === origPopup,
+      popupToolbars: toolbars("popup") === "pending",
+      popupKept: /aria-haspopup="menu"/.test(popped),
+      copyUnchanged: copied === origCopy,
+      copyToolbars: toolbars("copy") === "pending",
+      sentenceToolbars: toolbars("sentence") === "already-compliant",
+      fixToolbars: toolbars("fix") === "applied",
+      markerGone: !/data-tb-pull(?![\w-])/.test(fixed),
+      saveKept: />\s*Save\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passToolbars: toolbars("pass"),
+      plainToolbars: toolbars("plain"),
+      selectToolbars: toolbars("select"),
+      outsideToolbars: toolbars("outside"),
+      expandedToolbars: toolbars("expanded"),
+      holdToolbars: toolbars("hold"),
+      popupToolbars: toolbars("popup"),
+      copyToolbars: toolbars("copy"),
+      sentenceToolbars: toolbars("sentence"),
+      fixToolbars: toolbars("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-toolbar-pulldown-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -188,6 +188,8 @@ heuristics:
     match: window titled with the app name
   - id: tb-name
     match: toolbar item with no visible text and no accessible name
+  - id: tb-pull
+    match: pull-down menu in a toolbar
   - id: al-lines
     match: alert title that wraps to more than two lines
   - id: al-scroll

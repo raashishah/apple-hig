@@ -11000,6 +11000,85 @@ function applyToolbarUnnamed(text) {
   return text.replace(/\s*data-tb-name(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function regionHasPullDown(region) {
+  if (/role=["']menu["']/i.test(region)) return true;
+  if (/\bMenu\s*\(/.test(region)) return true;
+  if (/aria-haspopup=["']menu["']/i.test(region)) return true;
+  return false;
+}
+
+function dataToolbarRegions(text) {
+  const out = [];
+  const openRe = /<([A-Za-z][\w]*)\b[^>]*\bdata-toolbar(?![\w-])[^>]*>/gi;
+  let m;
+  while ((m = openRe.exec(text))) {
+    const tag = m[1];
+    let i = m.index + m[0].length;
+    let depth = 1;
+    const reopen = new RegExp(`<${tag}\\b`, "gi");
+    const close = new RegExp(`</${tag}\\s*>`, "gi");
+    while (depth > 0 && i < text.length) {
+      reopen.lastIndex = i;
+      close.lastIndex = i;
+      const nOpen = reopen.exec(text);
+      const nClose = close.exec(text);
+      if (!nClose) {
+        i = text.length;
+        break;
+      }
+      if (nOpen && nOpen.index < nClose.index) {
+        depth += 1;
+        i = nOpen.index + nOpen[0].length;
+      } else {
+        depth -= 1;
+        i = nClose.index + nClose[0].length;
+      }
+    }
+    out.push(text.slice(m.index, i));
+  }
+  return out;
+}
+
+function hasPullDownInToolbar(text) {
+  for (const region of elementsWithRole(text, "toolbar")) {
+    if (regionHasPullDown(region)) return true;
+  }
+  for (const region of dataToolbarRegions(text)) {
+    if (regionHasPullDown(region)) return true;
+  }
+  const re = /\.toolbar\s*\{/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const open = m.index + m[0].lastIndexOf("{");
+    const close = matchingBrace(text, open);
+    if (close < 0) continue;
+    if (regionHasPullDown(text.slice(m.index, close + 1))) return true;
+  }
+  return false;
+}
+
+function hasPullDownCopy(text) {
+  return /pull-down menu in a toolbar/i.test(text);
+}
+
+function scanToolbarPullDown(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-tb-pull(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a pull-down menu in a toolbar"));
+      continue;
+    }
+    if (hasPullDownInToolbar(f.text) || (hasPullDownCopy(f.text) && hasToolbarWidget(f.text))) {
+      out.push(hit(f.path, "a pull-down menu in a toolbar"));
+    }
+  }
+  return out;
+}
+
+function applyToolbarPullDown(text) {
+  return text.replace(/\s*data-tb-pull(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function headingLineCount(inner) {
   const normalized = String(inner || "")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -11370,6 +11449,8 @@ function scanHeuristic(id, files) {
       return scanWindowAppTitle(files);
     case "tb-name":
       return scanToolbarUnnamed(files);
+    case "tb-pull":
+      return scanToolbarPullDown(files);
     case "al-lines":
       return scanAlertTitleLines(files);
     case "al-scroll":
@@ -12070,6 +12151,8 @@ function applyHeuristic(id, file) {
       return applyWindowAppTitle(file.text);
     case "tb-name":
       return applyToolbarUnnamed(file.text);
+    case "tb-pull":
+      return applyToolbarPullDown(file.text);
     case "al-lines":
       return applyAlertTitleLines(file.text);
     case "al-scroll":
