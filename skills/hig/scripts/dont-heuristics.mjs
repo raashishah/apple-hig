@@ -10217,6 +10217,54 @@ function applySquareButtonLabel(text) {
   return text.replace(/\s*data-bt-square(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function buttonIsBordered(tag) {
+  if (/\bisBordered\s*(?:=|:)\s*\{?\s*false\b/.test(tag)) return false;
+  return /\bisBordered\b/.test(tag);
+}
+
+function buttonHasImage(text, openEnd) {
+  const close = text.toLowerCase().indexOf("</button>", openEnd);
+  if (close < 0) return false;
+  return /<(?:svg|img)\b/i.test(text.slice(openEnd, close));
+}
+
+function hasBorderedImageButton(text) {
+  const re = /<button\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    if (!buttonIsBordered(m[0])) continue;
+    const openEnd = m.index + m[0].length;
+    if (buttonHasVisibleText(text, openEnd)) continue;
+    if (buttonHasImage(text, openEnd)) return true;
+  }
+  return false;
+}
+
+function hasImageBorderCopy(text) {
+  return (
+    /system-provided border in an image button/i.test(text) ||
+    /image button with a system border/i.test(text)
+  );
+}
+
+function scanImageButtonBorder(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-bt-border(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an image button with a system border"));
+      continue;
+    }
+    if (hasBorderedImageButton(f.text) || (hasImageBorderCopy(f.text) && /<button\b/i.test(f.text))) {
+      out.push(hit(f.path, "an image button with a system border"));
+    }
+  }
+  return out;
+}
+
+function applyImageButtonBorder(text) {
+  return text.replace(/\s*data-bt-border(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasSegmentedWidget(text) {
   return (
     /role=["']radiogroup["']/i.test(text) ||
@@ -11372,6 +11420,8 @@ function scanHeuristic(id, files) {
       return scanColorOnlyToggle(files);
     case "bt-square":
       return scanSquareButtonLabel(files);
+    case "bt-border":
+      return scanImageButtonBorder(files);
     case "sg-mix":
       return scanSegmentMix(files);
     case "sg-count":
@@ -12070,6 +12120,8 @@ function applyHeuristic(id, file) {
       return applyColorOnlyToggle(file.text);
     case "bt-square":
       return applySquareButtonLabel(file.text);
+    case "bt-border":
+      return applyImageButtonBorder(file.text);
     case "sg-mix":
       return applySegmentMix(file.text);
     case "sg-count":

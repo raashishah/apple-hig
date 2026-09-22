@@ -25,6 +25,7 @@
 - A label that explains a button that changes the selection.
 - A toggle that relies solely on different colors to communicate state.
 - A label that introduces a square button.
+- An image button with a system border.
 
 ## Apply in host
 

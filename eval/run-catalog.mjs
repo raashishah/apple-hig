@@ -26094,6 +26094,131 @@ ${dots}
   results.push({ case: "catalog-apply-sidebar-bottom-action-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-plain-"));
+  const textDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-text-"));
+  const offDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-off-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-hold-"));
+  const colonDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-colon-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btb-fix-"));
+  const dirs = [passDir, plainDir, textDir, offDir, holdDir, colonDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const plain = host(`<button type="button">
+      <svg aria-hidden="true" />
+    </button>`);
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), plain);
+    fs.writeFileSync(path.join(textDir, "HostWidgets.tsx"), host(`<button type="button" isBordered={true}>Save</button>`));
+    fs.writeFileSync(
+      path.join(offDir, "HostWidgets.tsx"),
+      host(`<button type="button" isBordered={false}>
+      <svg aria-hidden="true" />
+    </button>`),
+    );
+    const origHold = host(`<button type="button" isBordered={true}>
+      <svg aria-hidden="true" />
+    </button>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origColon = host(`<button type="button" style={{ isBordered: true }}>
+      <svg aria-hidden="true" />
+    </button>`);
+    fs.writeFileSync(path.join(colonDir, "HostWidgets.tsx"), origColon);
+    const origCopy = host(`<button type="button">
+      <svg aria-hidden="true" />
+    </button>
+    <p>Avoid including a system-provided border in an image button.</p>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid including a system-provided border in an image button.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(`<button type="button" data-bt-border>
+      <svg aria-hidden="true" />
+    </button>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "plain", "text", "off", "hold", "colon", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      text: textDir,
+      off: offDir,
+      hold: holdDir,
+      colon: colonDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const colonKept = fs.readFileSync(path.join(colonDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const buttons = (name) => status[name].topics.buttons?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.buttons?.dontHeuristicIds || []).includes("bt-border"),
+      square: (catalog.byId.buttons?.dontHeuristicIds || []).includes("bt-square"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passButtons: buttons("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainButtons: buttons("plain") === "already-compliant",
+      textButtons: buttons("text") === "already-compliant",
+      offButtons: buttons("off") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdButtons: buttons("hold") === "pending",
+      borderKept: /isBordered=\{true\}/.test(held),
+      colonUnchanged: colonKept === origColon,
+      colonButtons: buttons("colon") === "pending",
+      copyUnchanged: copied === origCopy,
+      copyButtons: buttons("copy") === "pending",
+      sentenceButtons: buttons("sentence") === "already-compliant",
+      fixButtons: buttons("fix") === "applied",
+      markerGone: !/data-bt-border(?![\w-])/.test(fixed),
+      imageKept: /<svg\b/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: buttons("pass"),
+      plainButtons: buttons("plain"),
+      textButtons: buttons("text"),
+      offButtons: buttons("off"),
+      holdButtons: buttons("hold"),
+      colonButtons: buttons("colon"),
+      copyButtons: buttons("copy"),
+      sentenceButtons: buttons("sentence"),
+      fixButtons: buttons("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-image-button-border-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

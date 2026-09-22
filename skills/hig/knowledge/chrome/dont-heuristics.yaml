@@ -244,6 +244,8 @@ heuristics:
     match: relies solely on different colors to communicate state
   - id: bt-square
     match: label that introduces a square button
+  - id: bt-border
+    match: image button with a system border
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large
