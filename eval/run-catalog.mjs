@@ -2669,6 +2669,7 @@ const results = [];
       catalog.byId.privacy?.dontCoverageComplete === true &&
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("dark-pattern-allow-only") &&
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("preemptive-permission-on-marketing") &&
+      (catalog.byId.privacy?.dontHeuristicIds || []).includes("pv-att") &&
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("rewrite-or-automate-system-ui") &&
       catalog.byId.branding?.dontCoverageComplete === true &&
       (catalog.byId.branding?.dontHeuristicIds || []).includes("opaque-brand-bar-fills") &&
@@ -16697,6 +16698,170 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-notification-content-name-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pva-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pva-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pva-hold-"));
+  const allowDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pva-allow-"));
+  const coinsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pva-coins-"));
+  const nextDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pva-next-"));
+  const cameraDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pva-camera-"));
+  const wordsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pva-words-"));
+  const dirs = [passDir, fixDir, holdDir, allowDir, coinsDir, nextDir, cameraDir, wordsDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-pv-att>
+      <button type="button">Next</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return (
+    <p>Never precede the system-provided alert with a custom screen that could confuse or mislead people.</p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origAllow = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return <button type="button">Allow</button>;
+}
+`;
+    fs.writeFileSync(path.join(allowDir, "HostWidgets.tsx"), origAllow);
+    const origCoins = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return <p>Earn coins if you share this.</p>;
+}
+`;
+    fs.writeFileSync(path.join(coinsDir, "HostWidgets.tsx"), origCoins);
+    const origNext = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return <button type="button">Continue</button>;
+}
+`;
+    fs.writeFileSync(path.join(nextDir, "HostWidgets.tsx"), origNext);
+    const origCamera = `export function HostWidgets() {
+  navigator.mediaDevices.getUserMedia({ video: true })
+  return <button type="button">Allow</button>;
+}
+`;
+    fs.writeFileSync(path.join(cameraDir, "HostWidgets.tsx"), origCamera);
+    const origWords = `export function HostWidgets() {
+  return (
+    <p>Never precede the system-provided alert with a custom screen that could confuse or mislead people.</p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(wordsDir, "HostWidgets.tsx"), origWords);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const allowReport = run(allowDir);
+    const coinsReport = run(coinsDir);
+    const nextReport = run(nextDir);
+    const cameraReport = run(cameraDir);
+    const wordsReport = run(wordsDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const allowStatus = readStatus(allowDir);
+    const coinsStatus = readStatus(coinsDir);
+    const nextStatus = readStatus(nextDir);
+    const cameraStatus = readStatus(cameraDir);
+    const wordsStatus = readStatus(wordsDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const allowed = fs.readFileSync(path.join(allowDir, "HostWidgets.tsx"), "utf8");
+    const coins = fs.readFileSync(path.join(coinsDir, "HostWidgets.tsx"), "utf8");
+    const next = fs.readFileSync(path.join(nextDir, "HostWidgets.tsx"), "utf8");
+    const camera = fs.readFileSync(path.join(cameraDir, "HostWidgets.tsx"), "utf8");
+    const words = fs.readFileSync(path.join(wordsDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      allowChrome: allowReport.chrome.pass === true,
+      coinsChrome: coinsReport.chrome.pass === true,
+      nextChrome: nextReport.chrome.pass === true,
+      cameraChrome: cameraReport.chrome.pass === true,
+      wordsChrome: wordsReport.chrome.pass === true,
+      passPrivacy: passStatus.topics.privacy?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixPrivacy: fixStatus.topics.privacy?.state === "applied",
+      systemKept: />\s*Next\s*</.test(fixed),
+      markersGone: !/data-pv-att/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPrivacy: holdStatus.topics.privacy?.state === "pending",
+      holdStillPhrase: /custom screen that could confuse or mislead/.test(held),
+      holdNotInvented: !/<button\b/.test(held),
+      allowUnchanged: allowed === origAllow,
+      allowPrivacy: allowStatus.topics.privacy?.state === "pending",
+      allowKept: />\s*Allow\s*</.test(allowed) && /requestTrackingAuthorization/.test(allowed),
+      coinsUnchanged: coins === origCoins,
+      coinsPrivacy: coinsStatus.topics.privacy?.state === "pending",
+      coinsKept: /Earn coins/.test(coins),
+      nextUnchanged: next === origNext,
+      nextPrivacy: nextStatus.topics.privacy?.state === "already-compliant",
+      nextKept: />\s*Continue\s*</.test(next),
+      cameraUnchanged: camera === origCamera,
+      cameraPrivacy: cameraStatus.topics.privacy?.state === "already-compliant",
+      cameraKept: /getUserMedia/.test(camera) && />\s*Allow\s*</.test(camera),
+      wordsUnchanged: words === origWords,
+      wordsPrivacy: wordsStatus.topics.privacy?.state === "already-compliant",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPrivacy: passStatus.topics.privacy?.state,
+      fixPrivacy: fixStatus.topics.privacy?.state,
+      holdPrivacy: holdStatus.topics.privacy?.state,
+      allowPrivacy: allowStatus.topics.privacy?.state,
+      coinsPrivacy: coinsStatus.topics.privacy?.state,
+      nextPrivacy: nextStatus.topics.privacy?.state,
+      cameraPrivacy: cameraStatus.topics.privacy?.state,
+      wordsPrivacy: wordsStatus.topics.privacy?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-tracking-prealert-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

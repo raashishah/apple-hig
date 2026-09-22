@@ -24,6 +24,7 @@ Encode permission **timing and copy**. Do not complete Apple Pay, Sign in with A
 - Dark-pattern “Allow” as the only readable control.
 - Pre-emptive camera/mic/location prompts on a marketing screen.
 - Rewriting or automating system permission, Pay, or Sign in UI.
+- A custom tracking screen with an incentive or an Allow button.
 
 ## Apply in host
 

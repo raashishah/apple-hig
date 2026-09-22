@@ -904,6 +904,53 @@ function scanPreemptiveMarketing(files) {
   return out;
 }
 
+function hasTrackingRequest(text) {
+  return /\bATTrackingManager\b/.test(text) || /\brequestTrackingAuthorization\b/.test(text);
+}
+
+function hasAttPrealertCopy(text) {
+  return (
+    /never precede the system-provided alert with a custom screen/i.test(text) ||
+    /custom screen or window that could confuse or mislead/i.test(text)
+  );
+}
+
+function hasAttAllowButton(text) {
+  return /<button\b[^>]*>\s*Allow\s*<\/button>/i.test(text);
+}
+
+function hasAttIncentive(text) {
+  const incentive = "earn coins|get a reward|\\bincentive\\b";
+  const request = "requestTrackingAuthorization|ATTrackingManager";
+  const forward = new RegExp(`(?:${request})[\\s\\S]{0,240}(?:${incentive})`, "i");
+  const backward = new RegExp(`(?:${incentive})[\\s\\S]{0,240}(?:${request})`, "i");
+  return forward.test(text) || backward.test(text);
+}
+
+function hasAttPrealertSignal(text) {
+  if (!hasTrackingRequest(text)) return false;
+  return hasAttAllowButton(text) || hasAttIncentive(text);
+}
+
+function scanAttPrealert(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pv-att/.test(f.text)) {
+      out.push(hit(f.path, "a custom tracking screen with an incentive or an Allow button"));
+      continue;
+    }
+    if (!hasTrackingRequest(f.text)) continue;
+    if (hasAttPrealertCopy(f.text) || hasAttPrealertSignal(f.text)) {
+      out.push(hit(f.path, "a custom tracking screen with an incentive or an Allow button"));
+    }
+  }
+  return out;
+}
+
+function applyAttPrealert(text) {
+  return text.replace(/\s*data-pv-att(?:="[^"]*")?/g, "");
+}
+
 function scanRewriteOrAutomate(files) {
   const out = scanRewriteSystemAlerts(files);
   for (const f of files) {
@@ -8029,6 +8076,8 @@ function scanHeuristic(id, files) {
       return scanDarkPatternAllow(files);
     case "preemptive-permission-on-marketing":
       return scanPreemptiveMarketing(files);
+    case "pv-att":
+      return scanAttPrealert(files);
     case "rewrite-or-automate-system-ui":
       return scanRewriteOrAutomate(files);
     case "opaque-brand-bar-fills":
@@ -8617,6 +8666,8 @@ function applyHeuristic(id, file) {
       return applyDarkPatternAllow(file.text);
     case "preemptive-permission-on-marketing":
       return file.text;
+    case "pv-att":
+      return applyAttPrealert(file.text);
     case "rewrite-or-automate-system-ui":
       return file.text;
     case "opaque-brand-bar-fills":
