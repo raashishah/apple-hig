@@ -39,6 +39,7 @@ Encode **permission and timing**. Widgets / Live Activities are U5. Do not compl
 - Custom lock-screen UI that fights the system.
 - A badge that conveys numeric information that isn't related to notifications.
 - The app name in a notification button label.
+- A notification action that merely opens your app.
 
 ## Checklist
 

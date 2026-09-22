@@ -116,6 +116,8 @@ heuristics:
     match: numeric information that isn't related to notifications
   - id: nt-label
     match: app name in a notification button label
+  - id: nt-open
+    match: action that merely opens your app
   - id: hidden-drag-no-alternative
     match: Hidden drag with no alternative
   - id: drop-navigates-without-preview

@@ -1887,6 +1887,12 @@ const results = [];
       text: "<div data-nt-label></div>",
     },
   ]);
+  const ntOpenMarkerOnly = scanAffordances([
+    {
+      path: "Badge.tsx",
+      text: "<div data-nt-open></div>",
+    },
+  ]);
   const hltMarkerOnly = scanAffordances([
     {
       path: "Mark.tsx",
@@ -1912,6 +1918,7 @@ const results = [];
       !badgeCountOnly.includes("notification") &&
       !ntBadgeMarkerOnly.includes("notification") &&
       !ntLabelMarkerOnly.includes("notification") &&
+      !ntOpenMarkerOnly.includes("notification") &&
       !passList.includes("loading") &&
       !passList.includes("feedback") &&
       !passList.includes("onboarding") &&
@@ -2731,6 +2738,7 @@ const results = [];
       catalog.byId.notifications?.dontCoverageComplete === true &&
       (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-badge") &&
       (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-label") &&
+      (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-open") &&
       catalog.byId["dark-mode"]?.pack === "foundations-color.md" &&
       catalog.byId["sf-symbols"]?.pack === "foundations-icons.md" &&
       catalog.byId["context-menus"]?.pack === "components-menus.md" &&
@@ -16325,6 +16333,174 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-notification-label-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nto-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nto-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nto-hold-"));
+  const openDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nto-open-"));
+  const snoozeDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nto-snooze-"));
+  const acmeDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nto-acme-"));
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nto-named-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-nto-bare-"));
+  const dirs = [passDir, fixDir, holdDir, openDir, snoozeDir, acmeDir, namedDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return (
+    <div data-nt-open>
+      <button type="button">Notify</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return (
+    <p>Avoid providing an action that merely opens your app.</p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origOpen = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  UNNotificationAction(title: "Open")
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(openDir, "HostWidgets.tsx"), origOpen);
+    const origSnooze = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  UNNotificationAction(title: "Snooze")
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(snoozeDir, "HostWidgets.tsx"), origSnooze);
+    const origAcme = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  UNNotificationAction(title: "Open Acme")
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(acmeDir, "HostWidgets.tsx"), origAcme);
+    const origNamed = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  const info = 'CFBundleDisplayName = "Acme"'
+  UNNotificationAction(title: "Open Acme")
+  return <button type="button">Notify</button>;
+}
+`;
+    fs.writeFileSync(path.join(namedDir, "HostWidgets.tsx"), origNamed);
+    const origBare = `export function HostWidgets() {
+  return <div data-nt-open></div>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const openReport = run(openDir);
+    const snoozeReport = run(snoozeDir);
+    const acmeReport = run(acmeDir);
+    const namedReport = run(namedDir);
+    const bareReport = run(bareDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const openStatus = readStatus(openDir);
+    const snoozeStatus = readStatus(snoozeDir);
+    const acmeStatus = readStatus(acmeDir);
+    const namedStatus = readStatus(namedDir);
+    const bareStatus = readStatus(bareDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const opened = fs.readFileSync(path.join(openDir, "HostWidgets.tsx"), "utf8");
+    const snooze = fs.readFileSync(path.join(snoozeDir, "HostWidgets.tsx"), "utf8");
+    const acme = fs.readFileSync(path.join(acmeDir, "HostWidgets.tsx"), "utf8");
+    const named = fs.readFileSync(path.join(namedDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      openChrome: openReport.chrome.pass === true,
+      snoozeChrome: snoozeReport.chrome.pass === true,
+      acmeChrome: acmeReport.chrome.pass === true,
+      namedChrome: namedReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      passNotes: passStatus.topics.notifications?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixNotes: fixStatus.topics.notifications?.state === "applied",
+      systemKept: /\bUNUserNotificationCenter\b/.test(fixed) && />\s*Notify\s*</.test(fixed),
+      markersGone: !/data-nt-open/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdNotes: holdStatus.topics.notifications?.state === "pending",
+      holdStillPhrase: /action that merely opens your app/.test(held),
+      holdNotInvented: !/UNNotificationAction/.test(held),
+      openUnchanged: opened === origOpen,
+      openNotes: openStatus.topics.notifications?.state === "pending",
+      openKept: /title: "Open"/.test(opened),
+      snoozeUnchanged: snooze === origSnooze,
+      snoozeNotes: snoozeStatus.topics.notifications?.state === "already-compliant",
+      snoozeKept: /title: "Snooze"/.test(snooze),
+      acmeUnchanged: acme === origAcme,
+      acmeNotes: acmeStatus.topics.notifications?.state === "already-compliant",
+      acmeKept: /title: "Open Acme"/.test(acme),
+      namedUnchanged: named === origNamed,
+      namedNotes: namedStatus.topics.notifications?.state === "pending",
+      namedKept: /title: "Open Acme"/.test(named) && /CFBundleDisplayName = "Acme"/.test(named),
+      bareNotes: bareStatus.topics.notifications?.state === "skipped-no-affordance",
+      bareMarkersRemain: /data-nt-open/.test(bared),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passNotes: passStatus.topics.notifications?.state,
+      fixNotes: fixStatus.topics.notifications?.state,
+      holdNotes: holdStatus.topics.notifications?.state,
+      openNotes: openStatus.topics.notifications?.state,
+      snoozeNotes: snoozeStatus.topics.notifications?.state,
+      acmeNotes: acmeStatus.topics.notifications?.state,
+      namedNotes: namedStatus.topics.notifications?.state,
+      bareNotes: bareStatus.topics.notifications?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-notification-open-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

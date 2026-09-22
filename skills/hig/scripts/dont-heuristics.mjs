@@ -4198,6 +4198,41 @@ function applyNtLabel(text) {
   return text.replace(/\s*data-nt-label(?:="[^"]*")?/g, "");
 }
 
+function hasNtOpenCopy(text) {
+  return (
+    /avoid providing an action that merely opens your app/i.test(text) ||
+    /action that merely opens your app/i.test(text)
+  );
+}
+
+function hasNtOpenSignal(text) {
+  if (!hasNotificationChrome(text)) return false;
+  const titles = text.matchAll(/UNNotificationAction\s*\([^)]*title:\s*"([^"]+)"/g);
+  for (const found of titles) {
+    if (/^(open|open app|launch app)$/i.test(found[1].trim())) return true;
+  }
+  return false;
+}
+
+function scanNtOpen(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nt-open/.test(f.text)) {
+      out.push(hit(f.path, "a notification action that merely opens your app"));
+      continue;
+    }
+    if (!hasNotificationChrome(f.text)) continue;
+    if (hasNtOpenCopy(f.text) || hasNtOpenSignal(f.text)) {
+      out.push(hit(f.path, "a notification action that merely opens your app"));
+    }
+  }
+  return out;
+}
+
+function applyNtOpen(text) {
+  return text.replace(/\s*data-nt-open(?:="[^"]*")?/g, "");
+}
+
 function scanIgnorePrimaryAudioInterrupt(files) {
   const out = [];
   for (const f of files) {
@@ -8021,6 +8056,8 @@ function scanHeuristic(id, files) {
       return scanNtBadge(files);
     case "nt-label":
       return scanNtLabel(files);
+    case "nt-open":
+      return scanNtOpen(files);
     case "hidden-drag-no-alternative":
       return scanHiddenDrag(files);
     case "drop-navigates-without-preview":
@@ -8605,6 +8642,8 @@ function applyHeuristic(id, file) {
       return applyNtBadge(file.text);
     case "nt-label":
       return applyNtLabel(file.text);
+    case "nt-open":
+      return applyNtOpen(file.text);
     case "hidden-drag-no-alternative":
       return file.text;
     case "drop-navigates-without-preview":
