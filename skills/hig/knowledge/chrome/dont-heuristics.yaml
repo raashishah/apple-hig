@@ -188,6 +188,8 @@ heuristics:
     match: toolbar item with no visible text and no accessible name
   - id: al-lines
     match: alert title that wraps to more than two lines
+  - id: al-scroll
+    match: alert that scrolls
   - id: wr-we
     match: visible copy that says we
   - id: hide-unavailable-menu-items

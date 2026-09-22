@@ -10906,6 +10906,53 @@ function applyAlertTitleLines(text) {
   return text.replace(/\s*data-al-lines(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAlertScrollWidget(text) {
+  return /role=["']alertdialog["']/i.test(text) || /\bUIAlertController\b/.test(text);
+}
+
+function alertScrollRegions(text) {
+  const out = [];
+  const roleRe = /<([A-Za-z][\w]*)\b[^>]*role=["']alertdialog["'][^>]*>[\s\S]*?<\/\1>/gi;
+  let m;
+  while ((m = roleRe.exec(text))) out.push(m[0]);
+  const ui = /\bUIAlertController\b/g;
+  while ((m = ui.exec(text))) out.push(text.slice(m.index, m.index + 500));
+  return out;
+}
+
+function alertOwnStyleScrolls(region) {
+  const open = region.match(/<([A-Za-z][\w]*)\b[^>]*>/);
+  const tag = open ? open[0] : "";
+  if (!tag) return false;
+  return (
+    /(?<![\w-])overflow(?:-[xy])?\s*:\s*["']?(?:auto|scroll)\b/i.test(tag) ||
+    /\boverflow[XY]?\s*:\s*["'](?:auto|scroll)["']/.test(tag)
+  );
+}
+
+function hasAlertScrollCopy(text) {
+  return /alert that scrolls/i.test(text);
+}
+
+function scanAlertScroll(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-al-scroll(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an alert that scrolls"));
+      continue;
+    }
+    if (!hasAlertScrollWidget(f.text)) continue;
+    if (alertScrollRegions(f.text).some(alertOwnStyleScrolls) || hasAlertScrollCopy(f.text)) {
+      out.push(hit(f.path, "an alert that scrolls"));
+    }
+  }
+  return out;
+}
+
+function applyAlertScroll(text) {
+  return text.replace(/\s*data-al-scroll(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function stripWritingComments(text) {
   return String(text || "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -11164,6 +11211,8 @@ function scanHeuristic(id, files) {
       return scanToolbarUnnamed(files);
     case "al-lines":
       return scanAlertTitleLines(files);
+    case "al-scroll":
+      return scanAlertScroll(files);
     case "wr-we":
       return scanWeCopy(files);
     case "hide-unavailable-menu-items":
@@ -11856,6 +11905,8 @@ function applyHeuristic(id, file) {
       return applyToolbarUnnamed(file.text);
     case "al-lines":
       return applyAlertTitleLines(file.text);
+    case "al-scroll":
+      return applyAlertScroll(file.text);
     case "wr-we":
       return applyWeCopy(file.text);
     case "hide-unavailable-menu-items":

@@ -25680,6 +25680,165 @@ ${dots}
   results.push({ case: "catalog-apply-list-corner-mask-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-clean-"));
+  const childDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-child-"));
+  const sheetDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-sheet-"));
+  const hiddenDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-hidden-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-hold-"));
+  const yDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-y-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-bare-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-als-fix-"));
+  const dirs = [
+    passDir,
+    cleanDir,
+    childDir,
+    sheetDir,
+    hiddenDir,
+    holdDir,
+    yDir,
+    copyDir,
+    sentenceDir,
+    bareDir,
+    fixDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const alert = (attrs, inner) =>
+      host(`<div role="alertdialog" ${attrs}>
+      ${inner}
+    </div>`);
+    const plain = alert("", "<h2>Save failed</h2>");
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), plain);
+    const origChild = alert(
+      "",
+      `<div style={{ overflow: "auto" }}>Save failed</div>`,
+    );
+    fs.writeFileSync(path.join(childDir, "HostWidgets.tsx"), origChild);
+    const origSheet = host(`<dialog style={{ overflow: "auto" }}>
+      <h2>Details</h2>
+    </dialog>`);
+    fs.writeFileSync(path.join(sheetDir, "HostWidgets.tsx"), origSheet);
+    const origHidden = alert(`style={{ overflow: "hidden" }}`, "<h2>Save failed</h2>");
+    fs.writeFileSync(path.join(hiddenDir, "HostWidgets.tsx"), origHidden);
+    const origHold = alert(`style={{ overflow: "auto" }}`, "<h2>Save failed</h2>");
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origY = alert(`style={{ overflowY: "scroll" }}`, "<h2>Save failed</h2>");
+    fs.writeFileSync(path.join(yDir, "HostWidgets.tsx"), origY);
+    const origCopy = alert("", "<p>Avoid displaying an alert that scrolls.</p>");
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid displaying an alert that scrolls.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origBare = `export function HostWidgets() {
+  return <div data-al-scroll>Save failed</div>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const marked = alert("data-al-scroll", "<h2>Save failed</h2>");
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = [
+      "pass",
+      "clean",
+      "child",
+      "sheet",
+      "hidden",
+      "hold",
+      "y",
+      "copy",
+      "sentence",
+      "bare",
+      "fix",
+    ];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      child: childDir,
+      sheet: sheetDir,
+      hidden: hiddenDir,
+      hold: holdDir,
+      y: yDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const alerts = (name) => status[name].topics.alerts?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-scroll"),
+      lines: (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-lines"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passAlerts: alerts("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanAlerts: alerts("clean") === "already-compliant",
+      childAlerts: alerts("child") === "already-compliant",
+      sheetAlerts: alerts("sheet") === "already-compliant",
+      hiddenAlerts: alerts("hidden") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdAlerts: alerts("hold") === "pending",
+      overflowKept: /overflow:\s*"auto"/.test(held),
+      yAlerts: alerts("y") === "pending",
+      copyUnchanged: copied === origCopy,
+      copyAlerts: alerts("copy") === "pending",
+      sentenceAlerts: alerts("sentence") === "skipped-no-affordance",
+      bareAlerts: alerts("bare") === "skipped-no-affordance",
+      bareKept: /data-al-scroll(?![\w-])/.test(bared),
+      fixAlerts: alerts("fix") === "applied",
+      markerGone: !/data-al-scroll(?![\w-])/.test(fixed),
+      titleKept: />\s*Save failed\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAlerts: alerts("pass"),
+      cleanAlerts: alerts("clean"),
+      childAlerts: alerts("child"),
+      sheetAlerts: alerts("sheet"),
+      hiddenAlerts: alerts("hidden"),
+      holdAlerts: alerts("hold"),
+      yAlerts: alerts("y"),
+      copyAlerts: alerts("copy"),
+      sentenceAlerts: alerts("sentence"),
+      bareAlerts: alerts("bare"),
+      fixAlerts: alerts("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-scrolling-alert-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
