@@ -37,6 +37,7 @@ Apple lists this page as iPadOS-only. Do not ship a Digital Crown or Eyes pack h
 - Double-tap that modifies content.
 - Distraction while people write.
 - A squeeze that could result in data loss.
+- Continuously modifying the preview as Apple Pencil moves closer or farther.
 
 ## Checklist
 

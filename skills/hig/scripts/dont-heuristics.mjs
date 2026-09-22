@@ -8622,6 +8622,48 @@ function applyPeSqueeze(text) {
   return text.replace(/\s*data-pe-squeeze(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasPePreviewCopy(text) {
+  return (
+    /continuously modifying the preview/i.test(text) ||
+    /preview as people move Apple Pencil closer or farther/i.test(text) ||
+    /preview as Apple Pencil moves closer or farther/i.test(text)
+  );
+}
+
+function pencilPreviewTracksDistance(text) {
+  if (!hasPencil(text)) return false;
+  const scale = "scale|width|size";
+  const distance = "distance|closer|farther";
+  const forward = new RegExp(
+    `on(?:Pencil)?Hover\\b[\\s\\S]{0,180}?\\b(?:${scale})\\b[\\s\\S]{0,80}?\\b(?:${distance})\\b`,
+    "i",
+  );
+  const reverse = new RegExp(
+    `on(?:Pencil)?Hover\\b[\\s\\S]{0,180}?\\b(?:${distance})\\b[\\s\\S]{0,80}?\\b(?:${scale})\\b`,
+    "i",
+  );
+  return forward.test(text) || reverse.test(text);
+}
+
+function scanPePreview(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-preview(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a preview continuously modified as Apple Pencil moves closer or farther"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPePreviewCopy(f.text) || pencilPreviewTracksDistance(f.text)) {
+      out.push(hit(f.path, "a preview continuously modified as Apple Pencil moves closer or farther"));
+    }
+  }
+  return out;
+}
+
+function applyPePreview(text) {
+  return text.replace(/\s*data-pe-preview(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasGameControl(text) {
   return /\bdata-game-controls\b/.test(text);
 }
@@ -11168,6 +11210,8 @@ function scanHeuristic(id, files) {
       return scanPeDistract(files);
     case "pe-squeeze":
       return scanPeSqueeze(files);
+    case "pe-preview":
+      return scanPePreview(files);
     case "gm-letter":
       return scanGmLetter(files);
     case "id-reinvent":
@@ -11840,6 +11884,8 @@ function applyHeuristic(id, file) {
       return applyPeDistract(file.text);
     case "pe-squeeze":
       return applyPeSqueeze(file.text);
+    case "pe-preview":
+      return applyPePreview(file.text);
     case "gm-letter":
       return applyGmLetter(file.text);
     case "id-reinvent":
