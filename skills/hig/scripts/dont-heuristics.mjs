@@ -9579,6 +9579,88 @@ function applyColumnPunctuation(text) {
   return text.replace(/\s*data-hd-punct(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function sidebarRegions(text) {
+  const regions = blocksWithAttr(text, "data-sidebar").map((block) => block.text);
+  const re = /\bNavigationSplitView\b/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const brace = text.indexOf("{", m.index);
+    if (brace < 0 || brace - m.index > 160) continue;
+    const close = matchingBrace(text, brace);
+    if (close < 0) continue;
+    regions.push(text.slice(brace + 1, close));
+  }
+  return regions;
+}
+
+function nestedListDepth(html) {
+  let depth = 0;
+  let max = 0;
+  const re = /<\/?(ul|ol)\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(html))) {
+    if (m[0][1] === "/") depth = Math.max(0, depth - 1);
+    else {
+      depth += 1;
+      if (depth > max) max = depth;
+    }
+  }
+  return max;
+}
+
+function groupDepth(body) {
+  let max = 0;
+  function walk(slice, depth) {
+    const re = /\b(?:Section|DisclosureGroup)\s*\(/g;
+    let m;
+    while ((m = re.exec(slice))) {
+      const next = depth + 1;
+      if (next > max) max = next;
+      const brace = slice.indexOf("{", m.index);
+      if (brace < 0) continue;
+      const close = matchingBrace(slice, brace);
+      if (close < 0) continue;
+      walk(slice.slice(brace + 1, close), next);
+      re.lastIndex = close + 1;
+    }
+  }
+  walk(body, 0);
+  return max;
+}
+
+function sidebarTooDeep(text) {
+  return sidebarRegions(text).some((region) => nestedListDepth(region) >= 3 || groupDepth(region) >= 3);
+}
+
+function hasSidebarWidget(text) {
+  return /\bdata-sidebar\b/.test(text) || /\bNavigationSplitView\b/.test(text);
+}
+
+function hasSidebarDepthCopy(text) {
+  return (
+    /no more than two levels/i.test(text) ||
+    /third level of hierarchy in a sidebar/i.test(text)
+  );
+}
+
+function scanSidebarDepth(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sb-depth(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a third level of hierarchy in a sidebar"));
+      continue;
+    }
+    if (sidebarTooDeep(f.text) || (hasSidebarWidget(f.text) && hasSidebarDepthCopy(f.text))) {
+      out.push(hit(f.path, "a third level of hierarchy in a sidebar"));
+    }
+  }
+  return out;
+}
+
+function applySidebarDepth(text) {
+  return text.replace(/\s*data-sb-depth(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -9756,6 +9838,8 @@ function scanHeuristic(id, files) {
       return scanMarketingTabShell(files);
     case "tb-off":
       return scanTabDisabled(files);
+    case "sb-depth":
+      return scanSidebarDepth(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -10392,6 +10476,8 @@ function applyHeuristic(id, file) {
       return applyMarketingTabShell(file.text, file);
     case "tb-off":
       return applyTabDisabled(file.text);
+    case "sb-depth":
+      return applySidebarDepth(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":

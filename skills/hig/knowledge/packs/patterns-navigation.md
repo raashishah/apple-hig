@@ -34,6 +34,7 @@
 - Teaching `UIDesignRequiresCompatibility` as a design.
 - Turning a marketing landing into an iOS tab shell.
 - A disabled or hidden tab bar button.
+- A third level of hierarchy in a sidebar.
 
 ## Interaction states
 
