@@ -1671,6 +1671,12 @@ const results = [];
       text: "<div data-wl-decline></div>",
     },
   ]);
+  const wlShadowMarkerOnly = scanAffordances([
+    {
+      path: "Pass.tsx",
+      text: "<div data-wl-shadow></div>",
+    },
+  ]);
   const shazamWidgetOnly = scanAffordances([
     {
       path: "Listen.tsx",
@@ -2407,6 +2413,7 @@ const results = [];
       !applePayButtonOnly.includes("walletpass") &&
       !wlMarkerOnly.includes("walletpass") &&
       !wlDeclineMarkerOnly.includes("walletpass") &&
+      !wlShadowMarkerOnly.includes("walletpass") &&
       shazamWidgetOnly.includes("shazam") &&
       shazamSessionOnly.includes("shazam") &&
       !shazamImportOnly.includes("shazam") &&
@@ -3256,6 +3263,7 @@ const results = [];
       catalog.byId.wallet?.dontCoverageComplete === true &&
       (catalog.byId.wallet?.dontHeuristicIds || []).includes("wl-marketing") &&
       (catalog.byId.wallet?.dontHeuristicIds || []).includes("wl-decline") &&
+      (catalog.byId.wallet?.dontHeuristicIds || []).includes("wl-shadow") &&
       catalog.byId.wallet?.pack === "tech-wallet.md" &&
       catalog.byId.wallet?.surfaceId === "wallet" &&
       catalog.byId.wallet?.appliesWhen === "capability:wallet" &&
@@ -15774,6 +15782,200 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-photo-cancel-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-hold-"));
+  const logoDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-logo-"));
+  const pageDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-page-"));
+  const padDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-pad-"));
+  const stripDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-strip-"));
+  const payDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wls-pay-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, logoDir, pageDir, padDir, stripDir, payDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writePassKit = (dir) => {
+      fs.writeFileSync(path.join(dir, "Pass.swift"), "import PassKit\nlet library = PKPassLibrary()\n");
+    };
+    writePassKit(cleanDir);
+    writePassKit(fixDir);
+    writePassKit(holdDir);
+    writePassKit(logoDir);
+    writePassKit(pageDir);
+    writePassKit(padDir);
+    writePassKit(stripDir);
+    fs.writeFileSync(path.join(payDir, "Pay.swift"), "let button = PKPaymentButton()\n");
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-wallet data-wl-shadow>
+      <button type="button">Pass</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(payDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <p>Avoid inner drop shadows on logo artwork.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origLogo = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <img alt="logo" style="box-shadow: inset 0 2px 4px #000" src="logo.png" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(logoDir, "HostWidgets.tsx"), origLogo);
+    const origPage = `export function HostWidgets() {
+  return (
+    <div data-wallet style="box-shadow: inset 0 1px 2px #000">
+      <img alt="logo" src="logo.png" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(pageDir, "HostWidgets.tsx"), origPage);
+    const origPad = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <img alt="logo" style="padding: 8px" src="logo.png" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(padDir, "HostWidgets.tsx"), origPad);
+    const origStrip = `export function HostWidgets() {
+  return (
+    <div data-wallet>
+      <p>Avoid embedding text in the strip image.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(stripDir, "HostWidgets.tsx"), origStrip);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const logoReport = run(logoDir);
+    const pageReport = run(pageDir);
+    const padReport = run(padDir);
+    const stripReport = run(stripDir);
+    const payReport = run(payDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const logoStatus = readStatus(logoDir);
+    const pageStatus = readStatus(pageDir);
+    const padStatus = readStatus(padDir);
+    const stripStatus = readStatus(stripDir);
+    const payStatus = readStatus(payDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const logo = fs.readFileSync(path.join(logoDir, "HostWidgets.tsx"), "utf8");
+    const page = fs.readFileSync(path.join(pageDir, "HostWidgets.tsx"), "utf8");
+    const pad = fs.readFileSync(path.join(padDir, "HostWidgets.tsx"), "utf8");
+    const strip = fs.readFileSync(path.join(stripDir, "HostWidgets.tsx"), "utf8");
+    const paid = fs.readFileSync(path.join(payDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      logoChrome: logoReport.chrome.pass === true,
+      pageChrome: pageReport.chrome.pass === true,
+      padChrome: padReport.chrome.pass === true,
+      stripChrome: stripReport.chrome.pass === true,
+      payChrome: payReport.chrome.pass === true,
+      passWallet: passStatus.topics.wallet?.state === "skipped-gate",
+      cleanWallet: cleanStatus.topics.wallet?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixWallet: fixStatus.topics.wallet?.state === "applied",
+      systemKept: /\bdata-wallet\b/.test(fixed) && />\s*Pass\s*</.test(fixed),
+      markersGone: !/data-wl-shadow/.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Pass.swift"), "utf8").includes("import PassKit"),
+      holdUnchanged: held === origHold,
+      holdWallet: holdStatus.topics.wallet?.state === "pending",
+      holdStillPhrase: /inner drop shadows on logo artwork/.test(held) && /\bdata-wallet\b/.test(held),
+      holdNotInvented: !/<img\b/.test(held),
+      logoUnchanged: logo === origLogo,
+      logoWallet: logoStatus.topics.wallet?.state === "pending",
+      logoKept: /box-shadow: inset/.test(logo) && /alt="logo"/.test(logo),
+      pageUnchanged: page === origPage,
+      pageWallet: pageStatus.topics.wallet?.state === "already-compliant",
+      pageKept: /box-shadow: inset/.test(page) && /alt="logo"/.test(page),
+      padUnchanged: pad === origPad,
+      padWallet: padStatus.topics.wallet?.state === "already-compliant",
+      padKept: /padding: 8px/.test(pad),
+      stripUnchanged: strip === origStrip,
+      stripWallet: stripStatus.topics.wallet?.state === "already-compliant",
+      stripKept: /strip image/.test(strip),
+      payWallet: payStatus.topics.wallet?.state === "skipped-gate",
+      payMarkersRemain: /data-wl-shadow/.test(paid),
+      payButtonKept: fs.readFileSync(path.join(payDir, "Pay.swift"), "utf8").includes("PKPaymentButton"),
+      payPayLaunched:
+        payStatus.topics["apple-pay"]?.state !== "skipped-gate" &&
+        payStatus.topics["apple-pay"]?.state !== "skipped-no-affordance",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWallet: passStatus.topics.wallet?.state,
+      cleanWallet: cleanStatus.topics.wallet?.state,
+      fixWallet: fixStatus.topics.wallet?.state,
+      holdWallet: holdStatus.topics.wallet?.state,
+      logoWallet: logoStatus.topics.wallet?.state,
+      pageWallet: pageStatus.topics.wallet?.state,
+      padWallet: padStatus.topics.wallet?.state,
+      stripWallet: stripStatus.topics.wallet?.state,
+      payWallet: payStatus.topics.wallet?.state,
+      payPay: payStatus.topics["apple-pay"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-wallet-logo-shadow-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

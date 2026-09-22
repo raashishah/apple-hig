@@ -7446,6 +7446,49 @@ function applyWlDecline(text) {
   return text.replace(/\s*data-wl-decline(?:="[^"]*")?/g, "");
 }
 
+function hasWlLogoShadowCopy(text) {
+  return (
+    /inner drop shadows? on logo artwork/i.test(text) ||
+    /avoid inner drop shadows? on (?:the )?logo/i.test(text)
+  );
+}
+
+function logoTagHasInsetShadow(text) {
+  const tags = text.match(/<(?:img|div|span)\b[^>]*>/gi) || [];
+  for (const tag of tags) {
+    const logo = /\blogo\b/i.test(tag);
+    const inset =
+      /box-shadow\s*:[^;>]*\binset\b/i.test(tag) ||
+      /boxShadow\s*:\s*["'][^"']*\binset\b/i.test(tag);
+    if (logo && inset) return true;
+  }
+  return false;
+}
+
+function hasWlLogoShadowSignal(text) {
+  if (!hasPass(text)) return false;
+  return logoTagHasInsetShadow(text);
+}
+
+function scanWlLogoShadow(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wl-shadow/.test(f.text)) {
+      out.push(hit(f.path, "inner drop shadows on logo artwork"));
+      continue;
+    }
+    if (!hasPass(f.text)) continue;
+    if (hasWlLogoShadowCopy(f.text) || hasWlLogoShadowSignal(f.text)) {
+      out.push(hit(f.path, "inner drop shadows on logo artwork"));
+    }
+  }
+  return out;
+}
+
+function applyWlLogoShadow(text) {
+  return text.replace(/\s*data-wl-shadow(?:="[^"]*")?/g, "");
+}
+
 function hasShazam(text) {
   return /\bdata-shazam\b/.test(text) || /\bSHSession\b/.test(text) || /\bSHManagedSession\b/.test(text);
 }
@@ -8307,6 +8350,8 @@ function scanHeuristic(id, files) {
       return scanWlMarketing(files);
     case "wl-decline":
       return scanWlDecline(files);
+    case "wl-shadow":
+      return scanWlLogoShadow(files);
     case "sz-mic":
       return scanSzMic(files);
     case "px-cancel":
@@ -8885,6 +8930,8 @@ function applyHeuristic(id, file) {
       return applyWlMarketing(file.text);
     case "wl-decline":
       return applyWlDecline(file.text);
+    case "wl-shadow":
+      return applyWlLogoShadow(file.text);
     case "sz-mic":
       return applySzMic(file.text);
     case "px-cancel":

@@ -554,6 +554,8 @@ heuristics:
     match: change message used for marketing
   - id: wl-decline
     match: decline a Wallet suggestion
+  - id: wl-shadow
+    match: inner drop shadows on logo artwork
   - id: sz-mic
     match: microphone that stays on after the recognition sample
   - id: px-cancel
