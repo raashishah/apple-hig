@@ -639,6 +639,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "pencil":
       return !present.includes(need);
+    case "gamecontrol":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1283,6 +1285,9 @@ export function scanAffordances(files) {
     /\bUIScribbleInteraction\b/.test(blob)
   ) {
     found.push("pencil");
+  }
+  if (/\bdata-game-controls\b/.test(blob)) {
+    found.push("gamecontrol");
   }
   return found;
 }

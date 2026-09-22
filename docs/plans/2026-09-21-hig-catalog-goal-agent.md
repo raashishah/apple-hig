@@ -153,6 +153,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 89. Pencil Don'ts. **Landed on this PR.** Account apple-pencil-and-scribble Don'ts when every Don't has a scanner and the host has pencil chrome. Skip-unless `pencil` affordance stays. Gate stays `ipad+capability:pencil`. Do not overlay `always`, because unknown chrome-pass, phone, and Mac hosts must stay skipped-gate. Hover that initiates an action, double-tap that modifies content, and distraction while people write scan from Apple's apple-pencil-and-scribble page. Do not invent a pencil canvas. Do not map apple-pencil-and-scribble onto `import PencilKit`, a bare Apple Pencil phrase, or `data-pe-*` markers alone. Pointer instructional text stays on pointing. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+90. Game controls Don'ts. **Landed on this PR.** Account game-controls Don'ts when every Don't has a scanner and the host has game-control chrome. Skip-unless `gamecontrol` affordance stays. Gate stays `games,capability:games`. Do not overlay `always`, because unknown chrome-pass, phone, and Mac hosts must stay skipped-gate. Abstract shapes or controller-based naming like A, X, or R1 as artwork scans from Apple's game-controls page. A static thumbstick is opt-to, so it stays unscanned. Do not invent a controller or replacement artwork. Do not map game-controls onto `import SpriteKit`, `import GameKit`, a Game Center widget, `data-gc-*` markers, or a bare game-controller phrase. Fake Game Center overlays stay on game-center. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

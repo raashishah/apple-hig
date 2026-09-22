@@ -538,3 +538,5 @@ heuristics:
     match: Double-tap that modifies content
   - id: pe-distract
     match: Distraction while people write
+  - id: gm-letter
+    match: Abstract shapes or A, X, or R1 as artwork

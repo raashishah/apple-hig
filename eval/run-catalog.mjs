@@ -127,6 +127,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["inputs-pointing"]?.gate === "ipad,desktop" &&
     surfaces.byId["inputs-pencil"]?.affordance === "pencil" &&
     surfaces.byId["inputs-pencil"]?.gate === "ipad+capability:pencil" &&
+    surfaces.byId["inputs-game-controls"]?.affordance === "gamecontrol" &&
+    surfaces.byId["inputs-game-controls"]?.gate === "games,capability:games" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1525,6 +1527,36 @@ const results = [];
       text: "<div data-pe-hover data-pe-double-tap data-pe-distract></div>",
     },
   ]);
+  const gameControlOnly = scanAffordances([
+    {
+      path: "Hud.tsx",
+      text: "<div data-game-controls></div>",
+    },
+  ]);
+  const spriteKitOnly = scanAffordances([
+    {
+      path: "Game.swift",
+      text: "import SpriteKit",
+    },
+  ]);
+  const gameCenterWidgetOnly = scanAffordances([
+    {
+      path: "Menu.tsx",
+      text: "<div data-game-center></div>",
+    },
+  ]);
+  const gmMarkerOnly = scanAffordances([
+    {
+      path: "Hud.tsx",
+      text: "<div data-gm-letter></div>",
+    },
+  ]);
+  const gamePhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Use a game controller.</p>",
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -2071,6 +2103,19 @@ const results = [];
       !formOnly.includes("pencil") &&
       !passList.includes("pencil") &&
       !pageOnly.includes("pencil") &&
+      gameControlOnly.includes("gamecontrol") &&
+      !gameControlOnly.includes("gcaccess") &&
+      !gameControlOnly.includes("pencil") &&
+      !spriteKitOnly.includes("gamecontrol") &&
+      !gameCenterWidgetOnly.includes("gamecontrol") &&
+      !gameKitOnly.includes("gamecontrol") &&
+      !gcMarkerOnly.includes("gamecontrol") &&
+      !gmMarkerOnly.includes("gamecontrol") &&
+      !gamePhraseOnly.includes("gamecontrol") &&
+      !pencilOnly.includes("gamecontrol") &&
+      !formOnly.includes("gamecontrol") &&
+      !passList.includes("gamecontrol") &&
+      !pageOnly.includes("gamecontrol") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2861,6 +2906,10 @@ const results = [];
       ) &&
       catalog.byId["apple-pencil-and-scribble"]?.pack === "inputs-apple-pencil.md" &&
       catalog.byId["apple-pencil-and-scribble"]?.appliesWhen === "ipad+capability:pencil" &&
+      catalog.byId["game-controls"]?.dontCoverageComplete === true &&
+      (catalog.byId["game-controls"]?.dontHeuristicIds || []).includes("gm-letter") &&
+      catalog.byId["game-controls"]?.pack === "inputs-game-controls.md" &&
+      catalog.byId["game-controls"]?.appliesWhen === "games,capability:games" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -13482,6 +13531,152 @@ struct OneTorch: ControlWidget {
     fs.rmSync(phoneDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-pencil-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-game-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-game-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-game-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-game-hold-"));
+  const letterDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-game-letter-"));
+  const phoneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-game-phone-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of [passDir, cleanDir, fixDir, holdDir, letterDir, phoneDir]) {
+      fs.cpSync(src, dir, { recursive: true });
+    }
+    const writeGames = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: games\nregister: product\nThis product is a game.\n",
+      );
+    };
+    writeGames(cleanDir);
+    writeGames(fixDir);
+    writeGames(holdDir);
+    writeGames(letterDir);
+    fs.writeFileSync(
+      path.join(phoneDir, "DESIGN.md"),
+      "platform_primary: phone\nregister: product\nThis product is an iPhone app.\n",
+    );
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-game-controls data-gm-letter>
+      <button type="button">Fire</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(phoneDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-game-controls>
+      <p>abstract shapes or A, X, or R1 as artwork.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origLetter = `export function HostWidgets() {
+  return (
+    <div data-game-controls>
+      <button type="button">A</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(letterDir, "HostWidgets.tsx"), origLetter);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) =>
+      applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const letterReport = run(letterDir);
+    const phoneReport = run(phoneDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const letterStatus = readStatus(letterDir);
+    const phoneStatus = readStatus(phoneDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const lettered = fs.readFileSync(path.join(letterDir, "HostWidgets.tsx"), "utf8");
+    const phoneWidgets = fs.readFileSync(path.join(phoneDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [passDir, cleanDir, fixDir, holdDir, letterDir, phoneDir]
+      .flatMap((dir) => walkSource(dir))
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      letterChrome: letterReport.chrome.pass === true,
+      phoneChrome: phoneReport.chrome.pass === true,
+      passGame: passStatus.topics["game-controls"]?.state === "skipped-gate",
+      cleanGame: cleanStatus.topics["game-controls"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixGame: fixStatus.topics["game-controls"]?.state === "applied",
+      systemKept: /\bdata-game-controls\b/.test(fixed) && />\s*Fire\s*</.test(fixed),
+      markersGone: !/data-gm-letter/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdGame: holdStatus.topics["game-controls"]?.state === "pending",
+      holdStillPhrase:
+        /\bdata-game-controls\b/.test(held) && /A, X, or R1/.test(held),
+      holdNotInvented: !/GCController|GCVirtualController/.test(held),
+      letterUnchanged: lettered === origLetter,
+      letterGame: letterStatus.topics["game-controls"]?.state === "pending",
+      letterStillA: />\s*A\s*</.test(lettered),
+      phoneGame: phoneStatus.topics["game-controls"]?.state === "skipped-gate",
+      phoneMarkersRemain: /data-gm-letter/.test(phoneWidgets),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passGame: passStatus.topics["game-controls"]?.state,
+      cleanGame: cleanStatus.topics["game-controls"]?.state,
+      fixGame: fixStatus.topics["game-controls"]?.state,
+      holdGame: holdStatus.topics["game-controls"]?.state,
+      letterGame: letterStatus.topics["game-controls"]?.state,
+      phoneGame: phoneStatus.topics["game-controls"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of [passDir, cleanDir, fixDir, holdDir, letterDir, phoneDir]) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+  results.push({ case: "catalog-apply-game-controls-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

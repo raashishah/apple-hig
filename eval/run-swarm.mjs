@@ -171,6 +171,14 @@ const results = [];
     platform: "ipad",
     capabilities: ["pencil"],
   });
+  const gamesHost = selectSurfaces(surfaces, {
+    platform: "games",
+    capabilities: [],
+  });
+  const phoneGames = selectSurfaces(surfaces, {
+    platform: "phone",
+    capabilities: ["games"],
+  });
   const ok =
     webSkip.launched.some((s) => s.id === "healthkit") &&
     webSkip.launched.some((s) => s.id === "sign-in-with-apple") &&
@@ -199,6 +207,13 @@ const results = [];
     !webSkip.launched.some((s) => s.id === "inputs-pencil") &&
     !hk.launched.some((s) => s.id === "inputs-pencil") &&
     padPencil.launched.some((s) => s.id === "inputs-pencil") &&
+    !webSkip.launched.some((s) => s.id === "inputs-game-controls") &&
+    !desktop.launched.some((s) => s.id === "inputs-game-controls") &&
+    !hk.launched.some((s) => s.id === "inputs-game-controls") &&
+    !gc.launched.some((s) => s.id === "inputs-game-controls") &&
+    gamesHost.launched.some((s) => s.id === "inputs-game-controls") &&
+    phoneGames.launched.some((s) => s.id === "inputs-game-controls") &&
+    gc.launched.some((s) => s.id === "game-center") &&
     multi.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "game-center");
@@ -262,6 +277,17 @@ const results = [];
     (surfaces.byId["siri-app-shortcuts"]?.compose || []).includes("system-app-shortcuts.md") &&
     surfaces.byId["control-center"]?.gate === "capability:controlcenter" &&
     surfaces.byId["inputs-pencil"]?.gate === "ipad+capability:pencil" &&
+    surfaces.byId["inputs-game-controls"]?.gate === "games,capability:games" &&
+    surfaces.byId["game-center"]?.gate === "capability:gamecenter" &&
+    !phone.launched.some((s) => s.id === "inputs-game-controls") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["games"],
+    }).launched.some((s) => s.id === "inputs-game-controls") &&
+    selectSurfaces(surfaces, {
+      platform: "games",
+      capabilities: [],
+    }).launched.some((s) => s.id === "inputs-game-controls") &&
     !selectSurfaces(surfaces, {
       platform: "phone",
       capabilities: ["pencil"],
