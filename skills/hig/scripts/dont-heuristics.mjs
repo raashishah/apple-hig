@@ -7544,6 +7544,48 @@ function applyAcRotate(text) {
   return text.replace(/\s*data-ac-rotate(?:="[^"]*")?/g, "");
 }
 
+function hasAcAspectCopy(text) {
+  return (
+    /don['’]?t change the generated code['’]?s aspect ratio/i.test(text) ||
+    /change the generated (?:code|App Clip Code)['’]?s aspect ratio/i.test(text) ||
+    /generated App Clip Code with a changed aspect ratio/i.test(text)
+  );
+}
+
+function hasAcAspectSignal(text) {
+  if (!hasAppClipCode(text)) return false;
+  const window = text.match(/data-app-clip-code[\s\S]{0,240}/i);
+  if (!window) return false;
+  const slice = window[0];
+  if (/object-fit\s*:\s*fill\b/i.test(slice) || /objectFit\s*:\s*["']fill["']/i.test(slice)) {
+    return true;
+  }
+  const pair = slice.match(/scale\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*\)/);
+  if (pair && pair[1] !== pair[2]) return true;
+  const x = slice.match(/scaleX\(\s*([0-9.]+)\s*\)/);
+  const y = slice.match(/scaleY\(\s*([0-9.]+)\s*\)/);
+  return Boolean(x && y && x[1] !== y[1]);
+}
+
+function scanAcAspect(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-aspect/.test(f.text)) {
+      out.push(hit(f.path, "a generated App Clip Code with a changed aspect ratio"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcAspectCopy(f.text) || hasAcAspectSignal(f.text)) {
+      out.push(hit(f.path, "a generated App Clip Code with a changed aspect ratio"));
+    }
+  }
+  return out;
+}
+
+function applyAcAspect(text) {
+  return text.replace(/\s*data-ac-aspect(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -8119,6 +8161,8 @@ function scanHeuristic(id, files) {
       return scanAcMotion(files);
     case "ac-rotate":
       return scanAcRotate(files);
+    case "ac-aspect":
+      return scanAcAspect(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8687,6 +8731,8 @@ function applyHeuristic(id, file) {
       return applyAcMotion(file.text);
     case "ac-rotate":
       return applyAcRotate(file.text);
+    case "ac-aspect":
+      return applyAcAspect(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

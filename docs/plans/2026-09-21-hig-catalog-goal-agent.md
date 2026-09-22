@@ -167,6 +167,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 96. App Clip Code presentation Don'ts. **Landed on this PR.** Account overlay, motion, and rotation when every Don't has a scanner and the host has the same App Clip Code widget. Skip-unless `appclipcode` stays. Gate stays `capability:appclips`. Do not overlay `always`. Text, logos, or images over the code, an animated or dimmed code, and a rotated code scan from Apple's App Clips page. Do not invent an App Clip Code. Do not map these Don'ts onto `data-ac-overlay`, `data-ac-motion`, `data-ac-rotate`, or the homemade-code scanner. Ads stay unscanned. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+97. App Clip Code aspect-ratio Don'ts. **Landed on this PR.** Account a changed aspect ratio when every Don't has a scanner and the host has the same App Clip Code widget. Skip-unless `appclipcode` stays. Gate stays `capability:appclips`. Do not overlay `always`. Scaling that changes the generated code's aspect ratio scans from Apple's App Clips page. Do not invent an App Clip Code. Do not map this Don't onto `data-ac-aspect`, letterbox padding, or a stretched photo. Ads stay unscanned. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

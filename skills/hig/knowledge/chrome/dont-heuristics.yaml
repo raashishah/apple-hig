@@ -560,3 +560,5 @@ heuristics:
     match: animated or dimmed App Clip Code
   - id: ac-rotate
     match: rotated App Clip Code
+  - id: ac-aspect
+    match: generated App Clip Code with a changed aspect ratio
