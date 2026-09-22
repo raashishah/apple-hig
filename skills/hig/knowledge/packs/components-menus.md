@@ -24,6 +24,7 @@
 - Nested submenus deeper than one level.
 - Mix icons and no-icons in the same menu group.
 - A submenu item that is unavailable when its nested items are unavailable.
+- A keyboard shortcut inside a context menu.
 
 ## Apply in host
 

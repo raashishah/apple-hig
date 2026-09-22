@@ -2600,6 +2600,77 @@ function applySubmenuAvailable(text) {
   return text.replace(/\s*data-mn-sub(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function contextMenuBodies(text) {
+  const bodies = [];
+  const re = /\.contextMenu\b/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const brace = text.indexOf("{", m.index);
+    if (brace < 0 || brace - m.index > 80) continue;
+    const close = matchingBrace(text, brace);
+    if (close < 0) continue;
+    bodies.push(text.slice(brace + 1, close));
+  }
+  const ui = /UIContextMenuInteraction|popUpContextMenu/g;
+  while ((m = ui.exec(text))) bodies.push(text.slice(m.index, m.index + 700));
+  for (const attr of ["oncontextmenu", "onContextMenu"]) {
+    for (const block of blocksWithAttr(text, attr)) bodies.push(block.text);
+  }
+  return bodies;
+}
+
+function bodyHasShortcut(body) {
+  return (
+    /\bkeyboardShortcut\s*\(/.test(body) ||
+    /\bkeyEquivalent\b/.test(body) ||
+    /<kbd\b/i.test(body) ||
+    /⌘/.test(body)
+  );
+}
+
+function contextMenuHasShortcut(text) {
+  return contextMenuBodies(text).some((body) => bodyHasShortcut(body));
+}
+
+function hasContextMenuWidget(text) {
+  return (
+    /\.contextMenu\b/.test(text) ||
+    /\bUIContextMenuInteraction\b/.test(text) ||
+    /\bpopUpContextMenu\b/.test(text) ||
+    /\boncontextmenu\b/i.test(text)
+  );
+}
+
+function hasContextShortcutCopy(text) {
+  return (
+    /not in context menus/i.test(text) ||
+    /keyboard shortcuts in your app/i.test(text) ||
+    /keyboard shortcut inside a context menu/i.test(text)
+  );
+}
+
+function scanContextShortcut(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-mn-key(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a keyboard shortcut inside a context menu"));
+      continue;
+    }
+    if (contextMenuHasShortcut(f.text)) {
+      out.push(hit(f.path, "a keyboard shortcut inside a context menu"));
+      continue;
+    }
+    if (hasContextMenuWidget(f.text) && hasContextShortcutCopy(f.text)) {
+      out.push(hit(f.path, "a keyboard shortcut inside a context menu"));
+    }
+  }
+  return out;
+}
+
+function applyContextShortcut(text) {
+  return text.replace(/\s*data-mn-key(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMixMenuIcons(files) {
   const out = [];
   for (const f of files) {
@@ -9595,6 +9666,8 @@ function scanHeuristic(id, files) {
       return scanMixMenuIcons(files);
     case "mn-sub":
       return scanSubmenuAvailable(files);
+    case "mn-key":
+      return scanContextShortcut(files);
     case "picker-owns-the-screen":
       return scanPickerScreen(files);
     case "stepper-no-neighbouring-value":
@@ -10227,6 +10300,8 @@ function applyHeuristic(id, file) {
       return file.text;
     case "mn-sub":
       return applySubmenuAvailable(file.text);
+    case "mn-key":
+      return applyContextShortcut(file.text);
     case "picker-owns-the-screen":
       return file.text;
     case "stepper-no-neighbouring-value":

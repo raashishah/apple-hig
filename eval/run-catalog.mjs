@@ -20852,6 +20852,158 @@ ${dots}
   results.push({ case: "catalog-apply-color-only-toggle-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnk-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnk-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnk-hold-"));
+  const mainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnk-main-"));
+  const buttonDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnk-button-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnk-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnk-copy-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mnk-swift-"));
+  const dirs = [passDir, fixDir, holdDir, mainDir, buttonDir, sentenceDir, copyDir, swiftDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div oncontextmenu="openMenu()" role="menu" data-mn-key>
+      <button type="button" role="menuitem">Reply</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div oncontextmenu="openMenu()" role="menu">
+      <button type="button" role="menuitem">Reply <kbd>⌘R</kbd></button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origMain = `export function HostWidgets() {
+  return (
+    <div role="menu">
+      <button type="button" role="menuitem">Save <kbd>⌘S</kbd></button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(mainDir, "HostWidgets.tsx"), origMain);
+    const origButton = `export function HostWidgets() {
+  Button("Save").keyboardShortcut("s")
+  return (
+    <div oncontextmenu="openMenu()" role="menu">
+      <button type="button" role="menuitem">Reply</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(buttonDir, "HostWidgets.tsx"), origButton);
+    const origSentence = `export function HostWidgets() {
+  return <p>Show keyboard shortcuts in your app's main menus, not in context menus.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <>
+      <div oncontextmenu="openMenu()" role="menu">
+        <button type="button" role="menuitem">Reply</button>
+      </div>
+      <p>Show keyboard shortcuts in your app's main menus, not in context menus.</p>
+    </>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSwift = `export function HostWidgets() {
+  const menu = \`.contextMenu(menuItems: {
+    Button("Reply") { }
+      .keyboardShortcut("r")
+  })\`;
+  return menu;
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const names = ["pass", "fix", "hold", "main", "button", "sentence", "copy", "swift"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      main: mainDir,
+      button: buttonDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      swift: swiftDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const menus = (name) => status[name].topics["context-menus"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["context-menus"]?.dontHeuristicIds || []).includes("mn-key"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      mainChrome: reports.main.chrome.pass === true,
+      buttonChrome: reports.button.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passMenus: menus("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixMenus: menus("fix") === "applied",
+      markerGone: !/data-mn-key(?![\w-])/.test(fixed),
+      menuKept: /role="menu"/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdMenus: menus("hold") === "pending",
+      holdShortcut: /<kbd>⌘R<\/kbd>/.test(held),
+      mainMenus: menus("main") === "already-compliant",
+      buttonMenus: menus("button") === "already-compliant",
+      buttonShortcut: /keyboardShortcut\("s"\)/.test(
+        fs.readFileSync(path.join(buttonDir, "HostWidgets.tsx"), "utf8"),
+      ),
+      sentenceMenus: menus("sentence") === "skipped-no-affordance",
+      copyUnchanged: copied === origCopy,
+      copyMenus: menus("copy") === "pending",
+      swiftUnchanged: swift === origSwift,
+      swiftMenus: menus("swift") === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passMenus: menus("pass"),
+      fixMenus: menus("fix"),
+      holdMenus: menus("hold"),
+      mainMenus: menus("main"),
+      buttonMenus: menus("button"),
+      sentenceMenus: menus("sentence"),
+      copyMenus: menus("copy"),
+      swiftMenus: menus("swift"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-context-shortcut-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

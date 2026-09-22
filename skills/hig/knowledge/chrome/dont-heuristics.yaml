@@ -168,6 +168,8 @@ heuristics:
     match: Mix icons and no-icons in the same menu group
   - id: mn-sub
     match: submenu item that is unavailable
+  - id: mn-key
+    match: keyboard shortcut inside a context menu
   - id: picker-owns-the-screen
     match: Push a new screen solely to show a picker
   - id: stepper-no-neighbouring-value
