@@ -17,3 +17,4 @@ People scan a generated App Clip Code. The code stays the one Apple generated.
 - An animated or dimmed App Clip Code.
 - A rotated App Clip Code.
 - A generated App Clip Code with a changed aspect ratio.
+- A symbol added to an App Clip Code.

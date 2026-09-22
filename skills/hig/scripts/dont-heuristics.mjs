@@ -7586,6 +7586,40 @@ function applyAcAspect(text) {
   return text.replace(/\s*data-ac-aspect(?:="[^"]*")?/g, "");
 }
 
+function hasAcSymbolCopy(text) {
+  return (
+    /don['’]?t add a symbol to App Clip Codes/i.test(text) ||
+    /add a symbol to (?:an |the )?App Clip Code/i.test(text) ||
+    /symbol added to an App Clip Code/i.test(text)
+  );
+}
+
+function hasAcSymbolSignal(text) {
+  if (!hasAppClipCode(text)) return false;
+  const window = text.match(/data-app-clip-code[\s\S]{0,240}/i);
+  if (!window) return false;
+  return /[™®©℠]|&trade;|&reg;|&copy;|&#8482;|&#174;|&#169;/i.test(window[0]);
+}
+
+function scanAcSymbol(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-symbol/.test(f.text)) {
+      out.push(hit(f.path, "a symbol added to an App Clip Code"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcSymbolCopy(f.text) || hasAcSymbolSignal(f.text)) {
+      out.push(hit(f.path, "a symbol added to an App Clip Code"));
+    }
+  }
+  return out;
+}
+
+function applyAcSymbol(text) {
+  return text.replace(/\s*data-ac-symbol(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -8163,6 +8197,8 @@ function scanHeuristic(id, files) {
       return scanAcRotate(files);
     case "ac-aspect":
       return scanAcAspect(files);
+    case "ac-symbol":
+      return scanAcSymbol(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8733,6 +8769,8 @@ function applyHeuristic(id, file) {
       return applyAcRotate(file.text);
     case "ac-aspect":
       return applyAcAspect(file.text);
+    case "ac-symbol":
+      return applyAcSymbol(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

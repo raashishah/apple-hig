@@ -1705,6 +1705,12 @@ const results = [];
       text: "<div data-ac-aspect></div>",
     },
   ]);
+  const acSymbolMarkerOnly = scanAffordances([
+    {
+      path: "Clip.tsx",
+      text: "<div data-ac-symbol></div>",
+    },
+  ]);
   const appClipEntitlementOnly = scanAffordances([
     {
       path: "App.entitlements",
@@ -2340,6 +2346,7 @@ const results = [];
       !acMotionMarkerOnly.includes("appclipcode") &&
       !acRotateMarkerOnly.includes("appclipcode") &&
       !acAspectMarkerOnly.includes("appclipcode") &&
+      !acSymbolMarkerOnly.includes("appclipcode") &&
       !appClipEntitlementOnly.includes("appclipcode") &&
       !appClipPhraseOnly.includes("appclipcode") &&
       !appClipAdOnly.includes("appclipcode") &&
@@ -3168,6 +3175,7 @@ const results = [];
       (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-motion") &&
       (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-rotate") &&
       (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-aspect") &&
+      (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-symbol") &&
       catalog.byId["app-clips"]?.pack === "tech-app-clips.md" &&
       catalog.byId["app-clips"]?.surfaceId === "app-clips" &&
       catalog.byId["app-clips"]?.appliesWhen === "capability:appclips" &&
@@ -14996,6 +15004,153 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-app-clip-aspect-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acs-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acs-fix-"));
+  const glyphDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acs-glyph-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acs-hold-"));
+  const adsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acs-ads-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acs-bare-"));
+  const dirs = [passDir, fixDir, glyphDir, holdDir, adsDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [fixDir, glyphDir, holdDir, adsDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-symbol>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const origGlyph = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <span>™</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(glyphDir, "HostWidgets.tsx"), origGlyph);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't add a symbol to App Clip Codes.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origAds = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't display ads in your App Clip.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(adsDir, "HostWidgets.tsx"), origAds);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const glyphReport = run(glyphDir);
+    const holdReport = run(holdDir);
+    const adsReport = run(adsDir);
+    const bareReport = run(bareDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const glyphStatus = readStatus(glyphDir);
+    const holdStatus = readStatus(holdDir);
+    const adsStatus = readStatus(adsDir);
+    const bareStatus = readStatus(bareDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const glyph = fs.readFileSync(path.join(glyphDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const ads = fs.readFileSync(path.join(adsDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      glyphChrome: glyphReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      adsChrome: adsReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      passClip: passStatus.topics["app-clips"]?.state === "skipped-gate",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixClip: fixStatus.topics["app-clips"]?.state === "applied",
+      systemKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
+      markersGone: !/data-ac-symbol/.test(fixed),
+      entitlementKept: fs
+        .readFileSync(path.join(fixDir, "App.entitlements"), "utf8")
+        .includes("com.apple.developer.associated-appclip-app-identifiers"),
+      glyphUnchanged: glyph === origGlyph,
+      glyphClip: glyphStatus.topics["app-clips"]?.state === "pending",
+      glyphKept: /™/.test(glyph) && /\bdata-app-clip-code\b/.test(glyph),
+      glyphNotInvented: !/AppClipCodeGenerator/.test(glyph),
+      holdUnchanged: held === origHold,
+      holdClip: holdStatus.topics["app-clips"]?.state === "pending",
+      holdStillPhrase: /add a symbol to App Clip Codes/.test(held),
+      adsUnchanged: ads === origAds,
+      adsClip: adsStatus.topics["app-clips"]?.state === "already-compliant",
+      adsKept: /Don't display ads/.test(ads),
+      bareClip: bareStatus.topics["app-clips"]?.state === "skipped-gate",
+      bareMarkersRemain: /data-ac-symbol/.test(bared),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: passStatus.topics["app-clips"]?.state,
+      fixClip: fixStatus.topics["app-clips"]?.state,
+      glyphClip: glyphStatus.topics["app-clips"]?.state,
+      holdClip: holdStatus.topics["app-clips"]?.state,
+      adsClip: adsStatus.topics["app-clips"]?.state,
+      bareClip: bareStatus.topics["app-clips"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clip-symbol-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

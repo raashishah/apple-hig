@@ -562,3 +562,5 @@ heuristics:
     match: rotated App Clip Code
   - id: ac-aspect
     match: generated App Clip Code with a changed aspect ratio
+  - id: ac-symbol
+    match: symbol added to an App Clip Code
