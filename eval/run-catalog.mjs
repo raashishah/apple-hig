@@ -2724,6 +2724,8 @@ const results = [];
       (catalog.byId.buttons?.dontHeuristicIds || []).includes("destructive-as-primary") &&
       (catalog.byId.buttons?.dontHeuristicIds || []).includes("tg-radios") &&
       (catalog.byId.toggles?.dontHeuristicIds || []).includes("tg-radios") &&
+      (catalog.byId["segmented-controls"]?.dontHeuristicIds || []).includes("sg-mix") &&
+      catalog.byId["segmented-controls"]?.dontCoverageComplete === true &&
       (catalog.byId.widgets?.dontHeuristicIds || []).includes("fake-in-app-widget") &&
       (catalog.byId.controls?.dontHeuristicIds || []).includes(
         "settings-row-as-control-center",
@@ -18823,6 +18825,203 @@ ${radios("size", 5)}
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-too-many-radios-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-hold-"));
+  const mixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-mix-"));
+  const textDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-text-"));
+  const bothDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-both-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-sentence-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-swift-"));
+  const swiftTextDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgm-swift-text-"));
+  const dirs = [passDir, fixDir, holdDir, mixDir, textDir, bothDir, sentenceDir, swiftDir, swiftTextDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" data-sg-mix aria-label="View">
+      <button type="button" role="radio" aria-label="List view"><svg /></button>
+      <button type="button" role="radio" aria-label="Grid view"><svg /></button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="View">
+      <p>Prefer using either text or images — not a mix of both — in a single segmented control.</p>
+      <button type="button" role="radio" aria-label="List view"><svg /></button>
+      <button type="button" role="radio" aria-label="Grid view"><svg /></button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origMix = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+      <button type="button" role="radio">Day</button>
+      <button type="button" role="radio" aria-label="Week"><svg /></button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(mixDir, "HostWidgets.tsx"), origMix);
+    const origText = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+      <button type="button" role="radio">Day</button>
+      <button type="button" role="radio">Week</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(textDir, "HostWidgets.tsx"), origText);
+    const origBoth = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+      <button type="button" role="radio">Day <svg /></button>
+      <button type="button" role="radio">Week <svg /></button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(bothDir, "HostWidgets.tsx"), origBoth);
+    const origSentence = `export function HostWidgets() {
+  return <p>Prefer using either text or images — not a mix of both — in a single segmented control.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origSwift = `export function HostWidgets() {
+  Picker("Span", selection: $mode) {
+    Text("Day").tag(0)
+    Image("week").tag(1)
+  }
+  .pickerStyle(.segmented)
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftText = `export function HostWidgets() {
+  Picker("Span", selection: $mode) {
+    Text("Day").tag(0)
+    Text("Week").tag(1)
+  }
+  .pickerStyle(.segmented)
+}
+`;
+    fs.writeFileSync(path.join(swiftTextDir, "HostWidgets.tsx"), origSwiftText);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const mixReport = run(mixDir);
+    const textReport = run(textDir);
+    const bothReport = run(bothDir);
+    const sentenceReport = run(sentenceDir);
+    const swiftReport = run(swiftDir);
+    const swiftTextReport = run(swiftTextDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const mixStatus = readStatus(mixDir);
+    const textStatus = readStatus(textDir);
+    const bothStatus = readStatus(bothDir);
+    const sentenceStatus = readStatus(sentenceDir);
+    const swiftStatus = readStatus(swiftDir);
+    const swiftTextStatus = readStatus(swiftTextDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const mix = fs.readFileSync(path.join(mixDir, "HostWidgets.tsx"), "utf8");
+    const text = fs.readFileSync(path.join(textDir, "HostWidgets.tsx"), "utf8");
+    const both = fs.readFileSync(path.join(bothDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const swiftText = fs.readFileSync(path.join(swiftTextDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      mixChrome: mixReport.chrome.pass === true,
+      textChrome: textReport.chrome.pass === true,
+      bothChrome: bothReport.chrome.pass === true,
+      sentenceChrome: sentenceReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      swiftTextChrome: swiftTextReport.chrome.pass === true,
+      passButtons: passStatus.topics.buttons?.state === "already-compliant",
+      passSegments: passStatus.topics["segmented-controls"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixButtons: fixStatus.topics.buttons?.state === "applied",
+      systemKept: /aria-label="List view"/.test(fixed),
+      markersGone: !/data-sg-mix\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdButtons: holdStatus.topics.buttons?.state === "pending",
+      holdStillPhrase: /not a mix of both/.test(held),
+      mixUnchanged: mix === origMix,
+      mixButtons: mixStatus.topics.buttons?.state === "pending",
+      mixKept: />Day</.test(mix) && /<svg \/>/.test(mix),
+      textUnchanged: text === origText,
+      textButtons: textStatus.topics.buttons?.state === "already-compliant",
+      bothUnchanged: both === origBoth,
+      bothButtons: bothStatus.topics.buttons?.state === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceButtons: sentenceStatus.topics.buttons?.state === "already-compliant",
+      swiftUnchanged: swift === origSwift,
+      swiftButtons: swiftStatus.topics.buttons?.state === "pending",
+      swiftKept: /Image\("week"\)/.test(swift),
+      swiftTextUnchanged: swiftText === origSwiftText,
+      swiftTextButtons: swiftTextStatus.topics.buttons?.state === "already-compliant",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: passStatus.topics.buttons?.state,
+      passSegments: passStatus.topics["segmented-controls"]?.state,
+      fixButtons: fixStatus.topics.buttons?.state,
+      holdButtons: holdStatus.topics.buttons?.state,
+      mixButtons: mixStatus.topics.buttons?.state,
+      textButtons: textStatus.topics.buttons?.state,
+      bothButtons: bothStatus.topics.buttons?.state,
+      sentenceButtons: sentenceStatus.topics.buttons?.state,
+      swiftButtons: swiftStatus.topics.buttons?.state,
+      swiftTextButtons: swiftTextStatus.topics.buttons?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-segment-mix-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

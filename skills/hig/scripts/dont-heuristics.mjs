@@ -8556,6 +8556,101 @@ function applyTooManyRadios(text) {
   return text.replace(/\s*data-tg-radios(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasSegmentedWidget(text) {
+  return (
+    /role=["']radiogroup["']/i.test(text) ||
+    /\bdata-segmented\b/.test(text) ||
+    /\bUISegmentedControl\b/.test(text) ||
+    /\.pickerStyle\(\s*\.segmented\s*\)/.test(text)
+  );
+}
+
+function hasSegmentMixCopy(text) {
+  return (
+    /not a mix of both/i.test(text) ||
+    /mix of text and images/i.test(text) ||
+    /mixes text and images/i.test(text)
+  );
+}
+
+function segmentKinds(region) {
+  const kinds = [];
+  const re = /<(button|a)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(region))) {
+    const inner = m[2];
+    const hasImage = /<(svg|img)\b/i.test(inner);
+    const visible = inner
+      .replace(/<svg\b[\s\S]*?<\/svg>/gi, "")
+      .replace(/<img\b[^>]*>/gi, "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, "");
+    kinds.push({ hasText: visible.length > 0, hasImage });
+  }
+  return kinds;
+}
+
+function kindsAreMix(kinds) {
+  if (kinds.length < 2) return false;
+  const key = (k) => `${k.hasText}:${k.hasImage}`;
+  if (kinds.every((k) => key(k) === key(kinds[0]))) return false;
+  return kinds.some((k) => k.hasText) && kinds.some((k) => k.hasImage);
+}
+
+function segmentedRegions(text) {
+  const out = [];
+  const re =
+    /<(div|nav|fieldset)\b[^>]*(?:role=["']radiogroup["']|\bdata-segmented\b)[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(text))) out.push(m[0]);
+  return out;
+}
+
+function webSegmentMix(text) {
+  return segmentedRegions(text).some((region) => kindsAreMix(segmentKinds(region)));
+}
+
+function swiftSegmentMix(text) {
+  const re = /\bPicker\b[\s\S]{0,1500}?\.pickerStyle\(\s*\.segmented\s*\)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const body = m[0].replace(/\bLabel\s*\([^)]*\)/g, "");
+    if (/\bText\s*\(\s*"/.test(body) && /\bImage\s*\(/.test(body)) return true;
+  }
+  return false;
+}
+
+function uiSegmentMix(text) {
+  if (!/\bUISegmentedControl\b/.test(text)) return false;
+  const title = /insertSegment\(withTitle:|setTitle\(/.test(text);
+  const image = /insertSegment\(with:\s|setImage\(/.test(text);
+  return title && image;
+}
+
+function scanSegmentMix(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sg-mix\b/.test(f.text)) {
+      out.push(hit(f.path, "a segmented control that mixes text and images"));
+      continue;
+    }
+    if (!hasSegmentedWidget(f.text)) continue;
+    if (
+      hasSegmentMixCopy(f.text) ||
+      webSegmentMix(f.text) ||
+      swiftSegmentMix(f.text) ||
+      uiSegmentMix(f.text)
+    ) {
+      out.push(hit(f.path, "a segmented control that mixes text and images"));
+    }
+  }
+  return out;
+}
+
+function applySegmentMix(text) {
+  return text.replace(/\s*data-sg-mix(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -8757,6 +8852,8 @@ function scanHeuristic(id, files) {
       return scanDestructivePrimary(files);
     case "tg-radios":
       return scanTooManyRadios(files);
+    case "sg-mix":
+      return scanSegmentMix(files);
     case "fake-in-app-widget":
       return scanFakeInAppWidget(files);
     case "stretch-small-widget-large":
@@ -9367,6 +9464,8 @@ function applyHeuristic(id, file) {
       return applyDestructivePrimary(file.text);
     case "tg-radios":
       return applyTooManyRadios(file.text);
+    case "sg-mix":
+      return applySegmentMix(file.text);
     case "fake-in-app-widget":
       return applyFakeInAppWidget(file.text, file);
     case "stretch-small-widget-large":

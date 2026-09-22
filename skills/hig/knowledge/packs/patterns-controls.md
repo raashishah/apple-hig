@@ -19,6 +19,7 @@
 - Multiple primary actions in one region.
 - The primary role on a button that performs a destructive action.
 - A set of more than about five radio buttons.
+- A segmented control that mixes text and images.
 
 ## Apply in host
 

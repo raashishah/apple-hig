@@ -186,6 +186,8 @@ heuristics:
     match: primary role on a button that performs a destructive action
   - id: tg-radios
     match: more than about five radio buttons
+  - id: sg-mix
+    match: segmented control that mixes text and images
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large
