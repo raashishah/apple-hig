@@ -190,6 +190,8 @@ heuristics:
     match: more than about five radio buttons
   - id: sg-mix
     match: segmented control that mixes text and images
+  - id: sg-count
+    match: eight or more segments
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large

@@ -2727,6 +2727,7 @@ const results = [];
       (catalog.byId.buttons?.dontHeuristicIds || []).includes("tg-radios") &&
       (catalog.byId.toggles?.dontHeuristicIds || []).includes("tg-radios") &&
       (catalog.byId["segmented-controls"]?.dontHeuristicIds || []).includes("sg-mix") &&
+      (catalog.byId["segmented-controls"]?.dontHeuristicIds || []).includes("sg-count") &&
       catalog.byId["segmented-controls"]?.dontCoverageComplete === true &&
       (catalog.byId.widgets?.dontHeuristicIds || []).includes("fake-in-app-widget") &&
       (catalog.byId.controls?.dontHeuristicIds || []).includes(
@@ -19196,6 +19197,185 @@ ${radios("size", 5)}
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-index-beside-disclosure-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgc-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgc-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgc-hold-"));
+  const eightDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgc-eight-"));
+  const sevenDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgc-seven-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgc-sentence-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgc-swift-"));
+  const swiftSevenDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sgc-swift-seven-"));
+  const dirs = [passDir, fixDir, holdDir, eightDir, sevenDir, sentenceDir, swiftDir, swiftSevenDir];
+  const buttons = (labels) =>
+    labels.map((label) => `      <button type="button" role="radio">${label}</button>`).join("\n");
+  const tags = (labels) =>
+    labels.map((label, i) => `    Text("${label}").tag(${i})`).join("\n");
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" data-sg-count aria-label="Span">
+${buttons(["A", "B"])}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+      <p>Aim for no more than about five to seven segments in a wide interface.</p>
+${buttons(["A", "B"])}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const eightLabels = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    const sevenLabels = eightLabels.slice(0, 7);
+    const origEight = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+${buttons(eightLabels)}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(eightDir, "HostWidgets.tsx"), origEight);
+    const origSeven = `export function HostWidgets() {
+  return (
+    <div role="radiogroup" aria-label="Span">
+${buttons(sevenLabels)}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(sevenDir, "HostWidgets.tsx"), origSeven);
+    const origSentence = `export function HostWidgets() {
+  return <p>Aim for no more than about five to seven segments in a wide interface.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origSwift = `export function HostWidgets() {
+  Picker("Span", selection: $mode) {
+${tags(eightLabels)}
+  }
+  .pickerStyle(.segmented)
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftSeven = `export function HostWidgets() {
+  Picker("Span", selection: $mode) {
+${tags(sevenLabels)}
+  }
+  .pickerStyle(.segmented)
+}
+`;
+    fs.writeFileSync(path.join(swiftSevenDir, "HostWidgets.tsx"), origSwiftSeven);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const eightReport = run(eightDir);
+    const sevenReport = run(sevenDir);
+    const sentenceReport = run(sentenceDir);
+    const swiftReport = run(swiftDir);
+    const swiftSevenReport = run(swiftSevenDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const eightStatus = readStatus(eightDir);
+    const sevenStatus = readStatus(sevenDir);
+    const sentenceStatus = readStatus(sentenceDir);
+    const swiftStatus = readStatus(swiftDir);
+    const swiftSevenStatus = readStatus(swiftSevenDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const eight = fs.readFileSync(path.join(eightDir, "HostWidgets.tsx"), "utf8");
+    const seven = fs.readFileSync(path.join(sevenDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const swiftSeven = fs.readFileSync(path.join(swiftSevenDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      eightChrome: eightReport.chrome.pass === true,
+      sevenChrome: sevenReport.chrome.pass === true,
+      sentenceChrome: sentenceReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      swiftSevenChrome: swiftSevenReport.chrome.pass === true,
+      passButtons: passStatus.topics.buttons?.state === "already-compliant",
+      passSegments: passStatus.topics["segmented-controls"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixButtons: fixStatus.topics.buttons?.state === "applied",
+      segmentKept: />\s*A\s*</.test(fixed) && />\s*B\s*</.test(fixed),
+      markersGone: !/data-sg-count(?![\w-])/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdButtons: holdStatus.topics.buttons?.state === "pending",
+      holdStillPhrase: /no more than about five to seven segments/.test(held),
+      eightUnchanged: eight === origEight,
+      eightButtons: eightStatus.topics.buttons?.state === "pending",
+      eightKept: />\s*A\s*</.test(eight) && />\s*H\s*</.test(eight),
+      sevenUnchanged: seven === origSeven,
+      sevenButtons: sevenStatus.topics.buttons?.state === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceButtons: sentenceStatus.topics.buttons?.state === "already-compliant",
+      swiftUnchanged: swift === origSwift,
+      swiftButtons: swiftStatus.topics.buttons?.state === "pending",
+      swiftKept: /Text\("H"\)/.test(swift),
+      swiftSevenUnchanged: swiftSeven === origSwiftSeven,
+      swiftSevenButtons: swiftSevenStatus.topics.buttons?.state === "already-compliant",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: passStatus.topics.buttons?.state,
+      passSegments: passStatus.topics["segmented-controls"]?.state,
+      fixButtons: fixStatus.topics.buttons?.state,
+      holdButtons: holdStatus.topics.buttons?.state,
+      eightButtons: eightStatus.topics.buttons?.state,
+      sevenButtons: sevenStatus.topics.buttons?.state,
+      sentenceButtons: sentenceStatus.topics.buttons?.state,
+      swiftButtons: swiftStatus.topics.buttons?.state,
+      swiftSevenButtons: swiftSevenStatus.topics.buttons?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-segment-count-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -8651,6 +8651,55 @@ function applySegmentMix(text) {
   return text.replace(/\s*data-sg-mix(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasSegmentCountCopy(text) {
+  return (
+    /eight or more segments/i.test(text) ||
+    /no more than about five to seven segments/i.test(text)
+  );
+}
+
+function controlSegmentCount(region) {
+  const tags = region.match(/<(button|a)\b/gi);
+  return tags ? tags.length : 0;
+}
+
+function webSegmentCountOver(text, limit) {
+  return segmentedRegions(text).some((region) => controlSegmentCount(region) > limit);
+}
+
+function swiftSegmentCountOver(text, limit) {
+  const re = /\bPicker\b[\s\S]{0,2500}?\.pickerStyle\(\s*\.segmented\s*\)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const tags = m[0].match(/\.tag\s*\(/g);
+    if (tags && tags.length > limit) return true;
+  }
+  return false;
+}
+
+function scanSegmentCount(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sg-count(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a segmented control with eight or more segments"));
+      continue;
+    }
+    if (!hasSegmentedWidget(f.text)) continue;
+    if (
+      hasSegmentCountCopy(f.text) ||
+      webSegmentCountOver(f.text, 7) ||
+      swiftSegmentCountOver(f.text, 7)
+    ) {
+      out.push(hit(f.path, "a segmented control with eight or more segments"));
+    }
+  }
+  return out;
+}
+
+function applySegmentCount(text) {
+  return text.replace(/\s*data-sg-count(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasListWidget(text) {
   return /<(ul|ol|table)\b/i.test(text) || /data-list-pane/.test(text) || /\bList\s*[\({]/.test(text);
 }
@@ -8923,6 +8972,8 @@ function scanHeuristic(id, files) {
       return scanTooManyRadios(files);
     case "sg-mix":
       return scanSegmentMix(files);
+    case "sg-count":
+      return scanSegmentCount(files);
     case "fake-in-app-widget":
       return scanFakeInAppWidget(files);
     case "stretch-small-widget-large":
@@ -9537,6 +9588,8 @@ function applyHeuristic(id, file) {
       return applyTooManyRadios(file.text);
     case "sg-mix":
       return applySegmentMix(file.text);
+    case "sg-count":
+      return applySegmentCount(file.text);
     case "fake-in-app-widget":
       return applyFakeInAppWidget(file.text, file);
     case "stretch-small-widget-large":
