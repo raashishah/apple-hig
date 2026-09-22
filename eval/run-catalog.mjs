@@ -22359,6 +22359,142 @@ ${dots}
   results.push({ case: "catalog-apply-duplicate-notification-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-hold-"));
+  const attrDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-attr-"));
+  const systemDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-system-"));
+  const chipDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-chip-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-sentence-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-copy-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ntm-bare-"));
+  const dirs = [passDir, fixDir, holdDir, attrDir, systemDir, chipDir, sentenceDir, copyDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return <span data-nt-mimic>3</span>;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  new Notification("New message");
+  return <span className="notification-badge">3</span>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origAttr = `export function HostWidgets() {
+  new Notification("New message");
+  return <span data-app-icon-badge>3</span>;
+}
+`;
+    fs.writeFileSync(path.join(attrDir, "HostWidgets.tsx"), origAttr);
+    const origSystem = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  applicationIconBadgeNumber = 3
+  return <p>New message</p>;
+}
+`;
+    fs.writeFileSync(path.join(systemDir, "HostWidgets.tsx"), origSystem);
+    const origChip = `export function HostWidgets() {
+  new Notification("New message");
+  return <span className="badge">3</span>;
+}
+`;
+    fs.writeFileSync(path.join(chipDir, "HostWidgets.tsx"), origChip);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid creating a custom image or component that mimics the appearance or behavior of a badge.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origCopy = `export function HostWidgets() {
+  UNUserNotificationCenter.current()
+  return <p>Avoid creating a custom image or component that mimics the appearance or behavior of a badge.</p>;
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origBare = `export function HostWidgets() {
+  return <span data-nt-mimic>3</span>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const names = ["pass", "fix", "hold", "attr", "system", "chip", "sentence", "copy", "bare"];
+    const dirBy = {
+      pass: passDir,
+      fix: fixDir,
+      hold: holdDir,
+      attr: attrDir,
+      system: systemDir,
+      chip: chipDir,
+      sentence: sentenceDir,
+      copy: copyDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const attr = fs.readFileSync(path.join(attrDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const notes = (name) => status[name].topics.notifications?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.notifications?.dontHeuristicIds || []).includes("nt-mimic"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      passNotes: notes("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixNotes: notes("fix") === "applied",
+      markerGone: !/data-nt-mimic(?![\w-])/.test(fixed),
+      countKept: />\s*3\s*</.test(fixed),
+      holdUnchanged: held === origHold,
+      holdNotes: notes("hold") === "pending",
+      holdBadge: /notification-badge/.test(held),
+      attrUnchanged: attr === origAttr,
+      attrNotes: notes("attr") === "pending",
+      systemNotes: notes("system") === "already-compliant",
+      chipNotes: notes("chip") === "already-compliant",
+      sentenceNotes: notes("sentence") === "skipped-no-affordance",
+      copyUnchanged: copied === origCopy,
+      copyNotes: notes("copy") === "pending",
+      bareNotes: notes("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-nt-mimic(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passNotes: notes("pass"),
+      fixNotes: notes("fix"),
+      holdNotes: notes("hold"),
+      attrNotes: notes("attr"),
+      systemNotes: notes("system"),
+      chipNotes: notes("chip"),
+      sentenceNotes: notes("sentence"),
+      copyNotes: notes("copy"),
+      bareNotes: notes("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-fake-badge-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

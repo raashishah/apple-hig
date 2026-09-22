@@ -5334,6 +5334,40 @@ function applyDuplicateNotification(text) {
   return text.replace(/\s*data-nt-dup(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasFakeBadgeCopy(text) {
+  return (
+    /custom image or component that mimics/i.test(text) ||
+    /mimics the appearance or behavior of a badge/i.test(text) ||
+    /custom component that mimics a notification badge/i.test(text)
+  );
+}
+
+function hasCustomNotificationBadge(text) {
+  return (
+    /class(Name)?=["'][^"']*\bnotification-badge\b/.test(text) ||
+    /\bdata-app-icon-badge\b/.test(text)
+  );
+}
+
+function scanFakeBadge(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nt-mimic(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a custom component that mimics a notification badge"));
+      continue;
+    }
+    if (!hasNotificationChrome(f.text)) continue;
+    if (hasCustomNotificationBadge(f.text) || hasFakeBadgeCopy(f.text)) {
+      out.push(hit(f.path, "a custom component that mimics a notification badge"));
+    }
+  }
+  return out;
+}
+
+function applyFakeBadge(text) {
+  return text.replace(/\s*data-nt-mimic(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanIgnorePrimaryAudioInterrupt(files) {
   const out = [];
   for (const f of files) {
@@ -10278,6 +10312,8 @@ function scanHeuristic(id, files) {
       return scanNtContent(files);
     case "nt-dup":
       return scanDuplicateNotification(files);
+    case "nt-mimic":
+      return scanFakeBadge(files);
     case "hidden-drag-no-alternative":
       return scanHiddenDrag(files);
     case "drop-navigates-without-preview":
@@ -10928,6 +10964,8 @@ function applyHeuristic(id, file) {
       return applyNtContent(file.text);
     case "nt-dup":
       return applyDuplicateNotification(file.text);
+    case "nt-mimic":
+      return applyFakeBadge(file.text);
     case "hidden-drag-no-alternative":
       return file.text;
     case "drop-navigates-without-preview":

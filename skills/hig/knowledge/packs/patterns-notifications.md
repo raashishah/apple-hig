@@ -42,6 +42,7 @@ Encode **permission and timing**. Widgets / Live Activities are U5. Do not compl
 - A notification action that merely opens your app.
 - The app name or icon inside the notification content.
 - Multiple notifications for the same thing.
+- A custom component that mimics a notification badge.
 
 ## Checklist
 
