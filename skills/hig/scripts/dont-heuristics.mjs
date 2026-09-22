@@ -9294,6 +9294,38 @@ function applyAcSolo(text) {
   return text.replace(/\s*data-ac-solo(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcFetchCopy(text) {
+  return (
+    /downloading additional data/i.test(text) ||
+    /download of additional data/i.test(text) ||
+    /avoid downloading additional data/i.test(text)
+  );
+}
+
+function appClipDownloadsExtra(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /\b(?:fetch|downloadFile|URLSession)\b[\s\S]{0,200}?\.(?:zip|bin|pkg|bundle)/i.test(text);
+}
+
+function scanAcFetch(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-fetch(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a download of additional data with an App Clip Code"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcFetchCopy(f.text) || appClipDownloadsExtra(f.text)) {
+      out.push(hit(f.path, "a download of additional data with an App Clip Code"));
+    }
+  }
+  return out;
+}
+
+function applyAcFetch(text) {
+  return text.replace(/\s*data-ac-fetch(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -11076,6 +11108,8 @@ function scanHeuristic(id, files) {
       return scanAcSymbol(files);
     case "ac-solo":
       return scanAcSolo(files);
+    case "ac-fetch":
+      return scanAcFetch(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -11740,6 +11774,8 @@ function applyHeuristic(id, file) {
       return applyAcSymbol(file.text);
     case "ac-solo":
       return applyAcSolo(file.text);
+    case "ac-fetch":
+      return applyAcFetch(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

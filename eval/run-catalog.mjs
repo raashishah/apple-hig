@@ -23491,6 +23491,166 @@ ${dots}
   results.push({ case: "catalog-apply-app-clip-logo-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-hold-"));
+  const fetchDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-fetch-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-api-"));
+  const adsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-ads-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acf-bare-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, fetchDir, apiDir, adsDir, sentenceDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [cleanDir, fixDir, holdDir, fetchDir, apiDir, adsDir, sentenceDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const codeOnly = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), codeOnly);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-fetch>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Avoid downloading additional data, which can take away the feeling of immediacy.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origFetch = `export function HostWidgets() {
+  fetch("/models.zip");
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fetchDir, "HostWidgets.tsx"), origFetch);
+    const origApi = `export function HostWidgets() {
+  fetch("/api/orders");
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origAds = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't display ads in your App Clip.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(adsDir, "HostWidgets.tsx"), origAds);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid downloading additional data, which can take away the feeling of immediacy.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const names = ["pass", "clean", "fix", "hold", "fetch", "api", "ads", "sentence", "bare"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      fix: fixDir,
+      hold: holdDir,
+      fetch: fetchDir,
+      api: apiDir,
+      ads: adsDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const fetched = fs.readFileSync(path.join(fetchDir, "HostWidgets.tsx"), "utf8");
+    const ads = fs.readFileSync(path.join(adsDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const clip = (name) => status[name].topics["app-clips"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-fetch"),
+      soloHeuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-solo"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passClip: clip("pass") === "skipped-gate",
+      cleanClip: clip("clean") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixClip: clip("fix") === "applied",
+      markerGone: !/data-ac-fetch(?![\w-])/.test(fixed),
+      codeKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
+      holdUnchanged: held === origHold,
+      holdClip: clip("hold") === "pending",
+      holdPhrase: /downloading additional data/.test(held),
+      fetchUnchanged: fetched === origFetch,
+      fetchClip: clip("fetch") === "pending",
+      fetchKept: /models\.zip/.test(fetched),
+      apiClip: clip("api") === "already-compliant",
+      adsUnchanged: ads === origAds,
+      adsClip: clip("ads") === "already-compliant",
+      sentenceClip: clip("sentence") === "skipped-no-affordance",
+      bareClip: clip("bare") === "skipped-gate",
+      bareMarkerRemains: /data-ac-fetch(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: clip("pass"),
+      cleanClip: clip("clean"),
+      fixClip: clip("fix"),
+      holdClip: clip("hold"),
+      fetchClip: clip("fetch"),
+      apiClip: clip("api"),
+      adsClip: clip("ads"),
+      sentenceClip: clip("sentence"),
+      bareClip: clip("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clip-fetch-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
