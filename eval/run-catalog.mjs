@@ -121,6 +121,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["dock-menus"]?.gate === "always" &&
     surfaces.byId["inputs-gestures"]?.affordance === "gesture" &&
     surfaces.byId["inputs-gestures"]?.gate === "phone,ipad" &&
+    surfaces.byId["inputs-keyboards"]?.affordance === "keyboard" &&
+    surfaces.byId["inputs-keyboards"]?.gate === "phone,ipad,desktop" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1387,6 +1389,48 @@ const results = [];
       text: "let base = UIGestureRecognizer()",
     },
   ]);
+  const keyboardOnly = scanAffordances([
+    {
+      path: "Keys.tsx",
+      text: "<div data-keyboard></div>",
+    },
+  ]);
+  const shortcutOnly = scanAffordances([
+    {
+      path: "Keys.swift",
+      text: 'Button("Save").keyboardShortcut("s")',
+    },
+  ]);
+  const keyCommandOnly = scanAffordances([
+    {
+      path: "Keys.swift",
+      text: 'UIKeyCommand(input: "s", modifierFlags: .command)',
+    },
+  ]);
+  const keyEquivalentOnly = scanAffordances([
+    {
+      path: "Keys.swift",
+      text: 'item.keyEquivalent = "s"',
+    },
+  ]);
+  const keyboardPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Use the keyboard.</p>",
+    },
+  ]);
+  const kbMarkerOnly = scanAffordances([
+    {
+      path: "Keys.tsx",
+      text: "<div data-kb-repurpose data-kb-modifier data-kb-help data-kb-dup-keys></div>",
+    },
+  ]);
+  const swiftTextFieldOnly = scanAffordances([
+    {
+      path: "Field.swift",
+      text: 'TextField("Name")',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1895,6 +1939,19 @@ const results = [];
       !passList.includes("gesture") &&
       !pageOnly.includes("gesture") &&
       !dockOnly.includes("gesture") &&
+      keyboardOnly.includes("keyboard") &&
+      !keyboardOnly.includes("form") &&
+      shortcutOnly.includes("keyboard") &&
+      keyCommandOnly.includes("keyboard") &&
+      keyEquivalentOnly.includes("keyboard") &&
+      !keyboardPhraseOnly.includes("keyboard") &&
+      !kbMarkerOnly.includes("keyboard") &&
+      !inputOnly.includes("keyboard") &&
+      !swiftTextFieldOnly.includes("keyboard") &&
+      !formOnly.includes("keyboard") &&
+      !passList.includes("keyboard") &&
+      !pageOnly.includes("keyboard") &&
+      !gestureOnly.includes("keyboard") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2660,6 +2717,16 @@ const results = [];
       (catalog.byId.gestures?.dontHeuristicIds || []).includes("gs-gesture-only") &&
       catalog.byId.gestures?.pack === "inputs-gestures.md" &&
       catalog.byId.gestures?.appliesWhen === "phone,ipad" &&
+      catalog.byId.keyboards?.dontCoverageComplete === true &&
+      (catalog.byId.keyboards?.dontHeuristicIds || []).includes("kb-repurpose") &&
+      (catalog.byId.keyboards?.dontHeuristicIds || []).includes("kb-modifier") &&
+      (catalog.byId.keyboards?.dontHeuristicIds || []).includes("kb-help") &&
+      (catalog.byId.keyboards?.dontHeuristicIds || []).includes("kb-dup-keys") &&
+      catalog.byId.keyboards?.pack === "inputs-keyboards.md" &&
+      catalog.byId.keyboards?.appliesWhen === "phone,ipad,desktop" &&
+      catalog.byId["virtual-keyboards"]?.dontCoverageComplete === true &&
+      catalog.byId["virtual-keyboards"]?.pack === "inputs-keyboards.md" &&
+      catalog.byId["virtual-keyboards"]?.appliesWhen === "phone,ipad,desktop" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -12817,6 +12884,154 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-gestures-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-keyboard-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-keyboard-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-keyboard-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-keyboard-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, cleanDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    const writePhone = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: phone\nregister: product\nThis product is a phone app.\n",
+      );
+    };
+    writePhone(cleanDir);
+    writePhone(fixDir);
+    writePhone(holdDir);
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-keyboard data-kb-repurpose data-kb-modifier data-kb-help data-kb-dup-keys>
+      <button type="button">Archive</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-keyboard>
+      <p>Command-Z or Command-Q for an unrelated action.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const cleanReport = applyCatalog({
+      cwd: cleanDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const cleanStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(cleanDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(cleanDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passKeyboards: passStatus.topics.keyboards?.state === "skipped-gate",
+      passVirtual: passStatus.topics["virtual-keyboards"]?.state === "skipped-gate",
+      cleanKeyboards: cleanStatus.topics.keyboards?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixKeyboards: fixStatus.topics.keyboards?.state === "applied",
+      fixVirtual: fixStatus.topics["virtual-keyboards"]?.state === "applied",
+      systemKept: /\bdata-keyboard\b/.test(fixed) && />\s*Archive\s*</.test(fixed),
+      markersGone: !/data-kb-repurpose|data-kb-modifier|data-kb-help|data-kb-dup-keys/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdKeyboards: holdStatus.topics.keyboards?.state === "pending",
+      holdStillPhrase:
+        /\bdata-keyboard\b/.test(held) && /Command-Z or Command-Q/.test(held),
+      holdNotInvented: !/keyboardShortcut|UIKeyCommand|keyEquivalent/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passKeyboards: passStatus.topics.keyboards?.state,
+      cleanKeyboards: cleanStatus.topics.keyboards?.state,
+      fixKeyboards: fixStatus.topics.keyboards?.state,
+      holdKeyboards: holdStatus.topics.keyboards?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(cleanDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-keyboards-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

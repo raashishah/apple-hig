@@ -633,6 +633,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "gesture":
       return !present.includes(need);
+    case "keyboard":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1252,6 +1254,14 @@ export function scanAffordances(files) {
     /\bDragGesture\b/.test(blob)
   ) {
     found.push("gesture");
+  }
+  if (
+    /\bdata-keyboard\b/.test(blob) ||
+    /\bkeyboardShortcut\b/.test(blob) ||
+    /\bUIKeyCommand\b/.test(blob) ||
+    /\bkeyEquivalent\b/.test(blob)
+  ) {
+    found.push("keyboard");
   }
   return found;
 }

@@ -520,3 +520,11 @@ heuristics:
     match: edge swipes that fight system Home
   - id: gs-gesture-only
     match: Gesture-only navigation with no toolbar Back
+  - id: kb-repurpose
+    match: Command-Z or Command-Q
+  - id: kb-modifier
+    match: modifier added to an existing shortcut
+  - id: kb-help
+    match: Help content displayed within the keyboard
+  - id: kb-dup-keys
+    match: Duplicated Emoji/Globe or Dictation keys

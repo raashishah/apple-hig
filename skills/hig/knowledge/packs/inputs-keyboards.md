@@ -2,7 +2,7 @@
 
 **Apple:** [Keyboards](https://developer.apple.com/design/human-interface-guidelines/keyboards)  
 **Also:** [Virtual keyboards](https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards), [Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls) (key bindings)  
-**Intended gate (not wired this PR):** hosts with text entry or a hardware keyboard (phone, iPad, Mac). Physical-shortcut rows apply on Mac/iPad; virtual-keyboard rows on touch. Skip watch-only later.
+**Gate:** `phone,ipad,desktop` on surface `inputs-keyboards`. Unknown hosts skip. Skip-unless affordance `keyboard`. Placeholder-only labels stay on packed forms. Autocomplete that covers Scribble stays on the Pencil pack.
 
 Do not reprint Apple’s full shortcut table. Live-link Keyboards for the catalog. Game-specific bindings live on Game controls (moved there 2025-06-09).
 
@@ -35,9 +35,10 @@ Do not reprint Apple’s full shortcut table. Live-link Keyboards for the catalo
 
 ## Don't
 
-- Placeholder-only labels (compose with forms).
-- Autocomplete overlay that covers Scribble/handwriting (Pencil pack).
-- Redefine Command-Z/Q for unrelated actions.
+- Repurposed standard shortcuts such as Command-Z or Command-Q for an unrelated action.
+- A modifier added to an existing shortcut for an unrelated command.
+- Help content displayed within the keyboard itself.
+- Duplicated Emoji/Globe or Dictation keys inside a custom keyboard.
 
 ## Checklist
 

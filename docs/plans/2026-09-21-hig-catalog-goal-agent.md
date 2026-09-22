@@ -147,6 +147,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 86. Gesture Don'ts. **Landed on this PR.** Account gestures Don'ts when every Don't has a scanner and the host has gesture chrome. Skip-unless `gesture` affordance stays. Gate stays `phone,ipad`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. Unique tap or swipe meaning, custom edge swipes that fight system Home or back, and gesture-only navigation with no toolbar Back scan from the existing gestures pack. Do not invent a gesture recognizer. Do not map gestures onto a button, a tap phrase, `MagnifyGesture`, or `UIGestureRecognizer`. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+87. Keyboard Don'ts. **Landed on this PR.** Account keyboards and virtual-keyboards Don'ts when every Don't has a scanner and the host has keyboard chrome. Skip-unless `keyboard` affordance stays. Gate stays `phone,ipad,desktop`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. Repurposed Command-Z or Command-Q, a modifier added to an existing shortcut for an unrelated command, help inside the keyboard, and duplicated Emoji/Globe or Dictation keys scan from Apple's keyboards and virtual-keyboards pages. Placeholder-only labels stay on packed forms. Scribble stays on the Pencil pack. Do not invent a keyboard. Do not map keyboards onto an input, a text field, or a bare keyboard phrase. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

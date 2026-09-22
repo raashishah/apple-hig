@@ -160,6 +160,7 @@ const results = [];
     launchedIds.includes("camera-control") &&
     launchedIds.includes("dock-menus") &&
     !launchedIds.includes("inputs-gestures") &&
+    !launchedIds.includes("inputs-keyboards") &&
     !launchedIds.includes("game-center") &&
     !launchedIds.includes("mac-chrome") &&
     requiredOk;
@@ -210,6 +211,7 @@ const results = [];
     launchedIds.includes("camera-control") &&
     launchedIds.includes("dock-menus") &&
     launchedIds.includes("inputs-gestures") &&
+    launchedIds.includes("inputs-keyboards") &&
     !launchedIds.includes("game-center") &&
     surfaces.requiredIds.length === 12;
   results.push({
@@ -366,10 +368,12 @@ const results = [];
     (phone.capabilities || []).includes("pencil") &&
     !phoneIds.includes("inputs-pencil") &&
     phoneIds.includes("inputs-gestures") &&
+    phoneIds.includes("inputs-keyboards") &&
     pad.platform === "ipad" &&
     (pad.capabilities || []).includes("pencil") &&
     padIds.includes("inputs-pencil") &&
-    padIds.includes("inputs-gestures");
+    padIds.includes("inputs-gestures") &&
+    padIds.includes("inputs-keyboards");
   results.push({
     case: "pencil-and-gate-ipad-only",
     ok,
@@ -391,6 +395,7 @@ const results = [];
     !phoneIds.includes("gs-iphone-duo") &&
     phoneIds.includes("gs-ios") &&
     phoneIds.includes("inputs-gestures") &&
+    phoneIds.includes("inputs-keyboards") &&
     surfaces.requiredIds.length === 12;
   results.push({
     case: "phone-only-skips-iphone-duo",
