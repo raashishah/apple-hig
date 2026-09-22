@@ -165,6 +165,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 95. App Clip Code Don'ts. **Landed on this PR.** Account app-clips Don'ts when every Don't has a scanner and the host has an App Clip Code widget. Skip-unless `appclipcode` affordance stays. Dedicated surface `app-clips` attaches by appleUrl before the platform cluster so Mac Catalyst does not inherit the Don't. Gate stays `capability:appclips`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. A homemade or modified App Clip Code scans from Apple's App Clips page. Do not invent an App Clip Code. Do not map app-clips onto the App Clip entitlement, `data-app-clip`, `data-ac-modified`, or a bare App Clip phrase. Ads, web views, and account walls stay unscanned. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+96. App Clip Code presentation Don'ts. **Landed on this PR.** Account overlay, motion, and rotation when every Don't has a scanner and the host has the same App Clip Code widget. Skip-unless `appclipcode` stays. Gate stays `capability:appclips`. Do not overlay `always`. Text, logos, or images over the code, an animated or dimmed code, and a rotated code scan from Apple's App Clips page. Do not invent an App Clip Code. Do not map these Don'ts onto `data-ac-overlay`, `data-ac-motion`, `data-ac-rotate`, or the homemade-code scanner. Ads stay unscanned. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

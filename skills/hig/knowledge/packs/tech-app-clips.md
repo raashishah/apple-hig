@@ -13,3 +13,6 @@ People scan a generated App Clip Code. The code stays the one Apple generated.
 ## Don't
 
 - A homemade or modified App Clip Code.
+- Text, logos, or images over an App Clip Code.
+- An animated or dimmed App Clip Code.
+- A rotated App Clip Code.

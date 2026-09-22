@@ -1681,6 +1681,24 @@ const results = [];
       text: "<div data-ac-modified></div>",
     },
   ]);
+  const acOverlayMarkerOnly = scanAffordances([
+    {
+      path: "Clip.tsx",
+      text: "<div data-ac-overlay></div>",
+    },
+  ]);
+  const acMotionMarkerOnly = scanAffordances([
+    {
+      path: "Clip.tsx",
+      text: "<div data-ac-motion></div>",
+    },
+  ]);
+  const acRotateMarkerOnly = scanAffordances([
+    {
+      path: "Clip.tsx",
+      text: "<div data-ac-rotate></div>",
+    },
+  ]);
   const appClipEntitlementOnly = scanAffordances([
     {
       path: "App.entitlements",
@@ -2312,6 +2330,9 @@ const results = [];
       !appClipCodeOnly.includes("walletpass") &&
       !appClipWordOnly.includes("appclipcode") &&
       !acMarkerOnly.includes("appclipcode") &&
+      !acOverlayMarkerOnly.includes("appclipcode") &&
+      !acMotionMarkerOnly.includes("appclipcode") &&
+      !acRotateMarkerOnly.includes("appclipcode") &&
       !appClipEntitlementOnly.includes("appclipcode") &&
       !appClipPhraseOnly.includes("appclipcode") &&
       !appClipAdOnly.includes("appclipcode") &&
@@ -3136,6 +3157,9 @@ const results = [];
       catalog.byId.wallet?.appliesWhen === "capability:wallet" &&
       catalog.byId["app-clips"]?.dontCoverageComplete === true &&
       (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-modified") &&
+      (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-overlay") &&
+      (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-motion") &&
+      (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-rotate") &&
       catalog.byId["app-clips"]?.pack === "tech-app-clips.md" &&
       catalog.byId["app-clips"]?.surfaceId === "app-clips" &&
       catalog.byId["app-clips"]?.appliesWhen === "capability:appclips" &&
@@ -14628,6 +14652,177 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-app-clips-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-fix-"));
+  const logoDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-logo-"));
+  const motionDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-motion-"));
+  const rotateDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-rotate-"));
+  const adsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-ads-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-bare-"));
+  const dirs = [passDir, fixDir, logoDir, motionDir, rotateDir, adsDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [fixDir, logoDir, motionDir, rotateDir, adsDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-overlay data-ac-motion data-ac-rotate>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const origLogo = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <img alt="Logo" src="/logo.png" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(logoDir, "HostWidgets.tsx"), origLogo);
+    const origMotion = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code style={{ animation: "pulse 1s infinite" }}>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(motionDir, "HostWidgets.tsx"), origMotion);
+    const origRotate = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code style={{ transform: "rotate(12deg)" }}>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(rotateDir, "HostWidgets.tsx"), origRotate);
+    const origAds = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't display ads in your App Clip.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(adsDir, "HostWidgets.tsx"), origAds);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const logoReport = run(logoDir);
+    const motionReport = run(motionDir);
+    const rotateReport = run(rotateDir);
+    const adsReport = run(adsDir);
+    const bareReport = run(bareDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const logoStatus = readStatus(logoDir);
+    const motionStatus = readStatus(motionDir);
+    const rotateStatus = readStatus(rotateDir);
+    const adsStatus = readStatus(adsDir);
+    const bareStatus = readStatus(bareDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const logo = fs.readFileSync(path.join(logoDir, "HostWidgets.tsx"), "utf8");
+    const motion = fs.readFileSync(path.join(motionDir, "HostWidgets.tsx"), "utf8");
+    const rotated = fs.readFileSync(path.join(rotateDir, "HostWidgets.tsx"), "utf8");
+    const ads = fs.readFileSync(path.join(adsDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      logoChrome: logoReport.chrome.pass === true,
+      motionChrome: motionReport.chrome.pass === true,
+      rotateChrome: rotateReport.chrome.pass === true,
+      adsChrome: adsReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      passClip: passStatus.topics["app-clips"]?.state === "skipped-gate",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixClip: fixStatus.topics["app-clips"]?.state === "applied",
+      systemKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
+      markersGone:
+        !/data-ac-overlay/.test(fixed) &&
+        !/data-ac-motion/.test(fixed) &&
+        !/data-ac-rotate/.test(fixed),
+      entitlementKept: fs
+        .readFileSync(path.join(fixDir, "App.entitlements"), "utf8")
+        .includes("com.apple.developer.associated-appclip-app-identifiers"),
+      logoUnchanged: logo === origLogo,
+      logoClip: logoStatus.topics["app-clips"]?.state === "pending",
+      logoKept: /<img\b/.test(logo) && /\bdata-app-clip-code\b/.test(logo),
+      logoNotInvented: !/AppClipCodeGenerator/.test(logo),
+      motionUnchanged: motion === origMotion,
+      motionClip: motionStatus.topics["app-clips"]?.state === "pending",
+      motionKept: /animation\s*:/.test(motion),
+      rotateUnchanged: rotated === origRotate,
+      rotateClip: rotateStatus.topics["app-clips"]?.state === "pending",
+      rotateKept: /rotate\s*\(/.test(rotated),
+      adsUnchanged: ads === origAds,
+      adsClip: adsStatus.topics["app-clips"]?.state === "already-compliant",
+      adsKept: /Don't display ads/.test(ads),
+      bareClip: bareStatus.topics["app-clips"]?.state === "skipped-gate",
+      bareMarkersRemain:
+        /data-ac-overlay/.test(bared) &&
+        /data-ac-motion/.test(bared) &&
+        /data-ac-rotate/.test(bared),
+      holdPrinciples: logoStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: logoReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: passStatus.topics["app-clips"]?.state,
+      fixClip: fixStatus.topics["app-clips"]?.state,
+      logoClip: logoStatus.topics["app-clips"]?.state,
+      motionClip: motionStatus.topics["app-clips"]?.state,
+      rotateClip: rotateStatus.topics["app-clips"]?.state,
+      adsClip: adsStatus.topics["app-clips"]?.state,
+      bareClip: bareStatus.topics["app-clips"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clip-overlay-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

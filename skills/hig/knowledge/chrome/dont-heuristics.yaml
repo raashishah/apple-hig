@@ -554,3 +554,9 @@ heuristics:
     match: change message used for marketing
   - id: ac-modified
     match: homemade or modified App Clip Code
+  - id: ac-overlay
+    match: text, logos, or images over an App Clip Code
+  - id: ac-motion
+    match: animated or dimmed App Clip Code
+  - id: ac-rotate
+    match: rotated App Clip Code

@@ -7448,6 +7448,102 @@ function applyAcModified(text) {
   return text.replace(/\s*data-ac-modified(?:="[^"]*")?/g, "");
 }
 
+function hasAcOverlayCopy(text) {
+  return (
+    /overlay the App Clip Code with text, logos, or images/i.test(text) ||
+    /text, logos, or images over an App Clip Code/i.test(text)
+  );
+}
+
+function hasAcOverlaySignal(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /data-app-clip-code[\s\S]{0,500}<img\b/i.test(text) ||
+    /data-app-clip-code[^>]*background-image\s*:/i.test(text);
+}
+
+function scanAcOverlay(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-overlay/.test(f.text)) {
+      out.push(hit(f.path, "text, logos, or images over an App Clip Code"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcOverlayCopy(f.text) || hasAcOverlaySignal(f.text)) {
+      out.push(hit(f.path, "text, logos, or images over an App Clip Code"));
+    }
+  }
+  return out;
+}
+
+function hasAcMotionCopy(text) {
+  return (
+    /never animate the App Clip Code/i.test(text) ||
+    /animate the App Clip Code or dim/i.test(text) ||
+    /animated or dimmed App Clip Code/i.test(text)
+  );
+}
+
+function hasAcMotionSignal(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /data-app-clip-code[\s\S]{0,240}animation\s*:/i.test(text);
+}
+
+function scanAcMotion(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-motion/.test(f.text)) {
+      out.push(hit(f.path, "an animated or dimmed App Clip Code"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcMotionCopy(f.text) || hasAcMotionSignal(f.text)) {
+      out.push(hit(f.path, "an animated or dimmed App Clip Code"));
+    }
+  }
+  return out;
+}
+
+function hasAcRotateCopy(text) {
+  return (
+    /don['’]?t rotate the generated App Clip Code/i.test(text) ||
+    /rotate the generated App Clip Code/i.test(text) ||
+    /rotated App Clip Code/i.test(text)
+  );
+}
+
+function hasAcRotateSignal(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /data-app-clip-code[\s\S]{0,240}rotate\s*\(/i.test(text);
+}
+
+function scanAcRotate(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-rotate/.test(f.text)) {
+      out.push(hit(f.path, "a rotated App Clip Code"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcRotateCopy(f.text) || hasAcRotateSignal(f.text)) {
+      out.push(hit(f.path, "a rotated App Clip Code"));
+    }
+  }
+  return out;
+}
+
+function applyAcOverlay(text) {
+  return text.replace(/\s*data-ac-overlay(?:="[^"]*")?/g, "");
+}
+
+function applyAcMotion(text) {
+  return text.replace(/\s*data-ac-motion(?:="[^"]*")?/g, "");
+}
+
+function applyAcRotate(text) {
+  return text.replace(/\s*data-ac-rotate(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -8017,6 +8113,12 @@ function scanHeuristic(id, files) {
       return scanWlMarketing(files);
     case "ac-modified":
       return scanAcModified(files);
+    case "ac-overlay":
+      return scanAcOverlay(files);
+    case "ac-motion":
+      return scanAcMotion(files);
+    case "ac-rotate":
+      return scanAcRotate(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8579,6 +8681,12 @@ function applyHeuristic(id, file) {
       return applyWlMarketing(file.text);
     case "ac-modified":
       return applyAcModified(file.text);
+    case "ac-overlay":
+      return applyAcOverlay(file.text);
+    case "ac-motion":
+      return applyAcMotion(file.text);
+    case "ac-rotate":
+      return applyAcRotate(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
