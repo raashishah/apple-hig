@@ -4142,6 +4142,62 @@ function applyNtBadge(text) {
   return text.replace(/\s*data-nt-badge(?:="[^"]*")?/g, "");
 }
 
+function bundleDisplayName(text) {
+  const patterns = [
+    /CFBundleDisplayName<\/key>\s*<string>([^<]+)<\/string>/i,
+    /CFBundleDisplayName\s*[:=]\s*"([^"]+)"/,
+    /CFBundleDisplayName\s*[:=]\s*'([^']+)'/,
+  ];
+  for (const re of patterns) {
+    const found = text.match(re);
+    if (!found) continue;
+    const name = found[1].trim();
+    if (name.length < 3) continue;
+    if (/^(open|snooze|ok|yes|no)$/i.test(name)) continue;
+    return name;
+  }
+  return null;
+}
+
+function hasNtLabelCopy(text) {
+  return (
+    /don['’]?t include your app name/i.test(text) ||
+    /include your app name (?:or any extraneous information )?in the button label/i.test(text) ||
+    /app name in (?:a |the )?notification button label/i.test(text)
+  );
+}
+
+function hasNtLabelSignal(text) {
+  if (!hasNotificationChrome(text)) return false;
+  const name = bundleDisplayName(text);
+  if (!name) return false;
+  const nameRe = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
+  const titles = text.matchAll(/UNNotificationAction\s*\([^)]*title:\s*"([^"]+)"/g);
+  for (const found of titles) {
+    if (nameRe.test(found[1])) return true;
+  }
+  return false;
+}
+
+function scanNtLabel(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-nt-label/.test(f.text)) {
+      out.push(hit(f.path, "the app name in a notification button label"));
+      continue;
+    }
+    if (!hasNotificationChrome(f.text)) continue;
+    if (hasNtLabelCopy(f.text) || hasNtLabelSignal(f.text)) {
+      out.push(hit(f.path, "the app name in a notification button label"));
+    }
+  }
+  return out;
+}
+
+function applyNtLabel(text) {
+  return text.replace(/\s*data-nt-label(?:="[^"]*")?/g, "");
+}
+
 function scanIgnorePrimaryAudioInterrupt(files) {
   const out = [];
   for (const f of files) {
@@ -7963,6 +8019,8 @@ function scanHeuristic(id, files) {
       return scanCustomLockScreen(files);
     case "nt-badge":
       return scanNtBadge(files);
+    case "nt-label":
+      return scanNtLabel(files);
     case "hidden-drag-no-alternative":
       return scanHiddenDrag(files);
     case "drop-navigates-without-preview":
@@ -8545,6 +8603,8 @@ function applyHeuristic(id, file) {
       return file.text;
     case "nt-badge":
       return applyNtBadge(file.text);
+    case "nt-label":
+      return applyNtLabel(file.text);
     case "hidden-drag-no-alternative":
       return file.text;
     case "drop-navigates-without-preview":

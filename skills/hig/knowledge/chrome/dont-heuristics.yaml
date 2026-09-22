@@ -114,6 +114,8 @@ heuristics:
     match: Custom lock-screen UI that fights the system
   - id: nt-badge
     match: numeric information that isn't related to notifications
+  - id: nt-label
+    match: app name in a notification button label
   - id: hidden-drag-no-alternative
     match: Hidden drag with no alternative
   - id: drop-navigates-without-preview
