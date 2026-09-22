@@ -528,3 +528,7 @@ heuristics:
     match: Help content displayed within the keyboard
   - id: kb-dup-keys
     match: Duplicated Emoji/Globe or Dictation keys
+  - id: pt-instruct
+    match: instructional text displayed with a pointer
+  - id: pt-decorative
+    match: purely decorative pointer effect

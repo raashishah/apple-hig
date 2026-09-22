@@ -180,14 +180,17 @@ const results = [];
     webSkip.launched.some((s) => s.id === "dock-menus") &&
     !webSkip.launched.some((s) => s.id === "inputs-gestures") &&
     !webSkip.launched.some((s) => s.id === "inputs-keyboards") &&
+    !webSkip.launched.some((s) => s.id === "inputs-pointing") &&
     hk.launched.some((s) => s.id === "healthkit") &&
     hk.launched.some((s) => s.id === "inputs-gestures") &&
     hk.launched.some((s) => s.id === "inputs-keyboards") &&
+    !hk.launched.some((s) => s.id === "inputs-pointing") &&
     !webSkip.launched.some((s) => s.id === "game-center") &&
     gc.launched.some((s) => s.id === "game-center") &&
     desktop.launched.some((s) => s.id === "mac-chrome") &&
     !desktop.launched.some((s) => s.id === "inputs-gestures") &&
     desktop.launched.some((s) => s.id === "inputs-keyboards") &&
+    desktop.launched.some((s) => s.id === "inputs-pointing") &&
     multi.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "game-center");

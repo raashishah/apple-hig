@@ -6,7 +6,7 @@ version: 1
 # Required patterns: list | form | overlay | chrome.
 # Optional widgets: menu | picker | progress | search | notification |
 # loading | feedback | onboarding | drag | settings | undo | slider |
-# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay | idverifier | iap | map | homekit | workout | livephoto | icloud | siri | appshortcut | healthkit | carplay | siwa | applepay | audioplayer | gcaccess | panel | pathcontrol | outline | stickerpack | actionbutton | cameracontrol | dockmenu | gesture | keyboard.
+# scroll | popover | collection | pagecontrol | label | textview | imageview | chart | disclosure | box | editmenu | help | webview | activityview | print | fullscreen | filebrowser | focus | account | tabview | multitask | reviewprompt | appwindow | videoplayer | haptic | airplay | gyro | quickaction | liveviewing | snippet | genai | alwayson | shareplay | nearby | activityring | nfc | ar | taptopay | idverifier | iap | map | homekit | workout | livephoto | icloud | siri | appshortcut | healthkit | carplay | siwa | applepay | audioplayer | gcaccess | panel | pathcontrol | outline | stickerpack | actionbutton | cameracontrol | dockmenu | gesture | keyboard | pointer.
 # Foundations omit it and still apply. list includes collection/card grids.
 
 surfaces:
@@ -578,6 +578,7 @@ surfaces:
     covers: [hardware-keyboard, virtual-keyboard]
   - id: inputs-pointing
     pack: inputs-pointing-devices.md
+    affordance: pointer
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/pointing-devices
     gate: ipad,desktop
     covers: [pointer]

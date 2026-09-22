@@ -635,6 +635,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "keyboard":
       return !present.includes(need);
+    case "pointer":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1262,6 +1264,15 @@ export function scanAffordances(files) {
     /\bkeyEquivalent\b/.test(blob)
   ) {
     found.push("keyboard");
+  }
+  if (
+    /\bdata-pointer\b/.test(blob) ||
+    /\bUIPointerStyle\b/.test(blob) ||
+    /\bUIPointerInteraction\b/.test(blob) ||
+    /\bNSCursor\b/.test(blob) ||
+    /\bcursor:\s*url\(/.test(blob)
+  ) {
+    found.push("pointer");
   }
   return found;
 }

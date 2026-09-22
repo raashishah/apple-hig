@@ -123,6 +123,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["inputs-gestures"]?.gate === "phone,ipad" &&
     surfaces.byId["inputs-keyboards"]?.affordance === "keyboard" &&
     surfaces.byId["inputs-keyboards"]?.gate === "phone,ipad,desktop" &&
+    surfaces.byId["inputs-pointing"]?.affordance === "pointer" &&
+    surfaces.byId["inputs-pointing"]?.gate === "ipad,desktop" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1431,6 +1433,54 @@ const results = [];
       text: 'TextField("Name")',
     },
   ]);
+  const pointerOnly = scanAffordances([
+    {
+      path: "Pointer.tsx",
+      text: "<div data-pointer></div>",
+    },
+  ]);
+  const uiPointerOnly = scanAffordances([
+    {
+      path: "Pointer.swift",
+      text: "let style = UIPointerStyle.hidden()",
+    },
+  ]);
+  const nsCursorOnly = scanAffordances([
+    {
+      path: "Pointer.swift",
+      text: "NSCursor.arrow.set()",
+    },
+  ]);
+  const cursorUrlOnly = scanAffordances([
+    {
+      path: "Pointer.css",
+      text: ".mark { cursor: url(pen.png) 0 0, auto; }",
+    },
+  ]);
+  const cssPointerOnly = scanAffordances([
+    {
+      path: "Link.css",
+      text: "a { cursor: pointer; }",
+    },
+  ]);
+  const pointerPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Use the pointer.</p>",
+    },
+  ]);
+  const ptMarkerOnly = scanAffordances([
+    {
+      path: "Pointer.tsx",
+      text: "<div data-pt-instruct data-pt-decorative></div>",
+    },
+  ]);
+  const hoverOnly = scanAffordances([
+    {
+      path: "Row.css",
+      text: ".row:hover { color: red; }",
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1952,6 +2002,19 @@ const results = [];
       !passList.includes("keyboard") &&
       !pageOnly.includes("keyboard") &&
       !gestureOnly.includes("keyboard") &&
+      pointerOnly.includes("pointer") &&
+      !pointerOnly.includes("keyboard") &&
+      uiPointerOnly.includes("pointer") &&
+      nsCursorOnly.includes("pointer") &&
+      cursorUrlOnly.includes("pointer") &&
+      !cssPointerOnly.includes("pointer") &&
+      !pointerPhraseOnly.includes("pointer") &&
+      !ptMarkerOnly.includes("pointer") &&
+      !hoverOnly.includes("pointer") &&
+      !keyboardOnly.includes("pointer") &&
+      !formOnly.includes("pointer") &&
+      !passList.includes("pointer") &&
+      !pageOnly.includes("pointer") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2727,6 +2790,11 @@ const results = [];
       catalog.byId["virtual-keyboards"]?.dontCoverageComplete === true &&
       catalog.byId["virtual-keyboards"]?.pack === "inputs-keyboards.md" &&
       catalog.byId["virtual-keyboards"]?.appliesWhen === "phone,ipad,desktop" &&
+      catalog.byId["pointing-devices"]?.dontCoverageComplete === true &&
+      (catalog.byId["pointing-devices"]?.dontHeuristicIds || []).includes("pt-instruct") &&
+      (catalog.byId["pointing-devices"]?.dontHeuristicIds || []).includes("pt-decorative") &&
+      catalog.byId["pointing-devices"]?.pack === "inputs-pointing-devices.md" &&
+      catalog.byId["pointing-devices"]?.appliesWhen === "ipad,desktop" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -13032,6 +13100,152 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-keyboards-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pointer-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pointer-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pointer-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pointer-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, cleanDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    const writeDesktop = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: desktop\nregister: product\nThis product is a Mac app.\n",
+      );
+    };
+    writeDesktop(cleanDir);
+    writeDesktop(fixDir);
+    writeDesktop(holdDir);
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-pointer data-pt-instruct data-pt-decorative>
+      <button type="button">Select</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-pointer>
+      <p>instructional text with a pointer.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const cleanReport = applyCatalog({
+      cwd: cleanDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const cleanStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(cleanDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(cleanDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passPointing: passStatus.topics["pointing-devices"]?.state === "skipped-gate",
+      cleanPointing: cleanStatus.topics["pointing-devices"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixPointing: fixStatus.topics["pointing-devices"]?.state === "applied",
+      systemKept: /\bdata-pointer\b/.test(fixed) && />\s*Select\s*</.test(fixed),
+      markersGone: !/data-pt-instruct|data-pt-decorative/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPointing: holdStatus.topics["pointing-devices"]?.state === "pending",
+      holdStillPhrase:
+        /\bdata-pointer\b/.test(held) && /instructional text with a pointer/.test(held),
+      holdNotInvented: !/UIPointerStyle|NSCursor/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPointing: passStatus.topics["pointing-devices"]?.state,
+      cleanPointing: cleanStatus.topics["pointing-devices"]?.state,
+      fixPointing: fixStatus.topics["pointing-devices"]?.state,
+      holdPointing: holdStatus.topics["pointing-devices"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(cleanDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-pointing-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

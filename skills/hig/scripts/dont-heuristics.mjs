@@ -7058,6 +7058,60 @@ function applyKbDupKeys(text) {
   return text.replace(/\s*data-kb-dup-keys(?:="[^"]*")?/g, "");
 }
 
+function hasPointer(text) {
+  return (
+    /\bdata-pointer\b/.test(text) ||
+    /\bUIPointerStyle\b/.test(text) ||
+    /\bUIPointerInteraction\b/.test(text) ||
+    /\bNSCursor\b/.test(text) ||
+    /\bcursor:\s*url\(/.test(text)
+  );
+}
+
+function hasPtInstructCopy(text) {
+  return /instructional text (?:displayed )?with a pointer/i.test(text);
+}
+
+function hasPtDecorativeCopy(text) {
+  return /purely decorative pointer/i.test(text) || /gratuitous pointer/i.test(text);
+}
+
+function scanPtInstruct(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pt-instruct/.test(f.text)) {
+      out.push(hit(f.path, "instructional text displayed with a pointer"));
+      continue;
+    }
+    if (!hasPointer(f.text)) continue;
+    if (hasPtInstructCopy(f.text)) {
+      out.push(hit(f.path, "instructional text displayed with a pointer"));
+    }
+  }
+  return out;
+}
+
+function scanPtDecorative(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pt-decorative/.test(f.text)) {
+      out.push(hit(f.path, "a purely decorative pointer effect"));
+      continue;
+    }
+    if (!hasPointer(f.text)) continue;
+    if (hasPtDecorativeCopy(f.text)) out.push(hit(f.path, "a purely decorative pointer effect"));
+  }
+  return out;
+}
+
+function applyPtInstruct(text) {
+  return text.replace(/\s*data-pt-instruct(?:="[^"]*")?/g, "");
+}
+
+function applyPtDecorative(text) {
+  return text.replace(/\s*data-pt-decorative(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7601,6 +7655,10 @@ function scanHeuristic(id, files) {
       return scanKbHelp(files);
     case "kb-dup-keys":
       return scanKbDupKeys(files);
+    case "pt-instruct":
+      return scanPtInstruct(files);
+    case "pt-decorative":
+      return scanPtDecorative(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8137,6 +8195,10 @@ function applyHeuristic(id, file) {
       return applyKbHelp(file.text);
     case "kb-dup-keys":
       return applyKbDupKeys(file.text);
+    case "pt-instruct":
+      return applyPtInstruct(file.text);
+    case "pt-decorative":
+      return applyPtDecorative(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

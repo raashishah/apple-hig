@@ -161,6 +161,7 @@ const results = [];
     launchedIds.includes("dock-menus") &&
     !launchedIds.includes("inputs-gestures") &&
     !launchedIds.includes("inputs-keyboards") &&
+    !launchedIds.includes("inputs-pointing") &&
     !launchedIds.includes("game-center") &&
     !launchedIds.includes("mac-chrome") &&
     requiredOk;
@@ -212,6 +213,7 @@ const results = [];
     launchedIds.includes("dock-menus") &&
     launchedIds.includes("inputs-gestures") &&
     launchedIds.includes("inputs-keyboards") &&
+    !launchedIds.includes("inputs-pointing") &&
     !launchedIds.includes("game-center") &&
     surfaces.requiredIds.length === 12;
   results.push({
@@ -235,7 +237,8 @@ const results = [];
   const ok =
     j.platform === "desktop" &&
     (j.stack?.kind === "swiftui" || j.stack?.family === "native-apple") &&
-    selected.launched.some((s) => s.id === "mac-chrome");
+    selected.launched.some((s) => s.id === "mac-chrome") &&
+    selected.launched.some((s) => s.id === "inputs-pointing");
   results.push({
     case: "swiftui-macos-package-is-desktop",
     ok,
@@ -369,11 +372,13 @@ const results = [];
     !phoneIds.includes("inputs-pencil") &&
     phoneIds.includes("inputs-gestures") &&
     phoneIds.includes("inputs-keyboards") &&
+    !phoneIds.includes("inputs-pointing") &&
     pad.platform === "ipad" &&
     (pad.capabilities || []).includes("pencil") &&
     padIds.includes("inputs-pencil") &&
     padIds.includes("inputs-gestures") &&
-    padIds.includes("inputs-keyboards");
+    padIds.includes("inputs-keyboards") &&
+    padIds.includes("inputs-pointing");
   results.push({
     case: "pencil-and-gate-ipad-only",
     ok,
@@ -396,6 +401,7 @@ const results = [];
     phoneIds.includes("gs-ios") &&
     phoneIds.includes("inputs-gestures") &&
     phoneIds.includes("inputs-keyboards") &&
+    !phoneIds.includes("inputs-pointing") &&
     surfaces.requiredIds.length === 12;
   results.push({
     case: "phone-only-skips-iphone-duo",

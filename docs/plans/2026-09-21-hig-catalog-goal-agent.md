@@ -149,6 +149,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 87. Keyboard Don'ts. **Landed on this PR.** Account keyboards and virtual-keyboards Don'ts when every Don't has a scanner and the host has keyboard chrome. Skip-unless `keyboard` affordance stays. Gate stays `phone,ipad,desktop`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. Repurposed Command-Z or Command-Q, a modifier added to an existing shortcut for an unrelated command, help inside the keyboard, and duplicated Emoji/Globe or Dictation keys scan from Apple's keyboards and virtual-keyboards pages. Placeholder-only labels stay on packed forms. Scribble stays on the Pencil pack. Do not invent a keyboard. Do not map keyboards onto an input, a text field, or a bare keyboard phrase. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+88. Pointing Don'ts. **Landed on this PR.** Account pointing-devices Don'ts when every Don't has a scanner and the host has pointer chrome. Skip-unless `pointer` affordance stays. Gate stays `ipad,desktop`. Do not overlay `always`, because unknown chrome-pass and phone hosts must stay skipped-gate. Instructional text displayed with a pointer, and a purely decorative pointer effect, scan from Apple's pointing-devices page. Do not invent a pointer. Do not map pointing-devices onto a link `cursor: pointer`, a hover rule, or a bare pointer phrase. System edge swipes stay on gestures. Pencil hover stays on the Pencil pack. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

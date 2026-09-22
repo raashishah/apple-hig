@@ -2,7 +2,7 @@
 
 **Apple:** [Pointing devices](https://developer.apple.com/design/human-interface-guidelines/pointing-devices)  
 **Also:** [Gestures](https://developer.apple.com/design/human-interface-guidelines/gestures), [Keyboards](https://developer.apple.com/design/human-interface-guidelines/keyboards)  
-**Intended gate (not wired this PR):** iPad, Mac, or `platform_primary: desktop`. Desktop CSS admin loads **this** pack, not Pencil.
+**Gate:** `ipad,desktop` on surface `inputs-pointing`. Phone and unknown hosts skip. Skip-unless affordance `pointer`. System edge swipes stay on the gesture pack. Pencil hover stays on the Pencil pack.
 
 Pointer is extra input on iPad — it does not replace touch. visionOS pointer/eyes details wait with that platform.
 
@@ -33,9 +33,8 @@ Pointer is extra input on iPad — it does not replace touch. visionOS pointer/e
 
 ## Don't
 
-- Decorative pointer morphs.
-- Pointer-only destructive actions.
-- Teaching Pencil hover previews on a mouse (see Pencil pack).
+- Instructional text displayed with a pointer.
+- A purely decorative pointer effect.
 
 ## Checklist
 
