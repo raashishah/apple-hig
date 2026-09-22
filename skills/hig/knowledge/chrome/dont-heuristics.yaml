@@ -616,6 +616,8 @@ heuristics:
     match: Double-tap that modifies content
   - id: pe-distract
     match: Distraction while people write
+  - id: pe-squeeze
+    match: squeeze that could result in data loss
   - id: gm-letter
     match: Abstract shapes or A, X, or R1 as artwork
   - id: id-reinvent

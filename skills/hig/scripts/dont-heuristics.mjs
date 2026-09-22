@@ -8591,6 +8591,37 @@ function applyPeDistract(text) {
   return text.replace(/\s*data-pe-distract(?:="[^"]*")?/g, "");
 }
 
+function hasPeSqueezeCopy(text) {
+  return (
+    /squeeze to perform an action that could result in data loss/i.test(text) ||
+    /squeeze that could result in data loss/i.test(text)
+  );
+}
+
+function squeezeDeletes(text) {
+  if (!hasPencil(text)) return false;
+  return /onSqueeze\b[\s\S]{0,160}?\b(?:delete|remove|destroy)\w*/i.test(text);
+}
+
+function scanPeSqueeze(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-squeeze(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a squeeze that could result in data loss"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeSqueezeCopy(f.text) || squeezeDeletes(f.text)) {
+      out.push(hit(f.path, "a squeeze that could result in data loss"));
+    }
+  }
+  return out;
+}
+
+function applyPeSqueeze(text) {
+  return text.replace(/\s*data-pe-squeeze(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasGameControl(text) {
   return /\bdata-game-controls\b/.test(text);
 }
@@ -11103,6 +11134,8 @@ function scanHeuristic(id, files) {
       return scanPeDoubleTap(files);
     case "pe-distract":
       return scanPeDistract(files);
+    case "pe-squeeze":
+      return scanPeSqueeze(files);
     case "gm-letter":
       return scanGmLetter(files);
     case "id-reinvent":
@@ -11771,6 +11804,8 @@ function applyHeuristic(id, file) {
       return applyPeDoubleTap(file.text);
     case "pe-distract":
       return applyPeDistract(file.text);
+    case "pe-squeeze":
+      return applyPeSqueeze(file.text);
     case "gm-letter":
       return applyGmLetter(file.text);
     case "id-reinvent":

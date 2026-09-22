@@ -36,6 +36,7 @@ Apple lists this page as iPadOS-only. Do not ship a Digital Crown or Eyes pack h
 - Hover that initiates an action.
 - Double-tap that modifies content.
 - Distraction while people write.
+- A squeeze that could result in data loss.
 
 ## Checklist
 
