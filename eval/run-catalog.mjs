@@ -25839,6 +25839,135 @@ ${dots}
   results.push({ case: "catalog-apply-scrolling-alert-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-clean-"));
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-named-"));
+  const textDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-text-"));
+  const fieldDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-field-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-hold-"));
+  const wrapDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-wrap-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-bts-fix-"));
+  const dirs = [passDir, cleanDir, namedDir, textDir, fieldDir, holdDir, wrapDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const plain = host(`<button type="button">Save</button>`);
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), plain);
+    const origNamed = host(`<button type="button" aria-label="Add" style={{ width: 28, height: 28 }}>
+      <svg width="16" height="16" aria-hidden="true" />
+    </button>`);
+    fs.writeFileSync(path.join(namedDir, "HostWidgets.tsx"), origNamed);
+    const origText = host(`<label>Add</label>
+    <button type="button" style={{ width: 28, height: 28 }}>Add</button>`);
+    fs.writeFileSync(path.join(textDir, "HostWidgets.tsx"), origText);
+    const origField = host(`<label>Display name<input name="displayName" /></label>`);
+    fs.writeFileSync(path.join(fieldDir, "HostWidgets.tsx"), origField);
+    const origHold = host(`<label>Add</label>
+    <button type="button" style={{ width: 28, height: 28 }}>
+      <svg width="16" height="16" aria-hidden="true" />
+    </button>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origWrap = host(`<label>Add
+      <button type="button" style={{ width: 28, height: 28 }}>
+        <svg width="16" height="16" aria-hidden="true" />
+      </button>
+    </label>`);
+    fs.writeFileSync(path.join(wrapDir, "HostWidgets.tsx"), origWrap);
+    const origCopy = host(`<button type="button" style={{ width: 28, height: 28 }}>
+      <svg width="16" height="16" aria-hidden="true" />
+    </button>
+    <p>Avoid using labels to introduce square buttons.</p>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid using labels to introduce square buttons.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(`<label>Add</label>
+    <button type="button" data-bt-square>Save</button>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "clean", "named", "text", "field", "hold", "wrap", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      named: namedDir,
+      text: textDir,
+      field: fieldDir,
+      hold: holdDir,
+      wrap: wrapDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const buttons = (name) => status[name].topics.buttons?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.buttons?.dontHeuristicIds || []).includes("bt-square"),
+      color: (catalog.byId.buttons?.dontHeuristicIds || []).includes("tg-color"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passButtons: buttons("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanButtons: buttons("clean") === "already-compliant",
+      namedButtons: buttons("named") === "already-compliant",
+      textButtons: buttons("text") === "already-compliant",
+      fieldButtons: buttons("field") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdButtons: buttons("hold") === "pending",
+      labelKept: />\s*Add\s*</.test(held),
+      wrapButtons: buttons("wrap") === "pending",
+      copyUnchanged: copied === origCopy,
+      copyButtons: buttons("copy") === "pending",
+      sentenceButtons: buttons("sentence") === "already-compliant",
+      fixButtons: buttons("fix") === "applied",
+      markerGone: !/data-bt-square(?![\w-])/.test(fixed),
+      saveKept: />\s*Save\s*</.test(fixed) && />\s*Add\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: buttons("pass"),
+      cleanButtons: buttons("clean"),
+      namedButtons: buttons("named"),
+      textButtons: buttons("text"),
+      fieldButtons: buttons("field"),
+      holdButtons: buttons("hold"),
+      wrapButtons: buttons("wrap"),
+      copyButtons: buttons("copy"),
+      sentenceButtons: buttons("sentence"),
+      fixButtons: buttons("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-square-button-label-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

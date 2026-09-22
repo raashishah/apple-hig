@@ -24,6 +24,7 @@
 - A segmented control that both selects and acts.
 - A label that explains a button that changes the selection.
 - A toggle that relies solely on different colors to communicate state.
+- A label that introduces a square button.
 
 ## Apply in host
 

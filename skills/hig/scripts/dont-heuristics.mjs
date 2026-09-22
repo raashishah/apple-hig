@@ -10153,6 +10153,70 @@ function applyColorOnlyToggle(text) {
   return text.replace(/\s*data-tg-color(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function buttonIsSquare(tag) {
+  const width = tag.match(/(?<![\w-])width\s*:\s*(\d+(?:\.\d+)?)/);
+  const height = tag.match(/(?<![\w-])height\s*:\s*(\d+(?:\.\d+)?)/);
+  if (!width || !height) return false;
+  const w = Number(width[1]);
+  const h = Number(height[1]);
+  return w > 0 && w === h;
+}
+
+function buttonHasVisibleText(text, openEnd) {
+  const close = text.toLowerCase().indexOf("</button>", openEnd);
+  if (close < 0) return false;
+  const inner = text
+    .slice(openEnd, close)
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return /[A-Za-z0-9]/.test(inner);
+}
+
+function visibleLabelIntroduces(text, buttonIndex) {
+  const before = text.slice(Math.max(0, buttonIndex - 200), buttonIndex);
+  return (
+    /<(?:label|span|p)\b[^>]*>\s*[A-Za-z][^<]{0,48}<\/(?:label|span|p)>\s*$/i.test(before) ||
+    /<label\b[^>]*>\s*[A-Za-z][^<]{0,48}\s*$/i.test(before)
+  );
+}
+
+function hasSquareButtonLabel(text) {
+  const re = /<button\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    if (!buttonIsSquare(m[0])) continue;
+    if (buttonHasVisibleText(text, m.index + m[0].length)) continue;
+    if (visibleLabelIntroduces(text, m.index)) return true;
+  }
+  return false;
+}
+
+function hasSquareButtonCopy(text) {
+  return (
+    /labels to introduce square buttons/i.test(text) ||
+    /label that introduces a square button/i.test(text)
+  );
+}
+
+function scanSquareButtonLabel(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-bt-square(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a label that introduces a square button"));
+      continue;
+    }
+    if (hasSquareButtonLabel(f.text) || (hasSquareButtonCopy(f.text) && /<button\b/i.test(f.text))) {
+      out.push(hit(f.path, "a label that introduces a square button"));
+    }
+  }
+  return out;
+}
+
+function applySquareButtonLabel(text) {
+  return text.replace(/\s*data-bt-square(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasSegmentedWidget(text) {
   return (
     /role=["']radiogroup["']/i.test(text) ||
@@ -11257,6 +11321,8 @@ function scanHeuristic(id, files) {
       return scanSelectionLabel(files);
     case "tg-color":
       return scanColorOnlyToggle(files);
+    case "bt-square":
+      return scanSquareButtonLabel(files);
     case "sg-mix":
       return scanSegmentMix(files);
     case "sg-count":
@@ -11951,6 +12017,8 @@ function applyHeuristic(id, file) {
       return applySelectionLabel(file.text);
     case "tg-color":
       return applyColorOnlyToggle(file.text);
+    case "bt-square":
+      return applySquareButtonLabel(file.text);
     case "sg-mix":
       return applySegmentMix(file.text);
     case "sg-count":

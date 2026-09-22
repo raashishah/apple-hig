@@ -240,6 +240,8 @@ heuristics:
     match: label that explains a button that changes the selection
   - id: tg-color
     match: relies solely on different colors to communicate state
+  - id: bt-square
+    match: label that introduces a square button
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large
