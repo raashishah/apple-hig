@@ -168,6 +168,8 @@ heuristics:
     match: only primary CTA only in the list toolbar
   - id: ix-both
     match: section index on a list that also shows disclosure indicators
+  - id: ls-mask
+    match: image in a list with a corner mask
   - id: hd-punct
     match: column heading that ends with punctuation
   - id: equal-weight-submits

@@ -25559,6 +25559,127 @@ ${dots}
   results.push({ case: "catalog-apply-context-menu-height-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-clean-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-plain-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-out-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-hold-"));
+  const clipDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-clip-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lsm-fix-"));
+  const dirs = [passDir, cleanDir, plainDir, outsideDir, holdDir, clipDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const plainList = host(`<ul>
+      <li>Item A</li>
+    </ul>`);
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), plainList);
+    const origPlain = host(`<ul>
+      <li><img alt="Cover" src="cover.png" /></li>
+    </ul>`);
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origOutside = host(`<img alt="Cover" style={{ borderRadius: 8 }} src="cover.png" />`);
+    fs.writeFileSync(path.join(outsideDir, "HostWidgets.tsx"), origOutside);
+    const origHold = host(`<ul>
+      <li><img alt="Cover" style={{ borderRadius: 8 }} src="cover.png" /></li>
+    </ul>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origClip = host(`<ul>
+      <li><img alt="Cover" style={{ clipPath: "inset(0 round 8px)" }} src="cover.png" /></li>
+    </ul>`);
+    fs.writeFileSync(path.join(clipDir, "HostWidgets.tsx"), origClip);
+    const origCopy = host(`<ul>
+      <li>Do not add your own masks to round the corners.</li>
+    </ul>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Do not add your own masks to round the corners.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(`<ul data-ls-mask>
+      <li>Item A</li>
+    </ul>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "clean", "plain", "outside", "hold", "clip", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      plain: plainDir,
+      outside: outsideDir,
+      hold: holdDir,
+      clip: clipDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const lists = (name) => status[name].topics["lists-and-tables"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["lists-and-tables"]?.dontHeuristicIds || []).includes("ls-mask"),
+      index: (catalog.byId["lists-and-tables"]?.dontHeuristicIds || []).includes("ix-both"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passLists: lists("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanLists: lists("clean") === "already-compliant",
+      plainLists: lists("plain") === "already-compliant",
+      outsideLists: lists("outside") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdLists: lists("hold") === "pending",
+      radiusKept: /borderRadius:\s*8/.test(held),
+      clipLists: lists("clip") === "pending",
+      copyUnchanged: copied === origCopy,
+      copyLists: lists("copy") === "pending",
+      sentenceLists: lists("sentence") === "already-compliant",
+      fixLists: lists("fix") === "applied",
+      markerGone: !/data-ls-mask(?![\w-])/.test(fixed),
+      rowKept: />\s*Item A\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passLists: lists("pass"),
+      cleanLists: lists("clean"),
+      plainLists: lists("plain"),
+      outsideLists: lists("outside"),
+      holdLists: lists("hold"),
+      clipLists: lists("clip"),
+      copyLists: lists("copy"),
+      sentenceLists: lists("sentence"),
+      fixLists: lists("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-list-corner-mask-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

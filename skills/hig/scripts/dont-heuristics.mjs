@@ -10416,6 +10416,50 @@ function applyIndexBesideDisclosure(text) {
   return text.replace(/\s*data-ix-both(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function imageTagHasCornerMask(tag) {
+  return (
+    /(?<![\w-])border-radius\s*:/i.test(tag) ||
+    /\bborderRadius\s*:/.test(tag) ||
+    /\bmask(?:-image)?\s*:/i.test(tag) ||
+    /\bmaskImage\s*:/.test(tag) ||
+    /\bclip-path\s*:/i.test(tag) ||
+    /\bclipPath\s*:/.test(tag)
+  );
+}
+
+function listHasMaskedImage(text) {
+  return listRegions(text).some((region) => {
+    const tags = region.match(/<img\b[^>]*>/gi) || [];
+    return tags.some((tag) => imageTagHasCornerMask(tag));
+  });
+}
+
+function hasListMaskCopy(text) {
+  return (
+    /own masks to round the corners/i.test(text) ||
+    /image in a list with a corner mask/i.test(text)
+  );
+}
+
+function scanListCornerMask(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ls-mask(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an image in a list with a corner mask"));
+      continue;
+    }
+    if (!hasListWidget(f.text)) continue;
+    if (listHasMaskedImage(f.text) || hasListMaskCopy(f.text)) {
+      out.push(hit(f.path, "an image in a list with a corner mask"));
+    }
+  }
+  return out;
+}
+
+function applyListCornerMask(text) {
+  return text.replace(/\s*data-ls-mask(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function stripOutlineRegions(text) {
   return text
     .replace(/<([A-Za-z][\w]*)\b[^>]*\bdata-outline\b[^>]*>[\s\S]*?<\/\1>/gi, "")
@@ -11100,6 +11144,8 @@ function scanHeuristic(id, files) {
       return scanCtaOnlyListToolbar(files);
     case "ix-both":
       return scanIndexBesideDisclosure(files);
+    case "ls-mask":
+      return scanListCornerMask(files);
     case "hd-punct":
       return scanColumnPunctuation(files);
     case "equal-weight-submits":
@@ -11790,6 +11836,8 @@ function applyHeuristic(id, file) {
       return applyCtaOnlyListToolbar(file.text);
     case "ix-both":
       return applyIndexBesideDisclosure(file.text);
+    case "ls-mask":
+      return applyListCornerMask(file.text);
     case "hd-punct":
       return applyColumnPunctuation(file.text);
     case "equal-weight-submits":
