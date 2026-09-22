@@ -2670,6 +2670,7 @@ const results = [];
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("dark-pattern-allow-only") &&
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("preemptive-permission-on-marketing") &&
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("pv-att") &&
+      (catalog.byId.privacy?.dontHeuristicIds || []).includes("pv-leave") &&
       (catalog.byId.privacy?.dontHeuristicIds || []).includes("rewrite-or-automate-system-ui") &&
       catalog.byId.branding?.dontCoverageComplete === true &&
       (catalog.byId.branding?.dontHeuristicIds || []).includes("opaque-brand-bar-fills") &&
@@ -16862,6 +16863,190 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-tracking-prealert-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-hold-"));
+  const cancelDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-cancel-"));
+  const consentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-consent-"));
+  const nextDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-next-"));
+  const cameraDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-camera-"));
+  const wordsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-words-"));
+  const allowDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pvl-allow-"));
+  const dirs = [passDir, fixDir, holdDir, cancelDir, consentDir, nextDir, cameraDir, wordsDir, allowDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-pv-leave>
+      <button type="button">Close</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return (
+    <p>Don't include additional actions in your custom screen or window.</p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origCancel = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return <button type="button">Cancel</button>;
+}
+`;
+    fs.writeFileSync(path.join(cancelDir, "HostWidgets.tsx"), origCancel);
+    const origConsent = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return (
+    <div>
+      <p>This step records legal consent.</p>
+      <button type="button">Cancel</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(consentDir, "HostWidgets.tsx"), origConsent);
+    const origNext = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return <button type="button">Continue</button>;
+}
+`;
+    fs.writeFileSync(path.join(nextDir, "HostWidgets.tsx"), origNext);
+    const origCamera = `export function HostWidgets() {
+  navigator.mediaDevices.getUserMedia({ video: true })
+  return <button type="button">Cancel</button>;
+}
+`;
+    fs.writeFileSync(path.join(cameraDir, "HostWidgets.tsx"), origCamera);
+    const origWords = `export function HostWidgets() {
+  return (
+    <p>Don't include additional actions in your custom screen or window.</p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(wordsDir, "HostWidgets.tsx"), origWords);
+    const origAllow = `export function HostWidgets() {
+  requestTrackingAuthorization()
+  return <button type="button">Allow</button>;
+}
+`;
+    fs.writeFileSync(path.join(allowDir, "HostWidgets.tsx"), origAllow);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const cancelReport = run(cancelDir);
+    const consentReport = run(consentDir);
+    const nextReport = run(nextDir);
+    const cameraReport = run(cameraDir);
+    const wordsReport = run(wordsDir);
+    const allowReport = run(allowDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const cancelStatus = readStatus(cancelDir);
+    const consentStatus = readStatus(consentDir);
+    const nextStatus = readStatus(nextDir);
+    const cameraStatus = readStatus(cameraDir);
+    const wordsStatus = readStatus(wordsDir);
+    const allowStatus = readStatus(allowDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const canceled = fs.readFileSync(path.join(cancelDir, "HostWidgets.tsx"), "utf8");
+    const consent = fs.readFileSync(path.join(consentDir, "HostWidgets.tsx"), "utf8");
+    const next = fs.readFileSync(path.join(nextDir, "HostWidgets.tsx"), "utf8");
+    const camera = fs.readFileSync(path.join(cameraDir, "HostWidgets.tsx"), "utf8");
+    const words = fs.readFileSync(path.join(wordsDir, "HostWidgets.tsx"), "utf8");
+    const allowed = fs.readFileSync(path.join(allowDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      cancelChrome: cancelReport.chrome.pass === true,
+      consentChrome: consentReport.chrome.pass === true,
+      nextChrome: nextReport.chrome.pass === true,
+      cameraChrome: cameraReport.chrome.pass === true,
+      wordsChrome: wordsReport.chrome.pass === true,
+      allowChrome: allowReport.chrome.pass === true,
+      passPrivacy: passStatus.topics.privacy?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixPrivacy: fixStatus.topics.privacy?.state === "applied",
+      systemKept: />\s*Close\s*</.test(fixed),
+      markersGone: !/data-pv-leave/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPrivacy: holdStatus.topics.privacy?.state === "pending",
+      holdStillPhrase: /additional actions in your custom screen/.test(held),
+      holdNotInvented: !/<button\b/.test(held),
+      cancelUnchanged: canceled === origCancel,
+      cancelPrivacy: cancelStatus.topics.privacy?.state === "pending",
+      cancelKept: />\s*Cancel\s*</.test(canceled) && /requestTrackingAuthorization/.test(canceled),
+      consentUnchanged: consent === origConsent,
+      consentPrivacy: consentStatus.topics.privacy?.state === "already-compliant",
+      consentKept: /legal consent/.test(consent) && />\s*Cancel\s*</.test(consent),
+      nextUnchanged: next === origNext,
+      nextPrivacy: nextStatus.topics.privacy?.state === "already-compliant",
+      nextKept: />\s*Continue\s*</.test(next),
+      cameraUnchanged: camera === origCamera,
+      cameraPrivacy: cameraStatus.topics.privacy?.state === "already-compliant",
+      cameraKept: /getUserMedia/.test(camera) && />\s*Cancel\s*</.test(camera),
+      wordsUnchanged: words === origWords,
+      wordsPrivacy: wordsStatus.topics.privacy?.state === "already-compliant",
+      allowUnchanged: allowed === origAllow,
+      allowPrivacy: allowStatus.topics.privacy?.state === "pending",
+      allowKept: />\s*Allow\s*</.test(allowed),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPrivacy: passStatus.topics.privacy?.state,
+      fixPrivacy: fixStatus.topics.privacy?.state,
+      holdPrivacy: holdStatus.topics.privacy?.state,
+      cancelPrivacy: cancelStatus.topics.privacy?.state,
+      consentPrivacy: consentStatus.topics.privacy?.state,
+      nextPrivacy: nextStatus.topics.privacy?.state,
+      cameraPrivacy: cameraStatus.topics.privacy?.state,
+      wordsPrivacy: wordsStatus.topics.privacy?.state,
+      allowPrivacy: allowStatus.topics.privacy?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-tracking-leave-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

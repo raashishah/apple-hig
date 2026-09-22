@@ -951,6 +951,49 @@ function applyAttPrealert(text) {
   return text.replace(/\s*data-pv-att(?:="[^"]*")?/g, "");
 }
 
+function hasAttLeaveCopy(text) {
+  return (
+    /don['’]?t include additional actions in your custom screen/i.test(text) ||
+    /additional actions in your custom screen or window/i.test(text) ||
+    /option to close or cancel/i.test(text) ||
+    /leave the screen or window without viewing the system alert/i.test(text)
+  );
+}
+
+function hasAttLeaveButton(text) {
+  if (!hasTrackingRequest(text)) return false;
+  const button =
+    "<button\\b[^>]*>\\s*(?:Close|Cancel)\\s*</button>|Button\\(\\s*[\"'](?:Close|Cancel)[\"']\\s*\\)";
+  const request = "requestTrackingAuthorization|ATTrackingManager";
+  const forward = new RegExp(`(?:${request})[\\s\\S]{0,240}(?:${button})`, "i");
+  const backward = new RegExp(`(?:${button})[\\s\\S]{0,240}(?:${request})`, "i");
+  if (!forward.test(text) && !backward.test(text)) return false;
+  const consent = new RegExp(
+    `(?:legal consent)[\\s\\S]{0,240}(?:${button})|(?:${button})[\\s\\S]{0,240}legal consent`,
+    "i",
+  );
+  return !consent.test(text);
+}
+
+function scanAttLeave(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pv-leave/.test(f.text)) {
+      out.push(hit(f.path, "a Close or Cancel button on a custom tracking screen"));
+      continue;
+    }
+    if (!hasTrackingRequest(f.text)) continue;
+    if (hasAttLeaveCopy(f.text) || hasAttLeaveButton(f.text)) {
+      out.push(hit(f.path, "a Close or Cancel button on a custom tracking screen"));
+    }
+  }
+  return out;
+}
+
+function applyAttLeave(text) {
+  return text.replace(/\s*data-pv-leave(?:="[^"]*")?/g, "");
+}
+
 function scanRewriteOrAutomate(files) {
   const out = scanRewriteSystemAlerts(files);
   for (const f of files) {
@@ -8078,6 +8121,8 @@ function scanHeuristic(id, files) {
       return scanPreemptiveMarketing(files);
     case "pv-att":
       return scanAttPrealert(files);
+    case "pv-leave":
+      return scanAttLeave(files);
     case "rewrite-or-automate-system-ui":
       return scanRewriteOrAutomate(files);
     case "opaque-brand-bar-fills":
@@ -8668,6 +8713,8 @@ function applyHeuristic(id, file) {
       return file.text;
     case "pv-att":
       return applyAttPrealert(file.text);
+    case "pv-leave":
+      return applyAttLeave(file.text);
     case "rewrite-or-automate-system-ui":
       return file.text;
     case "opaque-brand-bar-fills":

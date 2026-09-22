@@ -48,6 +48,8 @@ heuristics:
     match: Pre-emptive camera/mic/location prompts on a marketing screen
   - id: pv-att
     match: custom tracking screen with an incentive or an Allow button
+  - id: pv-leave
+    match: Close or Cancel button on a custom tracking screen
   - id: rewrite-or-automate-system-ui
     match: Rewriting or automating system permission
   - id: opaque-brand-bar-fills
