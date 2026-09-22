@@ -979,7 +979,7 @@ const results = [];
       text: '<div data-carplay><button type="button">CarPlay</button></div>',
     },
   ]);
-  const siwaOnly = scanAffordances([
+  const siwaWidgetOnly = scanAffordances([
     {
       path: "Auth.tsx",
       text: '<div data-siwa><button type="button">Sign in with Apple</button></div>',
@@ -1359,9 +1359,11 @@ const results = [];
       !formOnly.includes("carplay") &&
       !passList.includes("carplay") &&
       !pageOnly.includes("carplay") &&
-      siwaOnly.includes("siwa") &&
-      !siwaOnly.includes("account") &&
+      siwaWidgetOnly.includes("siwa") &&
+      !siwaWidgetOnly.includes("account") &&
+      !siwaOnly.includes("siwa") &&
       !accountOnly.includes("siwa") &&
+      !passwordOnly.includes("siwa") &&
       !siwaPhraseOnly.includes("siwa") &&
       !siaMarkerOnly.includes("siwa") &&
       !carplayOnly.includes("siwa") &&
