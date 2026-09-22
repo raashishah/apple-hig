@@ -506,3 +506,7 @@ heuristics:
     match: no column headings
   - id: st-mixed-sizes
     match: mixed sizes within a single sticker pack
+  - id: ab-long-label
+    match: longer than three words
+  - id: ab-settings-repeat
+    match: repeats the Settings guidance

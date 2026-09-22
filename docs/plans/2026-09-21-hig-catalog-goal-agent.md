@@ -139,6 +139,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 82. iMessage sticker Don'ts. **Landed on this PR.** Account imessage-apps-and-stickers Don'ts when every Don't has a scanner and the host has sticker-pack chrome. Skip-unless `stickerpack` affordance stays. Gate is `always` and overlays catalog `capability:imessage`. Mixed sizes within a single sticker pack scan from Apple's imessage-apps-and-stickers page. A file-size limit is not source-measurable, so it stays unscanned. Do not invent a sticker pack or complete Messages. Do not map imessage-apps-and-stickers onto an image view, a plain list, a bare sticker phrase, or `MSStickerSize`. Dedicated imessage-apps-and-stickers attaches by appleUrl. The platform cluster stays a live-link cluster. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+83. Action button Don'ts. **Landed on this PR.** Account action-button Don'ts when every Don't has a scanner and the host has Action button chrome. Skip-unless `actionbutton` affordance stays. Gate is `always` and overlays catalog `phone`. An Action button label longer than three words, and content that repeats the Settings guidance for the Action button, scan from Apple's action-button page. Do not invent an Action button or a shorter label. Do not map action-button onto an App Shortcut, a Home Screen quick action, or a bare Action button phrase. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

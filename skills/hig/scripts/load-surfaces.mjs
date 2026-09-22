@@ -364,6 +364,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "pathcontrol",
     "outline",
     "stickerpack",
+    "actionbutton",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

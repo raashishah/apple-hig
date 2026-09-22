@@ -113,6 +113,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["outline-views"]?.gate === "always" &&
     surfaces.byId["imessage-apps-and-stickers"]?.affordance === "stickerpack" &&
     surfaces.byId["imessage-apps-and-stickers"]?.gate === "always" &&
+    surfaces.byId["action-button"]?.affordance === "actionbutton" &&
+    surfaces.byId["action-button"]?.gate === "always" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -527,6 +529,7 @@ const results = [];
     "path-controls",
     "outline-views",
     "imessage-apps-and-stickers",
+    "action-button",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1226,6 +1229,42 @@ const results = [];
       text: '<div data-st-mixed-sizes><button type="button">Smile</button></div>',
     },
   ]);
+  const actionButtonOnly = scanAffordances([
+    {
+      path: "Action.tsx",
+      text: '<div data-action-button><button type="button">Start</button></div>',
+    },
+  ]);
+  const actionPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Press the Action button to start.</p>",
+    },
+  ]);
+  const abMarkerOnly = scanAffordances([
+    {
+      path: "Action.tsx",
+      text: '<div data-ab-long-label data-ab-settings-repeat><button type="button">Start</button></div>',
+    },
+  ]);
+  const abLabelOnly = scanAffordances([
+    {
+      path: "Action.tsx",
+      text: '<div data-ab-label="Start the egg timer now"><button type="button">Start</button></div>',
+    },
+  ]);
+  const appShortcutOnly = scanAffordances([
+    {
+      path: "Shortcuts.swift",
+      text: "struct Shortcuts: AppShortcutsProvider {}",
+    },
+  ]);
+  const quickActionOnly = scanAffordances([
+    {
+      path: "Quick.tsx",
+      text: '<div data-quick-action><button type="button">Start</button></div>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1682,6 +1721,18 @@ const results = [];
       !formOnly.includes("stickerpack") &&
       !passList.includes("stickerpack") &&
       !pageOnly.includes("stickerpack") &&
+      actionButtonOnly.includes("actionbutton") &&
+      !actionButtonOnly.includes("appshortcut") &&
+      !actionButtonOnly.includes("quickaction") &&
+      !actionPhraseOnly.includes("actionbutton") &&
+      !abMarkerOnly.includes("actionbutton") &&
+      !abLabelOnly.includes("actionbutton") &&
+      !appShortcutOnly.includes("actionbutton") &&
+      !quickActionOnly.includes("actionbutton") &&
+      !stickerOnly.includes("actionbutton") &&
+      !formOnly.includes("actionbutton") &&
+      !passList.includes("actionbutton") &&
+      !pageOnly.includes("actionbutton") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2428,6 +2479,11 @@ const results = [];
       catalog.byId["imessage-apps-and-stickers"]?.pack ===
         "tech-imessage-apps-and-stickers.md" &&
       catalog.byId["imessage-apps-and-stickers"]?.appliesWhen === "always" &&
+      catalog.byId["action-button"]?.dontCoverageComplete === true &&
+      (catalog.byId["action-button"]?.dontHeuristicIds || []).includes("ab-long-label") &&
+      (catalog.byId["action-button"]?.dontHeuristicIds || []).includes("ab-settings-repeat") &&
+      catalog.byId["action-button"]?.pack === "inputs-action-button.md" &&
+      catalog.byId["action-button"]?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2591,6 +2647,7 @@ const results = [];
       "path-controls",
       "outline-views",
       "imessage-apps-and-stickers",
+      "action-button",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -12061,6 +12118,130 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-imessage-stickers-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-action-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-action-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-action-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-action-button data-ab-long-label data-ab-settings-repeat>
+      <button type="button">Start</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-action-button data-ab-label="Start the egg timer now">
+      <button type="button">Start</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passAction: passStatus.topics["action-button"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixAction: fixStatus.topics["action-button"]?.state === "applied",
+      systemKept: /\bdata-action-button\b/.test(fixed) && />\s*Start\s*</.test(fixed),
+      markersGone: !/data-ab-long-label/.test(fixed) && !/data-ab-settings-repeat/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdAction: holdStatus.topics["action-button"]?.state === "pending",
+      holdStillLong:
+        /\bdata-action-button\b/.test(held) &&
+        /Start the egg timer now/.test(held) &&
+        /Start/.test(held),
+      holdNotInvented: !/AppShortcutsProvider/.test(held) && !/UIApplicationShortcutItem/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAction: passStatus.topics["action-button"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixAction: fixStatus.topics["action-button"]?.state,
+      holdAction: holdStatus.topics["action-button"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-action-button-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

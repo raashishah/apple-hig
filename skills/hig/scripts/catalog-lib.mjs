@@ -625,6 +625,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "stickerpack":
       return !present.includes(need);
+    case "actionbutton":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1225,6 +1227,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-sticker-pack\b/.test(blob) || /\bMSSticker\b/.test(blob)) {
     found.push("stickerpack");
+  }
+  if (/\bdata-action-button\b/.test(blob)) {
+    found.push("actionbutton");
   }
   return found;
 }

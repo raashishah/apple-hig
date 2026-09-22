@@ -6672,6 +6672,63 @@ function applyStMixedSizes(text) {
   return text.replace(/\s*data-st-mixed-sizes(?:="[^"]*")?/g, "");
 }
 
+function hasActionButton(text) {
+  return /\bdata-action-button\b/.test(text);
+}
+
+function hasAbLongLabelCopy(text) {
+  if (/longer than three words/i.test(text)) return true;
+  const labeled = /\bdata-ab-label="([^"]*)"/g;
+  let match;
+  while ((match = labeled.exec(text))) {
+    const words = match[1].trim().split(/\s+/).filter(Boolean);
+    if (words.length > 3) return true;
+  }
+  return false;
+}
+
+function hasAbSettingsCopy(text) {
+  return /repeats the Settings guidance/i.test(text);
+}
+
+function scanAbLongLabel(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ab-long-label/.test(f.text)) {
+      out.push(hit(f.path, "an Action button label longer than three words"));
+      continue;
+    }
+    if (!hasActionButton(f.text)) continue;
+    if (hasAbLongLabelCopy(f.text)) {
+      out.push(hit(f.path, "an Action button label longer than three words"));
+    }
+  }
+  return out;
+}
+
+function applyAbLongLabel(text) {
+  return text.replace(/\s*data-ab-long-label(?:="[^"]*")?/g, "");
+}
+
+function scanAbSettingsRepeat(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ab-settings-repeat/.test(f.text)) {
+      out.push(hit(f.path, "content that repeats the Settings guidance for the Action button"));
+      continue;
+    }
+    if (!hasActionButton(f.text)) continue;
+    if (hasAbSettingsCopy(f.text)) {
+      out.push(hit(f.path, "content that repeats the Settings guidance for the Action button"));
+    }
+  }
+  return out;
+}
+
+function applyAbSettingsRepeat(text) {
+  return text.replace(/\s*data-ab-settings-repeat(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7193,6 +7250,10 @@ function scanHeuristic(id, files) {
       return scanOvHeadings(files);
     case "st-mixed-sizes":
       return scanStMixedSizes(files);
+    case "ab-long-label":
+      return scanAbLongLabel(files);
+    case "ab-settings-repeat":
+      return scanAbSettingsRepeat(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -7707,6 +7768,10 @@ function applyHeuristic(id, file) {
       return applyOvHeadings(file.text);
     case "st-mixed-sizes":
       return applyStMixedSizes(file.text);
+    case "ab-long-label":
+      return applyAbLongLabel(file.text);
+    case "ab-settings-repeat":
+      return applyAbSettingsRepeat(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
