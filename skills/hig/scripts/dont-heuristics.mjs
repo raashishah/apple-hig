@@ -3717,6 +3717,63 @@ function countPageControlDots(text) {
   return max;
 }
 
+function isMinimalPageStyle(chunk) {
+  return (
+    /data-page-minimal(?![\w-])/.test(chunk) ||
+    /backgroundStyle\s*[:=]\s*\.minimal\b/.test(chunk) ||
+    /\.backgroundStyle\(\s*\.minimal\s*\)/.test(chunk)
+  );
+}
+
+function hasPageScrubber(chunk) {
+  return (
+    /data-page-scrub(?![\w-])/.test(chunk) ||
+    /allowsContinuousInteraction\s*[:=]\s*true\b/.test(chunk) ||
+    /\.allowsContinuousInteraction\(\s*true\s*\)/.test(chunk)
+  );
+}
+
+function hasMinimalScrubCopy(text) {
+  return (
+    /supporting the scrubber when you use the minimal/i.test(text) ||
+    /scrubber on a page control that uses the minimal/i.test(text)
+  );
+}
+
+function minimalScrubPage(text) {
+  const blocks = [
+    ...blocksWithAttr(text, "data-page-control"),
+    ...blocksWithAttr(text, "data-carousel-dots"),
+  ];
+  if (blocks.some((b) => isMinimalPageStyle(b.text) && hasPageScrubber(b.text))) return true;
+  const re = /\b(?:UIPageControl|PageControl)\s*[\({]/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const window = text.slice(m.index, m.index + 600);
+    if (isMinimalPageStyle(window) && hasPageScrubber(window)) return true;
+  }
+  return false;
+}
+
+function scanMinimalPageScrub(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pgc-scrub(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a scrubber on a page control that uses the minimal background style"));
+      continue;
+    }
+    if (!hasPageControlWidget(f.text)) continue;
+    if (hasMinimalScrubCopy(f.text) || minimalScrubPage(f.text)) {
+      out.push(hit(f.path, "a scrubber on a page control that uses the minimal background style"));
+    }
+  }
+  return out;
+}
+
+function applyMinimalPageScrub(text) {
+  return text.replace(/\s*data-pgc-scrub(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanPageControlAsHierarchy(files) {
   const out = [];
   for (const f of files) {
@@ -9232,6 +9289,8 @@ function scanHeuristic(id, files) {
       return scanOverlappingCollectionItems(files);
     case "page-control-as-hierarchy":
       return scanPageControlAsHierarchy(files);
+    case "pgc-scrub":
+      return scanMinimalPageScrub(files);
     case "too-many-page-dots":
       return scanTooManyPageDots(files);
     case "too-many-page-indicator-images":
@@ -9852,6 +9911,8 @@ function applyHeuristic(id, file) {
       return applyOverlappingCollectionItems(file.text);
     case "page-control-as-hierarchy":
       return applyPageControlAsHierarchy(file.text);
+    case "pgc-scrub":
+      return applyMinimalPageScrub(file.text);
     case "too-many-page-dots":
       return applyTooManyPageDots(file.text);
     case "too-many-page-indicator-images":

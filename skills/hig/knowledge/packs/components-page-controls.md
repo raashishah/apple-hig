@@ -24,6 +24,7 @@ A page control is a row of indicator dots for an ordered, peer list of pages. It
 - More than about 10 page-control dots.
 - More than two different page-control indicator images.
 - Colored page-control indicator images.
+- A scrubber on a page control that uses the minimal background style.
 
 ## Apply in host
 

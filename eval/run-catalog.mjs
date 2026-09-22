@@ -19782,6 +19782,193 @@ ${tags(sevenLabels)}
   results.push({ case: "catalog-apply-submenu-available-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-hold-"));
+  const bothDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-both-"));
+  const minimalDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-minimal-"));
+  const scrubDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-scrub-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-sentence-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-swift-"));
+  const prominentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pgc-prominent-"));
+  const dirs = [passDir, fixDir, holdDir, bothDir, minimalDir, scrubDir, sentenceDir, swiftDir, prominentDir];
+  const dots = `      <button type="button" data-page-dot></button>\n      <button type="button" data-page-dot></button>`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-page-control data-pgc-scrub>
+${dots}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-page-control>
+      <p>Avoid supporting the scrubber when you use the minimal background style.</p>
+${dots}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origBoth = `export function HostWidgets() {
+  return (
+    <div data-page-control data-page-minimal data-page-scrub>
+${dots}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(bothDir, "HostWidgets.tsx"), origBoth);
+    const origMinimal = `export function HostWidgets() {
+  return (
+    <div data-page-control data-page-minimal>
+${dots}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(minimalDir, "HostWidgets.tsx"), origMinimal);
+    const origScrub = `export function HostWidgets() {
+  return (
+    <div data-page-control data-page-scrub>
+${dots}
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(scrubDir, "HostWidgets.tsx"), origScrub);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid supporting the scrubber when you use the minimal background style.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origSwift = `export function HostWidgets() {
+  let pages = UIPageControl()
+  pages.backgroundStyle = .minimal
+  pages.allowsContinuousInteraction = true
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origProminent = `export function HostWidgets() {
+  let pages = UIPageControl()
+  pages.backgroundStyle = .prominent
+  pages.allowsContinuousInteraction = true
+}
+`;
+    fs.writeFileSync(path.join(prominentDir, "HostWidgets.tsx"), origProminent);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const bothReport = run(bothDir);
+    const minimalReport = run(minimalDir);
+    const scrubReport = run(scrubDir);
+    const sentenceReport = run(sentenceDir);
+    const swiftReport = run(swiftDir);
+    const prominentReport = run(prominentDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const bothStatus = readStatus(bothDir);
+    const minimalStatus = readStatus(minimalDir);
+    const scrubStatus = readStatus(scrubDir);
+    const sentenceStatus = readStatus(sentenceDir);
+    const swiftStatus = readStatus(swiftDir);
+    const prominentStatus = readStatus(prominentDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const both = fs.readFileSync(path.join(bothDir, "HostWidgets.tsx"), "utf8");
+    const minimal = fs.readFileSync(path.join(minimalDir, "HostWidgets.tsx"), "utf8");
+    const scrub = fs.readFileSync(path.join(scrubDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const prominent = fs.readFileSync(path.join(prominentDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["page-controls"]?.dontHeuristicIds || []).includes("pgc-scrub"),
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      bothChrome: bothReport.chrome.pass === true,
+      minimalChrome: minimalReport.chrome.pass === true,
+      scrubChrome: scrubReport.chrome.pass === true,
+      sentenceChrome: sentenceReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      prominentChrome: prominentReport.chrome.pass === true,
+      passPages: passStatus.topics["page-controls"]?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      fixPages: fixStatus.topics["page-controls"]?.state === "applied",
+      markerGone: !/data-pgc-scrub(?![\w-])/.test(fixed),
+      dotsKept: /data-page-dot/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPages: holdStatus.topics["page-controls"]?.state === "pending",
+      holdStillPhrase: /supporting the scrubber when you use the minimal/.test(held),
+      bothUnchanged: both === origBoth,
+      bothPages: bothStatus.topics["page-controls"]?.state === "pending",
+      bothKept: /data-page-minimal/.test(both) && /data-page-scrub/.test(both),
+      minimalUnchanged: minimal === origMinimal,
+      minimalPages: minimalStatus.topics["page-controls"]?.state === "already-compliant",
+      scrubUnchanged: scrub === origScrub,
+      scrubPages: scrubStatus.topics["page-controls"]?.state === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentencePages: sentenceStatus.topics["page-controls"]?.state === "skipped-no-affordance",
+      swiftUnchanged: swift === origSwift,
+      swiftPages: swiftStatus.topics["page-controls"]?.state === "pending",
+      prominentUnchanged: prominent === origProminent,
+      prominentPages: prominentStatus.topics["page-controls"]?.state === "already-compliant",
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPages: passStatus.topics["page-controls"]?.state,
+      fixPages: fixStatus.topics["page-controls"]?.state,
+      holdPages: holdStatus.topics["page-controls"]?.state,
+      bothPages: bothStatus.topics["page-controls"]?.state,
+      minimalPages: minimalStatus.topics["page-controls"]?.state,
+      scrubPages: scrubStatus.topics["page-controls"]?.state,
+      sentencePages: sentenceStatus.topics["page-controls"]?.state,
+      swiftPages: swiftStatus.topics["page-controls"]?.state,
+      prominentPages: prominentStatus.topics["page-controls"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-minimal-scrub-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -266,6 +266,8 @@ heuristics:
     match: more than two different
   - id: colored-page-indicators
     match: colored page-control indicator
+  - id: pgc-scrub
+    match: scrubber on a page control that uses the minimal
   - id: editable-label
     match: text people need to edit
   - id: long-label-as-text-view
