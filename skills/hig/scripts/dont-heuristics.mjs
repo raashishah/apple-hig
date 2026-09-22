@@ -1725,6 +1725,56 @@ function applyAlertCautionOnSave(text) {
   return text.replace(/\s*data-al-caution(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasSheetWidget(text) {
+  return (
+    /<dialog\b/i.test(text) ||
+    /role=["'](?:dialog|alertdialog)["']/i.test(text) ||
+    /\.sheet\s*\(/.test(text) ||
+    /\bUISheetPresentationController\b/.test(text) ||
+    /\bpresentAsSheet\s*\(/.test(text)
+  );
+}
+
+function hasSheetTrioCopy(text) {
+  return (
+    /avoid showing all three buttons/i.test(text) ||
+    /Cancel, Done, and Back — together/i.test(text) ||
+    /Cancel, Done, and Back together in a sheet/i.test(text)
+  );
+}
+
+function hasExactButton(region, label) {
+  return new RegExp(`<button\\b[^>]*>\\s*${label}\\s*<\\/button>`, "i").test(region);
+}
+
+function hasSheetTrioButtons(text) {
+  const labels = ["Cancel", "Done", "Back"];
+  for (const region of dialogRegions(text)) {
+    if (labels.every((label) => hasExactButton(region, label))) return true;
+  }
+  if (!/\.sheet\s*\(|\bUISheetPresentationController\b|\bpresentAsSheet\s*\(/.test(text)) return false;
+  return labels.every((label) => new RegExp(`Button\\(\\s*["']${label}["']`, "i").test(text));
+}
+
+function scanSheetTrio(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sh-trio\b/.test(f.text)) {
+      out.push(hit(f.path, "Cancel, Done, and Back together in a sheet"));
+      continue;
+    }
+    if (!hasSheetWidget(f.text)) continue;
+    if (hasSheetTrioCopy(f.text) || hasSheetTrioButtons(f.text)) {
+      out.push(hit(f.path, "Cancel, Done, and Back together in a sheet"));
+    }
+  }
+  return out;
+}
+
+function applySheetTrio(text) {
+  return text.replace(/\s*data-sh-trio(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanModalSuccess(files) {
   const out = [];
   for (const f of files) {
@@ -8535,6 +8585,8 @@ function scanHeuristic(id, files) {
       return scanAlertYesNo(files);
     case "al-caution":
       return scanAlertCautionOnSave(files);
+    case "sh-trio":
+      return scanSheetTrio(files);
     case "slider-as-volume":
       return scanSliderAsVolume(files);
     case "nested-same-axis-scroll":
@@ -9137,6 +9189,8 @@ function applyHeuristic(id, file) {
       return applyAlertYesNo(file.text);
     case "al-caution":
       return applyAlertCautionOnSave(file.text);
+    case "sh-trio":
+      return applySheetTrio(file.text);
     case "slider-as-volume":
       return applySliderAsVolume(file.text);
     case "nested-same-axis-scroll":

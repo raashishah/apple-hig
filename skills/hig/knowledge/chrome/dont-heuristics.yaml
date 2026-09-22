@@ -224,6 +224,8 @@ heuristics:
     match: Yes or No button in an alert
   - id: al-caution
     match: caution symbol on a Save or Empty Trash alert
+  - id: sh-trio
+    match: Cancel, Done, and Back together in a sheet
   - id: slider-as-volume
     match: slider to adjust audio volume
   - id: nested-same-axis-scroll

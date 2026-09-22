@@ -2740,6 +2740,7 @@ const results = [];
       catalog.byId["action-sheets"]?.dontCoverageComplete === true &&
       catalog.byId.modality?.dontCoverageComplete === true &&
       (catalog.byId.sheets?.dontHeuristicIds || []).includes("nested-modal-stacks") &&
+      (catalog.byId.sheets?.dontHeuristicIds || []).includes("sh-trio") &&
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-error") &&
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-cancel") &&
       (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-yes-no") &&
@@ -18025,6 +18026,214 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-alert-caution-save-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-hold-"));
+  const trioDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-trio-"));
+  const pairDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-pair-"));
+  const backDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-back-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-out-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-swift-"));
+  const alertDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-sht-alert-"));
+  const dirs = [passDir, fixDir, holdDir, trioDir, pairDir, backDir, outsideDir, swiftDir, alertDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return (
+    <dialog data-sh-trio>
+      <h2>Save the draft?</h2>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <dialog>
+      <p>Avoid showing all three buttons — Cancel, Done, and Back — together.</p>
+      <button type="button">Keep</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origTrio = `export function HostWidgets() {
+  return (
+    <dialog>
+      <h2>Save the draft?</h2>
+      <button type="button">Cancel</button>
+      <button type="button">Done</button>
+      <button type="button">Back</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(trioDir, "HostWidgets.tsx"), origTrio);
+    const origPair = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button type="button">Done</button>
+      <button type="button">Cancel</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(pairDir, "HostWidgets.tsx"), origPair);
+    const origBack = `export function HostWidgets() {
+  return (
+    <dialog>
+      <button type="button">Done</button>
+      <button type="button">Back</button>
+    </dialog>
+  );
+}
+`;
+    fs.writeFileSync(path.join(backDir, "HostWidgets.tsx"), origBack);
+    const origOutside = `export function HostWidgets() {
+  return (
+    <p>
+      <button type="button">Cancel</button>
+      <button type="button">Done</button>
+      <button type="button">Back</button>
+    </p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(outsideDir, "HostWidgets.tsx"), origOutside);
+    const origSwift = `export function HostWidgets() {
+  .sheet(isPresented: $show) {
+    Button("Cancel") {}
+    Button("Done") {}
+    Button("Back") {}
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origAlert = `export function HostWidgets() {
+  let alert = UIAlertController(title: "Step", message: nil, preferredStyle: .alert)
+  alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+  alert.addAction(UIAlertAction(title: "Done", style: .default))
+  alert.addAction(UIAlertAction(title: "Back", style: .default))
+  return alert
+}
+`;
+    fs.writeFileSync(path.join(alertDir, "HostWidgets.tsx"), origAlert);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const trioReport = run(trioDir);
+    const pairReport = run(pairDir);
+    const backReport = run(backDir);
+    const outsideReport = run(outsideDir);
+    const swiftReport = run(swiftDir);
+    const alertReport = run(alertDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const trioStatus = readStatus(trioDir);
+    const pairStatus = readStatus(pairDir);
+    const backStatus = readStatus(backDir);
+    const outsideStatus = readStatus(outsideDir);
+    const swiftStatus = readStatus(swiftDir);
+    const alertStatus = readStatus(alertDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const trio = fs.readFileSync(path.join(trioDir, "HostWidgets.tsx"), "utf8");
+    const pair = fs.readFileSync(path.join(pairDir, "HostWidgets.tsx"), "utf8");
+    const back = fs.readFileSync(path.join(backDir, "HostWidgets.tsx"), "utf8");
+    const outside = fs.readFileSync(path.join(outsideDir, "HostWidgets.tsx"), "utf8");
+    const swift = fs.readFileSync(path.join(swiftDir, "HostWidgets.tsx"), "utf8");
+    const alert = fs.readFileSync(path.join(alertDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      trioChrome: trioReport.chrome.pass === true,
+      pairChrome: pairReport.chrome.pass === true,
+      backChrome: backReport.chrome.pass === true,
+      outsideChrome: outsideReport.chrome.pass === true,
+      swiftChrome: swiftReport.chrome.pass === true,
+      alertChrome: alertReport.chrome.pass === true,
+      passSheets: passStatus.topics.sheets?.state === "skipped-no-affordance",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixSheets: fixStatus.topics.sheets?.state === "applied",
+      systemKept: />\s*Keep\s*</.test(fixed),
+      markersGone: !/data-sh-trio\b/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdSheets: holdStatus.topics.sheets?.state === "pending",
+      holdStillPhrase: /all three buttons/.test(held),
+      holdNotInvented: !/<button\b[^>]*>\s*Back\s*<\/button>/i.test(held),
+      trioUnchanged: trio === origTrio,
+      trioSheets: trioStatus.topics.sheets?.state === "pending",
+      trioKept:
+        />\s*Cancel\s*</.test(trio) && />\s*Done\s*</.test(trio) && />\s*Back\s*</.test(trio),
+      pairUnchanged: pair === origPair,
+      pairSheets: pairStatus.topics.sheets?.state === "already-compliant",
+      pairKept: />\s*Done\s*</.test(pair) && />\s*Cancel\s*</.test(pair),
+      backUnchanged: back === origBack,
+      backSheets: backStatus.topics.sheets?.state === "already-compliant",
+      backKept: />\s*Done\s*</.test(back) && />\s*Back\s*</.test(back),
+      outsideUnchanged: outside === origOutside,
+      outsideSheets: outsideStatus.topics.sheets?.state === "skipped-no-affordance",
+      outsideKept: />\s*Back\s*</.test(outside),
+      swiftUnchanged: swift === origSwift,
+      swiftSheets: swiftStatus.topics.sheets?.state === "pending",
+      swiftKept: /Button\("Back"\)/.test(swift),
+      alertUnchanged: alert === origAlert,
+      alertSheets: alertStatus.topics.sheets?.state === "already-compliant",
+      alertKept: /title: "Back"/.test(alert),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passSheets: passStatus.topics.sheets?.state,
+      fixSheets: fixStatus.topics.sheets?.state,
+      holdSheets: holdStatus.topics.sheets?.state,
+      trioSheets: trioStatus.topics.sheets?.state,
+      pairSheets: pairStatus.topics.sheets?.state,
+      backSheets: backStatus.topics.sheets?.state,
+      outsideSheets: outsideStatus.topics.sheets?.state,
+      swiftSheets: swiftStatus.topics.sheets?.state,
+      alertSheets: alertStatus.topics.sheets?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-sheet-trio-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
