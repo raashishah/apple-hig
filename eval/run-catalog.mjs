@@ -15808,7 +15808,7 @@ struct OneTorch: ControlWidget {
       confirmPhoto: confirmStatus.topics["photo-editing"]?.state === "already-compliant",
       confirmKept: /Edits will be lost/.test(confirmed),
       toolbarUnchanged: tooled === origToolbar,
-      toolbarPhoto: toolbarStatus.topics["photo-editing"]?.state === "already-compliant",
+      toolbarPhoto: toolbarStatus.topics["photo-editing"]?.state === "pending",
       toolbarKept: /custom top toolbar/.test(tooled),
       barePhoto: bareStatus.topics["photo-editing"]?.state === "skipped-gate",
       bareMarkersRemain: /data-px-cancel/.test(bared),
@@ -22853,6 +22853,165 @@ ${dots}
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-wallet-strip-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-hold-"));
+  const barDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-bar-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-plain-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-bare-"));
+  const fileDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pxt-file-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, barDir, plainDir, sentenceDir, bareDir, fileDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeImport = (dir) => {
+      fs.writeFileSync(path.join(dir, "Edit.swift"), "import PhotosUI\n");
+    };
+    for (const dir of [cleanDir, fixDir, holdDir, barDir, plainDir, sentenceDir, fileDir]) writeImport(dir);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-photo-edit data-px-toolbar>
+      <button type="button">Edit</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-photo-edit>
+      <p>Don't provide a custom top toolbar.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origBar = `export function HostWidgets() {
+  return (
+    <div data-photo-edit>
+      <div role="toolbar">
+        <button type="button">Filters</button>
+      </div>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(barDir, "HostWidgets.tsx"), origBar);
+    const origPlain = `export function HostWidgets() {
+  return (
+    <div data-photo-edit>
+      <img alt="edit" src="photo.png" />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origSentence = `export function HostWidgets() {
+  return <p>Don't provide a custom top toolbar.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origBare = `export function HostWidgets() {
+  return <span data-px-toolbar>Edit</span>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), origBare);
+    const origFile = `export function HostWidgets() {
+  return (
+    <div role="toolbar">
+      <button type="button">Filters</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fileDir, "HostWidgets.tsx"), origFile);
+    const names = ["pass", "clean", "fix", "hold", "bar", "plain", "sentence", "bare", "file"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      fix: fixDir,
+      hold: holdDir,
+      bar: barDir,
+      plain: plainDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+      file: fileDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const barred = fs.readFileSync(path.join(barDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const photo = (name) => status[name].topics["photo-editing"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["photo-editing"]?.dontHeuristicIds || []).includes("px-toolbar"),
+      fileHeuristic: (catalog.byId["file-management"]?.dontHeuristicIds || []).includes("custom-file-toolbar"),
+      passChrome: reports.pass.chrome.pass === true,
+      cleanChrome: reports.clean.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      barChrome: reports.bar.chrome.pass === true,
+      plainChrome: reports.plain.chrome.pass === true,
+      sentenceChrome: reports.sentence.chrome.pass === true,
+      bareChrome: reports.bare.chrome.pass === true,
+      fileChrome: reports.file.chrome.pass === true,
+      passPhoto: photo("pass") === "skipped-gate",
+      cleanPhoto: photo("clean") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixPhoto: photo("fix") === "applied",
+      markerGone: !/data-px-toolbar(?![\w-])/.test(fixed),
+      editKept: /\bdata-photo-edit\b/.test(fixed) && />\s*Edit\s*</.test(fixed),
+      importKept: fs.readFileSync(path.join(fixDir, "Edit.swift"), "utf8").includes("import PhotosUI"),
+      holdUnchanged: held === origHold,
+      holdPhoto: photo("hold") === "pending",
+      holdPhrase: /custom top toolbar/.test(held),
+      barUnchanged: barred === origBar,
+      barPhoto: photo("bar") === "pending",
+      filtersKept: />\s*Filters\s*</.test(barred),
+      plainPhoto: photo("plain") === "already-compliant",
+      sentencePhoto: photo("sentence") === "skipped-no-affordance",
+      barePhoto: photo("bare") === "skipped-gate",
+      bareMarkerRemains: /data-px-toolbar(?![\w-])/.test(bared),
+      filePhoto: photo("file") === "skipped-no-affordance",
+      fileMgmt: status.file.topics["file-management"]?.state !== "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPhoto: photo("pass"),
+      cleanPhoto: photo("clean"),
+      fixPhoto: photo("fix"),
+      holdPhoto: photo("hold"),
+      barPhoto: photo("bar"),
+      plainPhoto: photo("plain"),
+      sentencePhoto: photo("sentence"),
+      barePhoto: photo("bare"),
+      filePhoto: photo("file"),
+      fileMgmt: status.file.topics["file-management"]?.state,
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-photo-toolbar-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

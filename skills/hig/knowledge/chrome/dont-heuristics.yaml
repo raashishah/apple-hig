@@ -636,6 +636,8 @@ heuristics:
     match: microphone that stays on after the recognition sample
   - id: px-cancel
     match: discards edits without a confirm
+  - id: px-toolbar
+    match: custom top toolbar in a photo-editing session
   - id: ac-modified
     match: homemade or modified App Clip Code
   - id: ac-overlay

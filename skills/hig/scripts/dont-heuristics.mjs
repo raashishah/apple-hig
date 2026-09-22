@@ -8915,6 +8915,34 @@ function applyPxCancel(text) {
   return text.replace(/\s*data-px-cancel(?:="[^"]*")?/g, "");
 }
 
+function hasPxToolbarCopy(text) {
+  return /custom top toolbar/i.test(text) || /providing a second toolbar/i.test(text);
+}
+
+function hasCustomPhotoToolbar(text) {
+  if (!hasPhotoEdit(text)) return false;
+  return /role=["']toolbar["']/i.test(text) || /\bToolbarItem\b/.test(text);
+}
+
+function scanPxToolbar(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-px-toolbar(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a custom top toolbar in a photo-editing session"));
+      continue;
+    }
+    if (!hasPhotoEdit(f.text)) continue;
+    if (hasPxToolbarCopy(f.text) || hasCustomPhotoToolbar(f.text)) {
+      out.push(hit(f.path, "a custom top toolbar in a photo-editing session"));
+    }
+  }
+  return out;
+}
+
+function applyPxToolbar(text) {
+  return text.replace(/\s*data-px-toolbar(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasAppClipCode(text) {
   return /\bdata-app-clip-code\b/.test(text);
 }
@@ -10886,6 +10914,8 @@ function scanHeuristic(id, files) {
       return scanSzMic(files);
     case "px-cancel":
       return scanPxCancel(files);
+    case "px-toolbar":
+      return scanPxToolbar(files);
     case "ac-modified":
       return scanAcModified(files);
     case "ac-overlay":
@@ -11542,6 +11572,8 @@ function applyHeuristic(id, file) {
       return applySzMic(file.text);
     case "px-cancel":
       return applyPxCancel(file.text);
+    case "px-toolbar":
+      return applyPxToolbar(file.text);
     case "ac-modified":
       return applyAcModified(file.text);
     case "ac-overlay":

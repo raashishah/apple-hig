@@ -1,7 +1,7 @@
 # tech-photo-editing
 
 **Apple:** [Photo editing](https://developer.apple.com/design/human-interface-guidelines/photo-editing)  
-**Gate:** `capability:photos` on surface `photo-editing`. Unknown hosts skip. Skip-unless affordance `photoedit` (`data-photo-edit`, `PHContentEditingController`). `import Photos` and `import PhotosUI` are the capability, not the widget. An `<img>` is not an editing session. A custom top toolbar stays on file-management. Do not invent a confirm dialog.
+**Gate:** `capability:photos` on surface `photo-editing`. Unknown hosts skip. Skip-unless affordance `photoedit` (`data-photo-edit`, `PHContentEditingController`). `import Photos` and `import PhotosUI` are the capability, not the widget. An `<img>` is not an editing session. A second toolbar in the editing session is the violation. A file-browser toolbar stays on file-management. Do not invent a confirm dialog. Do not remove the system toolbar.
 
 Cancel keeps edits until people confirm, once they have made some.
 
@@ -13,3 +13,4 @@ Cancel keeps edits until people confirm, once they have made some.
 ## Don't
 
 - Cancel that discards edits without a confirm.
+- A custom top toolbar in a photo-editing session.
