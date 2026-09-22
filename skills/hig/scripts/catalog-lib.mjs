@@ -606,6 +606,7 @@ function affordanceMissing(need, present) {
     case "icloud":
     case "siri":
     case "appshortcut":
+    case "healthkit":
       return !present.includes(need);
     default: {
       const _exhaustive = need;
@@ -1157,6 +1158,13 @@ export function scanAffordances(files) {
     /\bSiriTipUIView\b/.test(blob)
   ) {
     found.push("appshortcut");
+  }
+  if (
+    /\bdata-healthkit\b/.test(blob) ||
+    /\bHKHealthStore\b/.test(blob) ||
+    /\bHKQuantityTypeIdentifier\b/.test(blob)
+  ) {
+    found.push("healthkit");
   }
   return found;
 }

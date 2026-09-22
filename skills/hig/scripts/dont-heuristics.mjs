@@ -5953,6 +5953,93 @@ function applyAsTitleItem(text) {
   return text.replace(/\s*data-as-title-item(?:="[^"]*")?/g, "");
 }
 
+function hasHealthKit(text) {
+  return (
+    /\bdata-healthkit\b/.test(text) ||
+    /\bHKHealthStore\b/.test(text) ||
+    /\bHKQuantityTypeIdentifier\b/.test(text)
+  );
+}
+
+function hasHltReplicaCopy(text) {
+  return (
+    (/replicat/i.test(text) && /permission/i.test(text)) ||
+    /custom (health )?permission screen/i.test(text)
+  );
+}
+
+function hasHltSharingCopy(text) {
+  return (
+    /health data sharing/i.test(text) ||
+    (/additional screens/i.test(text) && /health/i.test(text))
+  );
+}
+
+function hasHltTermCopy(text) {
+  return (
+    /the term HealthKit/i.test(text) ||
+    />[^<]*\bHealthKit\b[^<]*</.test(text) ||
+    /["'][^"']*\bHealthKit\b[^"']*["']/.test(text)
+  );
+}
+
+function scanHltReplica(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hlt-replica/.test(f.text)) {
+      out.push(hit(f.path, "custom screens that replicate the health permission screen"));
+      continue;
+    }
+    if (!hasHealthKit(f.text)) continue;
+    if (hasHltReplicaCopy(f.text)) {
+      out.push(hit(f.path, "custom screens that replicate the health permission screen"));
+    }
+  }
+  return out;
+}
+
+function applyHltReplica(text) {
+  return text.replace(/\s*data-hlt-replica(?:="[^"]*")?/g, "");
+}
+
+function scanHltSharing(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hlt-sharing/.test(f.text)) {
+      out.push(hit(f.path, "in-app screens that manage health data sharing"));
+      continue;
+    }
+    if (!hasHealthKit(f.text)) continue;
+    if (hasHltSharingCopy(f.text)) {
+      out.push(hit(f.path, "in-app screens that manage health data sharing"));
+    }
+  }
+  return out;
+}
+
+function applyHltSharing(text) {
+  return text.replace(/\s*data-hlt-sharing(?:="[^"]*")?/g, "");
+}
+
+function scanHltTerm(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hlt-term/.test(f.text)) {
+      out.push(hit(f.path, "the term healthkit in user-facing copy"));
+      continue;
+    }
+    if (!hasHealthKit(f.text)) continue;
+    if (hasHltTermCopy(f.text)) {
+      out.push(hit(f.path, "the term healthkit in user-facing copy"));
+    }
+  }
+  return out;
+}
+
+function applyHltTerm(text) {
+  return text.replace(/\s*data-hlt-term(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -6424,6 +6511,12 @@ function scanHeuristic(id, files) {
       return scanAsLowercase(files);
     case "as-title-item":
       return scanAsTitleItem(files);
+    case "hlt-replica":
+      return scanHltReplica(files);
+    case "hlt-sharing":
+      return scanHltSharing(files);
+    case "hlt-term":
+      return scanHltTerm(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -6888,6 +6981,12 @@ function applyHeuristic(id, file) {
       return applyAsLowercase(file.text);
     case "as-title-item":
       return applyAsTitleItem(file.text);
+    case "hlt-replica":
+      return applyHltReplica(file.text);
+    case "hlt-sharing":
+      return applyHltSharing(file.text);
+    case "hlt-term":
+      return applyHltTerm(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

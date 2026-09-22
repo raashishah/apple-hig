@@ -456,3 +456,9 @@ heuristics:
     match: written in lowercase
   - id: as-title-item
     match: written in title case
+  - id: hlt-replica
+    match: replicate the Health permission
+  - id: hlt-sharing
+    match: health data sharing
+  - id: hlt-term
+    match: the term HealthKit

@@ -96,6 +96,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.icloud?.affordance === "icloud" &&
     surfaces.byId.siri?.affordance === "siri" &&
     surfaces.byId["siri-app-shortcuts"]?.affordance === "appshortcut" &&
+    surfaces.byId.healthkit?.affordance === "healthkit" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -502,6 +503,7 @@ const results = [];
     "icloud",
     "siri",
     "app-shortcuts",
+    "healthkit",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1003,6 +1005,36 @@ const results = [];
       text: ".hero { transform: rotateX(20deg); }",
     },
   ]);
+  const healthkitOnly = scanAffordances([
+    {
+      path: "Health.tsx",
+      text: '<div data-healthkit><button type="button">Works with Apple Health</button></div>',
+    },
+  ]);
+  const healthkitWordOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>This app uses HealthKit to store your workouts.</p>",
+    },
+  ]);
+  const homekitChromeOnly = scanAffordances([
+    {
+      path: "Home.tsx",
+      text: '<div data-homekit><button type="button">Accessory settings</button></div>',
+    },
+  ]);
+  const workoutChromeOnly = scanAffordances([
+    {
+      path: "Run.tsx",
+      text: '<div data-workout><button type="button">Start</button></div>',
+    },
+  ]);
+  const hltMarkerOnly = scanAffordances([
+    {
+      path: "Mark.tsx",
+      text: '<div data-hlt-replica data-hlt-sharing data-hlt-term><button type="button">Health</button></div>',
+    },
+  ]);
   results.push({
     case: "affordance-scan-is-widget-not-word",
     ok:
@@ -1285,6 +1317,20 @@ const results = [];
       !formOnly.includes("map") &&
       !passList.includes("map") &&
       !pageOnly.includes("map") &&
+      healthkitOnly.includes("healthkit") &&
+      !healthkitOnly.includes("homekit") &&
+      !healthkitOnly.includes("workout") &&
+      !healthkitOnly.includes("activityring") &&
+      !healthkitWordOnly.includes("healthkit") &&
+      !homekitChromeOnly.includes("healthkit") &&
+      homekitChromeOnly.includes("homekit") &&
+      !workoutChromeOnly.includes("healthkit") &&
+      workoutChromeOnly.includes("workout") &&
+      !activityRingsOnly.includes("healthkit") &&
+      !hltMarkerOnly.includes("healthkit") &&
+      !formOnly.includes("healthkit") &&
+      !passList.includes("healthkit") &&
+      !pageOnly.includes("healthkit") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -1974,6 +2020,12 @@ const results = [];
       (catalog.byId["app-shortcuts"]?.dontHeuristicIds || []).includes("as-title-item") &&
       catalog.byId["app-shortcuts"]?.pack === "tech-siri-app-shortcuts.md" &&
       catalog.byId["app-shortcuts"]?.appliesWhen === "always" &&
+      catalog.byId.healthkit?.dontCoverageComplete === true &&
+      (catalog.byId.healthkit?.dontHeuristicIds || []).includes("hlt-replica") &&
+      (catalog.byId.healthkit?.dontHeuristicIds || []).includes("hlt-sharing") &&
+      (catalog.byId.healthkit?.dontHeuristicIds || []).includes("hlt-term") &&
+      catalog.byId.healthkit?.pack === "tech-healthkit.md" &&
+      catalog.byId.healthkit?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2129,6 +2181,7 @@ const results = [];
       "icloud",
       "siri",
       "app-shortcuts",
+      "healthkit",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -10316,6 +10369,136 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-app-shortcuts-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-healthkit-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-healthkit-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-healthkit-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-healthkit data-hlt-replica data-hlt-sharing data-hlt-term>
+      <button type="button">Works with Apple Health</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-healthkit>
+      This app uses HealthKit to store your workouts.
+      <button type="button">Works with Apple Health</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passHealthkit: passStatus.topics.healthkit?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixHealthkit: fixStatus.topics.healthkit?.state === "applied",
+      systemKept:
+        /\bdata-healthkit\b/.test(fixed) && />\s*Works with Apple Health\s*</.test(fixed),
+      markersGone:
+        !/data-hlt-replica/.test(fixed) &&
+        !/data-hlt-sharing/.test(fixed) &&
+        !/data-hlt-term/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdHealthkit: holdStatus.topics.healthkit?.state === "pending",
+      holdStillTerm:
+        /\bdata-healthkit\b/.test(held) &&
+        /This app uses HealthKit to store your workouts/.test(held) &&
+        /Works with Apple Health/.test(held),
+      holdNotInvented:
+        !/HKHealthStore/.test(held) && !/HKQuantityTypeIdentifier/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passHealthkit: passStatus.topics.healthkit?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixHealthkit: fixStatus.topics.healthkit?.state,
+      holdHealthkit: holdStatus.topics.healthkit?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-healthkit-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

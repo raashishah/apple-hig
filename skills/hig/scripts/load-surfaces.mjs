@@ -354,6 +354,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "icloud",
     "siri",
     "appshortcut",
+    "healthkit",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

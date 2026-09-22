@@ -149,7 +149,7 @@ const results = [];
   const ok =
     web.stack?.kind === "web" &&
     !(web.capabilities || []).includes("healthkit") &&
-    !launchedIds.includes("healthkit") &&
+    launchedIds.includes("healthkit") &&
     !launchedIds.includes("game-center") &&
     !launchedIds.includes("mac-chrome") &&
     requiredOk;
@@ -189,10 +189,11 @@ const results = [];
   const launchedIds = selected.launched.map((s) => s.id);
   const ok =
     !(j.capabilities || []).includes("healthkit") &&
-    !launchedIds.includes("healthkit") &&
+    launchedIds.includes("healthkit") &&
+    !launchedIds.includes("game-center") &&
     surfaces.requiredIds.length === 12;
   results.push({
-    case: "tech-absent-skips-healthkit",
+    case: "tech-absent-healthkit-always",
     ok,
     capabilities: j.capabilities,
   });

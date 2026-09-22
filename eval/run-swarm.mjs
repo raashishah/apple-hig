@@ -129,7 +129,7 @@ const results = [];
     ok =
       required.length >= 12 &&
       stuffed.length === 0 &&
-      gated.some((s) => s.id === "healthkit" && s.gate === "capability:healthkit") &&
+      gated.some((s) => s.id === "game-center" && s.gate === "capability:gamecenter") &&
       !required.includes("healthkit") &&
       !required.includes("game-center") &&
       !required.includes("mac-chrome");
@@ -154,6 +154,10 @@ const results = [];
     platform: "phone",
     capabilities: ["healthkit"],
   });
+  const gc = selectSurfaces(surfaces, {
+    platform: "phone",
+    capabilities: ["gamecenter"],
+  });
   const desktop = selectSurfaces(surfaces, {
     platform: "desktop",
     capabilities: [],
@@ -164,8 +168,10 @@ const results = [];
     capabilities: [],
   });
   const ok =
-    !webSkip.launched.some((s) => s.id === "healthkit") &&
+    webSkip.launched.some((s) => s.id === "healthkit") &&
     hk.launched.some((s) => s.id === "healthkit") &&
+    !webSkip.launched.some((s) => s.id === "game-center") &&
+    gc.launched.some((s) => s.id === "game-center") &&
     desktop.launched.some((s) => s.id === "mac-chrome") &&
     multi.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "mac-chrome") &&
