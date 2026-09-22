@@ -556,6 +556,10 @@ function detectCapabilitiesFromTree(cwd) {
     blobs.push(readHead(path.join(cwd, rel), 12000));
   }
   const blob = blobs.join("\n");
+  const webBlob = files
+    .filter((rel) => /\.(tsx|jsx|vue|html|js|mjs)$/i.test(rel))
+    .map((rel) => readHead(path.join(cwd, rel), 12000))
+    .join("\n");
   if (
     /\bimport\s+HealthKit\b/.test(blob) ||
     /\bHKHealthStore\b/.test(blob) ||
@@ -568,7 +572,10 @@ function detectCapabilitiesFromTree(cwd) {
   if (
     /\bimport\s+GameKit\b/.test(blob) ||
     /\bGKLocalPlayer\b/.test(blob) ||
-    /com\.apple\.developer\.game-center/.test(blob)
+    /\bGKAccessPoint\b/.test(blob) ||
+    /com\.apple\.developer\.game-center/.test(blob) ||
+    /\bdata-game-center\b/.test(webBlob) ||
+    /\bGKAccessPoint\b/.test(webBlob)
   ) {
     capabilities.add("gamecenter");
   }
@@ -604,10 +611,6 @@ function detectCapabilitiesFromTree(cwd) {
     /\bPKAddPassButton\b/.test(blob) ||
     /\bPKAddSecureElementPassViewController\b/.test(blob) ||
     /com\.apple\.developer\.pass-type-identifiers/.test(blob);
-  const webBlob = files
-    .filter((rel) => /\.(tsx|jsx|vue|html|js|mjs)$/i.test(rel))
-    .map((rel) => readHead(path.join(cwd, rel), 12000))
-    .join("\n");
   const applePaySignals =
     /\bPKPaymentAuthorization(?:Controller|ViewController)?\b/.test(blob) ||
     /\bPKPaymentRequest\b/.test(blob) ||

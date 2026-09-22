@@ -6392,6 +6392,91 @@ function applyAuHeadphones(text) {
   return text.replace(/\s*data-au-headphones(?:="[^"]*")?/g, "");
 }
 
+function hasGameCenter(text) {
+  return /\bdata-game-center\b/.test(text) || /\bGKAccessPoint\b/.test(text);
+}
+
+function hasGcGameplayCopy(text) {
+  return (
+    /access point shown during active gameplay/i.test(text) ||
+    (/during active gameplay/i.test(text) && /access point/i.test(text))
+  );
+}
+
+function hasGcArtworkCopy(text) {
+  return (
+    /artwork resized or restyled/i.test(text) ||
+    (/artwork/i.test(text) && /resized or restyled|adjust the dimensions/i.test(text))
+  );
+}
+
+function hasGcTermsCopy(text) {
+  return (
+    /\bGameKit\b/.test(text) ||
+    /\bGameCenter\b/.test(text) ||
+    /\bgame center\b/.test(text) ||
+    /\bAwards\b/.test(text) ||
+    /\bRankings\b/.test(text)
+  );
+}
+
+function scanGcGameplay(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-gc-gameplay/.test(f.text)) {
+      out.push(hit(f.path, "the access point shown during active gameplay"));
+      continue;
+    }
+    if (!hasGameCenter(f.text)) continue;
+    if (hasGcGameplayCopy(f.text)) {
+      out.push(hit(f.path, "the access point shown during active gameplay"));
+    }
+  }
+  return out;
+}
+
+function applyGcGameplay(text) {
+  return text.replace(/\s*data-gc-gameplay(?:="[^"]*")?/g, "");
+}
+
+function scanGcArtwork(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-gc-artwork/.test(f.text)) {
+      out.push(hit(f.path, "official game center artwork resized or restyled"));
+      continue;
+    }
+    if (!hasGameCenter(f.text)) continue;
+    if (hasGcArtworkCopy(f.text)) {
+      out.push(hit(f.path, "official game center artwork resized or restyled"));
+    }
+  }
+  return out;
+}
+
+function applyGcArtwork(text) {
+  return text.replace(/\s*data-gc-artwork(?:="[^"]*")?/g, "");
+}
+
+function scanGcTerms(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-gc-terms/.test(f.text)) {
+      out.push(hit(f.path, "custom links that say gamekit game center awards or rankings"));
+      continue;
+    }
+    if (!hasGameCenter(f.text)) continue;
+    if (hasGcTermsCopy(f.text)) {
+      out.push(hit(f.path, "custom links that say gamekit game center awards or rankings"));
+    }
+  }
+  return out;
+}
+
+function applyGcTerms(text) {
+  return text.replace(/\s*data-gc-terms(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -6893,6 +6978,12 @@ function scanHeuristic(id, files) {
       return scanAuRepurpose(files);
     case "au-headphones":
       return scanAuHeadphones(files);
+    case "gc-gameplay":
+      return scanGcGameplay(files);
+    case "gc-artwork":
+      return scanGcArtwork(files);
+    case "gc-terms":
+      return scanGcTerms(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -7387,6 +7478,12 @@ function applyHeuristic(id, file) {
       return applyAuRepurpose(file.text);
     case "au-headphones":
       return applyAuHeadphones(file.text);
+    case "gc-gameplay":
+      return applyGcGameplay(file.text);
+    case "gc-artwork":
+      return applyGcArtwork(file.text);
+    case "gc-terms":
+      return applyGcTerms(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

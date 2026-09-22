@@ -486,3 +486,9 @@ heuristics:
     match: repurposed for a non-playback
   - id: au-headphones
     match: headphones disconnect
+  - id: gc-gameplay
+    match: during active gameplay
+  - id: gc-artwork
+    match: artwork resized or restyled
+  - id: gc-terms
+    match: say GameKit, game center

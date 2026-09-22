@@ -615,6 +615,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "audioplayer":
       return !present.includes(need);
+    case "gcaccess":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1200,6 +1202,9 @@ export function scanAffordances(files) {
     /\bMPNowPlayingInfoCenter\b/.test(blob)
   ) {
     found.push("audioplayer");
+  }
+  if (/\bdata-game-center\b/.test(blob) || /\bGKAccessPoint\b/.test(blob)) {
+    found.push("gcaccess");
   }
   return found;
 }

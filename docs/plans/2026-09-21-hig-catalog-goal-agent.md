@@ -129,6 +129,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 77. Playing audio Don'ts. **Landed on this PR.** Account playing-audio Don'ts when every Don't has a scanner and the host has playing-audio chrome. Skip-unless `audioplayer` affordance stays. Gate is `always`. The app setting the system output volume, audio controls repurposed for a non-playback action, and playback that continues after headphones disconnect scan from Apple's playing-audio page. Do not invent a player, a volume view, or a headphone sheet. Do not map playing-audio onto a volume slider, a video element, packed AirPlay, or a bare audio phrase. Volume-slider Don'ts stay on packed sliders. Video playback stays on packed playing-video. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+78. Game Center leftover Don'ts. **Landed on this PR.** Account leftover Game Center Don'ts when every Don't has a scanner and the host has Game Center chrome. Skip-unless `gcaccess` affordance stays. Gate stays `capability:gamecenter`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. The access point shown during active gameplay, official artwork resized or restyled, and custom links that say GameKit, game center, Awards, or Rankings scan from Apple's game-center page. Do not invent an access point, a Game Overlay, or a sign-in sheet. Do not complete Game Center authentication. Do not map game-center onto a bare Game Center phrase or import GameKit. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

@@ -103,6 +103,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["apple-pay"]?.gate === "capability:applepay" &&
     surfaces.byId["playing-audio"]?.affordance === "audioplayer" &&
     surfaces.byId["playing-audio"]?.gate === "always" &&
+    surfaces.byId["game-center"]?.affordance === "gcaccess" &&
+    surfaces.byId["game-center"]?.gate === "capability:gamecenter" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1062,6 +1064,36 @@ const results = [];
       text: '<div data-au-output-volume data-au-repurpose data-au-headphones><button type="button">Play</button></div>',
     },
   ]);
+  const gcWidgetOnly = scanAffordances([
+    {
+      path: "Play.tsx",
+      text: '<div data-game-center><button type="button">Game Center</button></div>',
+    },
+  ]);
+  const gcAccessPointOnly = scanAffordances([
+    {
+      path: "Access.swift",
+      text: "let point = GKAccessPoint.shared",
+    },
+  ]);
+  const gcPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Play on Game Center with friends.</p>",
+    },
+  ]);
+  const gameKitOnly = scanAffordances([
+    {
+      path: "Game.swift",
+      text: "import GameKit\nlet player = GKLocalPlayer.local",
+    },
+  ]);
+  const gcMarkerOnly = scanAffordances([
+    {
+      path: "Play.tsx",
+      text: '<div data-gc-gameplay data-gc-artwork data-gc-terms><button type="button">Menu</button></div>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1461,6 +1493,16 @@ const results = [];
       !formOnly.includes("audioplayer") &&
       !passList.includes("audioplayer") &&
       !pageOnly.includes("audioplayer") &&
+      gcWidgetOnly.includes("gcaccess") &&
+      !gcWidgetOnly.includes("account") &&
+      gcAccessPointOnly.includes("gcaccess") &&
+      !gcPhraseOnly.includes("gcaccess") &&
+      !gameKitOnly.includes("gcaccess") &&
+      !gcMarkerOnly.includes("gcaccess") &&
+      !audioPlayerOnly.includes("gcaccess") &&
+      !formOnly.includes("gcaccess") &&
+      !passList.includes("gcaccess") &&
+      !pageOnly.includes("gcaccess") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2179,6 +2221,12 @@ const results = [];
       (catalog.byId["playing-audio"]?.dontHeuristicIds || []).includes("au-headphones") &&
       catalog.byId["playing-audio"]?.pack === "patterns-playing-audio.md" &&
       catalog.byId["playing-audio"]?.appliesWhen === "always" &&
+      catalog.byId["game-center"]?.dontCoverageComplete === true &&
+      (catalog.byId["game-center"]?.dontHeuristicIds || []).includes("gc-gameplay") &&
+      (catalog.byId["game-center"]?.dontHeuristicIds || []).includes("gc-artwork") &&
+      (catalog.byId["game-center"]?.dontHeuristicIds || []).includes("gc-terms") &&
+      catalog.byId["game-center"]?.pack === "tech-cluster-game-center.md" &&
+      catalog.byId["game-center"]?.appliesWhen === "capability:gamecenter" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -11176,6 +11224,134 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-playing-audio-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gc-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gc-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gc-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-game-center data-gc-gameplay data-gc-artwork data-gc-terms>
+      <button type="button">Menu</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-game-center>
+      Show the access point during active gameplay.
+      <button type="button">Menu</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passGameCenter: passStatus.topics["game-center"]?.state === "skipped-gate",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixGameCenter: fixStatus.topics["game-center"]?.state === "applied",
+      systemKept: /\bdata-game-center\b/.test(fixed) && />\s*Menu\s*</.test(fixed),
+      markersGone:
+        !/data-gc-gameplay/.test(fixed) &&
+        !/data-gc-artwork/.test(fixed) &&
+        !/data-gc-terms/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdGameCenter: holdStatus.topics["game-center"]?.state === "pending",
+      holdStillGameplay:
+        /\bdata-game-center\b/.test(held) &&
+        /Show the access point during active gameplay/.test(held) &&
+        /Menu/.test(held),
+      holdNotInvented: !/GKAccessPoint/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passGameCenter: passStatus.topics["game-center"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixGameCenter: fixStatus.topics["game-center"]?.state,
+      holdGameCenter: holdStatus.topics["game-center"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-gamecenter-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
