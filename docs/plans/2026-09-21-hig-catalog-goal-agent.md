@@ -163,6 +163,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 94. Wallet change-message Don'ts. **Landed on this PR.** Account wallet Don'ts when every Don't has a scanner and the host has a pass widget. Skip-unless `walletpass` affordance stays. Dedicated surface `wallet` attaches by appleUrl so Apple Pay does not inherit the Don't. Gate stays `capability:wallet`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. A change message used for marketing scans from Apple's Wallet page. Do not invent a pass or an Add to Wallet sheet. Do not map wallet onto `import PassKit`, `PKPass`, an Apple Pay button, `data-wl-marketing`, or a bare Wallet phrase. Decline-and-ask-again stays unscanned. Apple Pay stays capability-gated. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+95. App Clip Code Don'ts. **Landed on this PR.** Account app-clips Don'ts when every Don't has a scanner and the host has an App Clip Code widget. Skip-unless `appclipcode` affordance stays. Dedicated surface `app-clips` attaches by appleUrl before the platform cluster so Mac Catalyst does not inherit the Don't. Gate stays `capability:appclips`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. A homemade or modified App Clip Code scans from Apple's App Clips page. Do not invent an App Clip Code. Do not map app-clips onto the App Clip entitlement, `data-app-clip`, `data-ac-modified`, or a bare App Clip phrase. Ads, web views, and account walls stay unscanned. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

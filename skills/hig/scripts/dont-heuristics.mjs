@@ -7411,6 +7411,43 @@ function applyWlMarketing(text) {
   return text.replace(/\s*data-wl-marketing(?:="[^"]*")?/g, "");
 }
 
+function hasAppClipCode(text) {
+  return /\bdata-app-clip-code\b/.test(text);
+}
+
+function hasAcModifiedCopy(text) {
+  return (
+    /create your own App Clip Code/i.test(text) ||
+    /modify a generated App Clip Code/i.test(text) ||
+    /homemade App Clip Code/i.test(text) ||
+    /add glows, shadows, gradients, or reflections/i.test(text)
+  );
+}
+
+function hasAcModifiedSignal(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /filter\s*:|drop-shadow|box-shadow|linear-gradient|radial-gradient|\bglow\b/i.test(text);
+}
+
+function scanAcModified(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-modified/.test(f.text)) {
+      out.push(hit(f.path, "a homemade or modified App Clip Code"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcModifiedCopy(f.text) || hasAcModifiedSignal(f.text)) {
+      out.push(hit(f.path, "a homemade or modified App Clip Code"));
+    }
+  }
+  return out;
+}
+
+function applyAcModified(text) {
+  return text.replace(/\s*data-ac-modified(?:="[^"]*")?/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -7978,6 +8015,8 @@ function scanHeuristic(id, files) {
       return scanRkCritical(files);
     case "wl-marketing":
       return scanWlMarketing(files);
+    case "ac-modified":
+      return scanAcModified(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -8538,6 +8577,8 @@ function applyHeuristic(id, file) {
       return applyRkCritical(file.text);
     case "wl-marketing":
       return applyWlMarketing(file.text);
+    case "ac-modified":
+      return applyAcModified(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

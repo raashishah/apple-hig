@@ -376,6 +376,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "carekit",
     "researchkit",
     "walletpass",
+    "appclipcode",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {

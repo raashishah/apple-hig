@@ -311,6 +311,21 @@ const results = [];
       platform: "phone",
       capabilities: ["applepay"],
     }).launched.some((s) => s.id === "wallet") &&
+    surfaces.byId["app-clips"]?.gate === "capability:appclips" &&
+    surfaces.byId["app-clips"]?.affordance === "appclipcode" &&
+    !phone.launched.some((s) => s.id === "app-clips") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["appclips"],
+    }).launched.some((s) => s.id === "app-clips") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["appclips"],
+    }).launched.some((s) => s.id === "platform-tech") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["maccatalyst"],
+    }).launched.some((s) => s.id === "app-clips") &&
     selectSurfaces(surfaces, {
       platform: "phone",
       capabilities: ["controlcenter"],

@@ -137,6 +137,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId.researchkit?.gate === "capability:researchkit" &&
     surfaces.byId.wallet?.affordance === "walletpass" &&
     surfaces.byId.wallet?.gate === "capability:wallet" &&
+    surfaces.byId["app-clips"]?.affordance === "appclipcode" &&
+    surfaces.byId["app-clips"]?.gate === "capability:appclips" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -1661,6 +1663,42 @@ const results = [];
       text: "<p>Add this boarding pass to Wallet.</p>",
     },
   ]);
+  const appClipCodeOnly = scanAffordances([
+    {
+      path: "Clip.tsx",
+      text: "<div data-app-clip-code></div>",
+    },
+  ]);
+  const appClipWordOnly = scanAffordances([
+    {
+      path: "Clip.tsx",
+      text: "<div data-app-clip></div>",
+    },
+  ]);
+  const acMarkerOnly = scanAffordances([
+    {
+      path: "Clip.tsx",
+      text: "<div data-ac-modified></div>",
+    },
+  ]);
+  const appClipEntitlementOnly = scanAffordances([
+    {
+      path: "App.entitlements",
+      text: "com.apple.developer.associated-appclip-app-identifiers",
+    },
+  ]);
+  const appClipPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Launch the App Clip.</p>",
+    },
+  ]);
+  const appClipAdOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Don't display ads in your App Clip.</p>",
+    },
+  ]);
   const healthKitWidgetOnly = scanAffordances([
     {
       path: "Health.tsx",
@@ -2270,6 +2308,17 @@ const results = [];
       !formOnly.includes("walletpass") &&
       !passList.includes("walletpass") &&
       !pageOnly.includes("walletpass") &&
+      appClipCodeOnly.includes("appclipcode") &&
+      !appClipCodeOnly.includes("walletpass") &&
+      !appClipWordOnly.includes("appclipcode") &&
+      !acMarkerOnly.includes("appclipcode") &&
+      !appClipEntitlementOnly.includes("appclipcode") &&
+      !appClipPhraseOnly.includes("appclipcode") &&
+      !appClipAdOnly.includes("appclipcode") &&
+      !passWidgetOnly.includes("appclipcode") &&
+      !formOnly.includes("appclipcode") &&
+      !passList.includes("appclipcode") &&
+      !pageOnly.includes("appclipcode") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -3085,6 +3134,12 @@ const results = [];
       catalog.byId.wallet?.pack === "tech-wallet.md" &&
       catalog.byId.wallet?.surfaceId === "wallet" &&
       catalog.byId.wallet?.appliesWhen === "capability:wallet" &&
+      catalog.byId["app-clips"]?.dontCoverageComplete === true &&
+      (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-modified") &&
+      catalog.byId["app-clips"]?.pack === "tech-app-clips.md" &&
+      catalog.byId["app-clips"]?.surfaceId === "app-clips" &&
+      catalog.byId["app-clips"]?.appliesWhen === "capability:appclips" &&
+      catalog.byId["mac-catalyst"]?.pack === "tech-cluster-platform.md" &&
       catalog.byId["apple-pay"]?.appliesWhen === "capability:applepay" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
@@ -14419,6 +14474,160 @@ struct OneTorch: ControlWidget {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-wallet-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ac-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ac-clean-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ac-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ac-hold-"));
+  const shadowDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ac-shadow-"));
+  const adsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ac-ads-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ac-bare-"));
+  const dirs = [passDir, cleanDir, fixDir, holdDir, shadowDir, adsDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [cleanDir, fixDir, holdDir, shadowDir, adsDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-modified>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't create your own App Clip Code design.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origShadow = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code style={{ filter: "drop-shadow(0 0 8px #000)" }}>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(shadowDir, "HostWidgets.tsx"), origShadow);
+    const origAds = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't display ads in your App Clip.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(adsDir, "HostWidgets.tsx"), origAds);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const passReport = run(passDir);
+    const cleanReport = run(cleanDir);
+    const fixReport = run(fixDir);
+    const holdReport = run(holdDir);
+    const shadowReport = run(shadowDir);
+    const adsReport = run(adsDir);
+    const bareReport = run(bareDir);
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const passStatus = readStatus(passDir);
+    const cleanStatus = readStatus(cleanDir);
+    const fixStatus = readStatus(fixDir);
+    const holdStatus = readStatus(holdDir);
+    const shadowStatus = readStatus(shadowDir);
+    const adsStatus = readStatus(adsDir);
+    const bareStatus = readStatus(bareDir);
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const shadowed = fs.readFileSync(path.join(shadowDir, "HostWidgets.tsx"), "utf8");
+    const ads = fs.readFileSync(path.join(adsDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      cleanChrome: cleanReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      shadowChrome: shadowReport.chrome.pass === true,
+      adsChrome: adsReport.chrome.pass === true,
+      bareChrome: bareReport.chrome.pass === true,
+      passClip: passStatus.topics["app-clips"]?.state === "skipped-gate",
+      cleanClip: cleanStatus.topics["app-clips"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixClip: fixStatus.topics["app-clips"]?.state === "applied",
+      systemKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
+      markersGone: !/data-ac-modified/.test(fixed),
+      entitlementKept: fs
+        .readFileSync(path.join(fixDir, "App.entitlements"), "utf8")
+        .includes("com.apple.developer.associated-appclip-app-identifiers"),
+      holdUnchanged: held === origHold,
+      holdClip: holdStatus.topics["app-clips"]?.state === "pending",
+      holdStillPhrase: /\bdata-app-clip-code\b/.test(held) && /create your own App Clip Code/.test(held),
+      holdNotInvented: !/<img|AppClipCodeGenerator/.test(held),
+      shadowUnchanged: shadowed === origShadow,
+      shadowClip: shadowStatus.topics["app-clips"]?.state === "pending",
+      shadowKept: /drop-shadow/.test(shadowed),
+      adsUnchanged: ads === origAds,
+      adsClip: adsStatus.topics["app-clips"]?.state === "already-compliant",
+      adsKept: /Don't display ads/.test(ads),
+      bareClip: bareStatus.topics["app-clips"]?.state === "skipped-gate",
+      bareMarkersRemain: /data-ac-modified/.test(bared),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: passStatus.topics["app-clips"]?.state,
+      cleanClip: cleanStatus.topics["app-clips"]?.state,
+      fixClip: fixStatus.topics["app-clips"]?.state,
+      holdClip: holdStatus.topics["app-clips"]?.state,
+      shadowClip: shadowStatus.topics["app-clips"]?.state,
+      adsClip: adsStatus.topics["app-clips"]?.state,
+      bareClip: bareStatus.topics["app-clips"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clips-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -649,6 +649,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "walletpass":
       return !present.includes(need);
+    case "appclipcode":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1308,6 +1310,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-wallet\b/.test(blob)) {
     found.push("walletpass");
+  }
+  if (/\bdata-app-clip-code\b/.test(blob)) {
+    found.push("appclipcode");
   }
   return found;
 }

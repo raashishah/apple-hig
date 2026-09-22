@@ -552,3 +552,5 @@ heuristics:
     match: data that isn't critical to the study
   - id: wl-marketing
     match: change message used for marketing
+  - id: ac-modified
+    match: homemade or modified App Clip Code

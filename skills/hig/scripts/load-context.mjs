@@ -652,6 +652,13 @@ function detectCapabilitiesFromTree(cwd) {
   }
   if (/\bimport\s+ARKit\b/.test(blob)) capabilities.add("arkit");
   if (/\bimport\s+CoreML\b/.test(blob)) capabilities.add("coreml");
+  if (
+    /com\.apple\.developer\.associated-appclip-app-identifiers/.test(blob) ||
+    /com\.apple\.developer\.parent-application-identifiers/.test(blob) ||
+    /appclips:/.test(blob)
+  ) {
+    capabilities.add("appclips");
+  }
   return { capabilities, blob };
 }
 
