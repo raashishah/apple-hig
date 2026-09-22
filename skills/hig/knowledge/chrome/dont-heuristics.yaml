@@ -248,6 +248,8 @@ heuristics:
     match: slider to adjust audio volume
   - id: nested-same-axis-scroll
     match: scroll view inside another scroll view
+  - id: sv-indicator
+    match: scrolling indicator on a scroll view that also shows a page control
   - id: cascade-popover
     match: cascade or hierarchy of popovers
   - id: popover-as-warning

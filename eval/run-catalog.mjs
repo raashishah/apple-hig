@@ -20184,6 +20184,220 @@ ${dots}
   results.push({ case: "catalog-apply-segment-role-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-hold-"));
+  const pairDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-pair-"));
+  const scrollDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-scroll-"));
+  const pageDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-page-"));
+  const hiddenDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-hidden-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-sentence-"));
+  const sentenceScrollDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-sentence-scroll-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-swift-"));
+  const swiftHiddenDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-swift-hidden-"));
+  const bodyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-svi-body-"));
+  const dirs = [
+    passDir,
+    fixDir,
+    holdDir,
+    pairDir,
+    scrollDir,
+    pageDir,
+    hiddenDir,
+    sentenceDir,
+    sentenceScrollDir,
+    swiftDir,
+    swiftHiddenDir,
+    bodyDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const marked = `export function HostWidgets() {
+  return <div data-scroll-view data-sv-indicator className="overflow-y-auto">Notes</div>;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-scroll-view className="overflow-y-auto">
+      <p>If you show a page control with a scroll view, don't show the scrolling indicator.</p>
+      <div data-page-control />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origPair = `export function HostWidgets() {
+  return (
+    <div data-scroll-view className="overflow-y-auto">
+      <div data-page-control />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(pairDir, "HostWidgets.tsx"), origPair);
+    const origScroll = `export function HostWidgets() {
+  return <div data-scroll-view className="overflow-y-auto">Notes</div>;
+}
+`;
+    fs.writeFileSync(path.join(scrollDir, "HostWidgets.tsx"), origScroll);
+    const origPage = `export function HostWidgets() {
+  return <div data-page-control />;
+}
+`;
+    fs.writeFileSync(path.join(pageDir, "HostWidgets.tsx"), origPage);
+    const origHidden = `export function HostWidgets() {
+  return (
+    <div data-scroll-view className="overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+      <div data-page-control />
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(hiddenDir, "HostWidgets.tsx"), origHidden);
+    const origSentence = `export function HostWidgets() {
+  return <p>If you show a page control with a scroll view, don't show the scrolling indicator.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origSentenceScroll = `export function HostWidgets() {
+  return (
+    <div data-scroll-view className="overflow-y-auto">
+      <p>If you show a page control with a scroll view, don't show the scrolling indicator.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(sentenceScrollDir, "HostWidgets.tsx"), origSentenceScroll);
+    const origSwift = `export function HostWidgets() {
+  ScrollView {
+    Text("Notes")
+  }
+  PageControl()
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
+    const origSwiftHidden = `export function HostWidgets() {
+  ScrollView {
+    Text("Notes")
+  }
+  .scrollIndicators(.hidden)
+  PageControl()
+}
+`;
+    fs.writeFileSync(path.join(swiftHiddenDir, "HostWidgets.tsx"), origSwiftHidden);
+    fs.writeFileSync(path.join(bodyDir, "body.css"), "body { overflow: auto; }\n");
+    const origBody = `export function HostWidgets() {
+  return <div data-page-control />;
+}
+`;
+    fs.writeFileSync(path.join(bodyDir, "HostWidgets.tsx"), origBody);
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(
+      [
+        ["pass", passDir],
+        ["fix", fixDir],
+        ["hold", holdDir],
+        ["pair", pairDir],
+        ["scroll", scrollDir],
+        ["page", pageDir],
+        ["hidden", hiddenDir],
+        ["sentence", sentenceDir],
+        ["sentenceScroll", sentenceScrollDir],
+        ["swift", swiftDir],
+        ["swiftHidden", swiftHiddenDir],
+        ["body", bodyDir],
+      ].map(([name, dir]) => [name, run(dir)]),
+    );
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(
+      [
+        ["pass", passDir],
+        ["fix", fixDir],
+        ["hold", holdDir],
+        ["pair", pairDir],
+        ["scroll", scrollDir],
+        ["page", pageDir],
+        ["hidden", hiddenDir],
+        ["sentence", sentenceDir],
+        ["sentenceScroll", sentenceScrollDir],
+        ["swift", swiftDir],
+        ["swiftHidden", swiftHiddenDir],
+        ["body", bodyDir],
+      ].map(([name, dir]) => [name, readStatus(dir)]),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const pair = fs.readFileSync(path.join(pairDir, "HostWidgets.tsx"), "utf8");
+    const hidden = fs.readFileSync(path.join(hiddenDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const scrollState = (name) => status[name].topics["scroll-views"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["scroll-views"]?.dontHeuristicIds || []).includes("sv-indicator"),
+      passChrome: reports.pass.chrome.pass === true,
+      fixChrome: reports.fix.chrome.pass === true,
+      holdChrome: reports.hold.chrome.pass === true,
+      pairChrome: reports.pair.chrome.pass === true,
+      hiddenChrome: reports.hidden.chrome.pass === true,
+      swiftChrome: reports.swift.chrome.pass === true,
+      passScroll: scrollState("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fixScroll: scrollState("fix") === "applied",
+      markerGone: !/data-sv-indicator(?![\w-])/.test(fixed),
+      scrollKept: /data-scroll-view/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdScroll: scrollState("hold") === "pending",
+      holdStillPhrase: /don't show the scrolling indicator/.test(held),
+      pairUnchanged: pair === origPair,
+      pairScroll: scrollState("pair") === "pending",
+      pairPages: status.pair.topics["page-controls"]?.state === "already-compliant",
+      pairKept: /data-page-control/.test(pair) && /overflow-y-auto/.test(pair),
+      scrollOnly: scrollState("scroll") === "already-compliant",
+      pageOnly: scrollState("page") === "skipped-no-affordance",
+      hiddenUnchanged: hidden === origHidden,
+      hiddenScroll: scrollState("hidden") === "already-compliant",
+      sentenceScroll: scrollState("sentence") === "skipped-no-affordance",
+      sentenceWithScroll: scrollState("sentenceScroll") === "already-compliant",
+      swiftScroll: scrollState("swift") === "pending",
+      swiftHiddenScroll: scrollState("swiftHidden") === "already-compliant",
+      bodyScroll: scrollState("body") === "skipped-no-affordance",
+      holdPrinciples: status.hold.topics["design-principles"]?.state === "pending",
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passScroll: scrollState("pass"),
+      fixScroll: scrollState("fix"),
+      holdScroll: scrollState("hold"),
+      pairScroll: scrollState("pair"),
+      pairPages: status.pair.topics["page-controls"]?.state,
+      scrollOnly: scrollState("scroll"),
+      pageOnly: scrollState("page"),
+      hiddenScroll: scrollState("hidden"),
+      sentenceScroll: scrollState("sentence"),
+      sentenceWithScroll: scrollState("sentenceScroll"),
+      swiftScroll: scrollState("swift"),
+      swiftHiddenScroll: scrollState("swiftHidden"),
+      bodyScroll: scrollState("body"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-scroll-indicator-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

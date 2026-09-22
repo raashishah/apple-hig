@@ -3530,6 +3530,72 @@ function applyNestedSameAxisScroll(text) {
   return text.replace(/\s*data-nested-same-axis-scroll(?:="[^"]*")?/g, "");
 }
 
+function hasScrollPane(text) {
+  if (/\bScrollView\s*[\({]/.test(text)) return true;
+  if (/\b(?:UIScrollView|NSScrollView)\b/.test(text)) return true;
+  if (/data-scroll-view(?![\w-])/.test(text)) return true;
+  if (/data-nested-same-axis-scroll(?![\w-])/.test(text)) return true;
+  const tagRe = /<([A-Za-z][\w]*)\b[^>]*>/g;
+  let m;
+  while ((m = tagRe.exec(text))) {
+    if (/^(html|body)$/i.test(m[1])) continue;
+    if (tagOverflowAxis(m[0])) return true;
+  }
+  const cssRe = /([^{]+)\{([^}]*)\}/g;
+  while ((m = cssRe.exec(text))) {
+    if (!/overflow(?:-(?:x|y))?\s*:\s*(auto|scroll)/i.test(m[2])) continue;
+    const parts = m[1]
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .split(",")
+      .map((p) => (p.trim().split(/\s+/).pop() || "").trim())
+      .filter(Boolean);
+    if (!parts.length) continue;
+    if (parts.every((p) => /^(html|body|:root|#root|#__next|#app)$/i.test(p))) continue;
+    if (parts.every((p) => /^[#.]?[A-Za-z][\w-]*$/.test(p))) return true;
+  }
+  return false;
+}
+
+function scrollIndicatorHidden(text) {
+  if (/\.scrollIndicators\(\s*\.hidden\s*\)/.test(text)) return true;
+  if (/showsIndicators\s*:\s*false\b/.test(text)) return true;
+  if (
+    /showsVerticalScrollIndicator\s*=\s*false\b/.test(text) &&
+    /showsHorizontalScrollIndicator\s*=\s*false\b/.test(text)
+  ) {
+    return true;
+  }
+  if (/scrollbar-width\s*:\s*none\b/i.test(text)) return true;
+  if (/scrollbarWidth\s*:\s*["']none["']/.test(text)) return true;
+  return false;
+}
+
+function hasScrollIndicatorCopy(text) {
+  return (
+    /don.?t show the scrolling indicator/i.test(text) ||
+    /scrolling indicator on a scroll view/i.test(text)
+  );
+}
+
+function scanScrollIndicator(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-sv-indicator(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a scrolling indicator on a scroll view that also shows a page control"));
+      continue;
+    }
+    if (!hasScrollPane(f.text) || !hasPageControlWidget(f.text)) continue;
+    if (hasScrollIndicatorCopy(f.text) || !scrollIndicatorHidden(f.text)) {
+      out.push(hit(f.path, "a scrolling indicator on a scroll view that also shows a page control"));
+    }
+  }
+  return out;
+}
+
+function applyScrollIndicator(text) {
+  return text.replace(/\s*data-sv-indicator(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasNestedPopoverTags(text) {
   return blocksWithAttr(text, "popover").some((b) => {
     const inner = b.text.replace(/^<[^>]+>/, "");
@@ -9329,6 +9395,8 @@ function scanHeuristic(id, files) {
       return scanSliderAsVolume(files);
     case "nested-same-axis-scroll":
       return scanNestedSameAxisScroll(files);
+    case "sv-indicator":
+      return scanScrollIndicator(files);
     case "cascade-popover":
       return scanCascadePopover(files);
     case "popover-as-warning":
@@ -9953,6 +10021,8 @@ function applyHeuristic(id, file) {
       return applySliderAsVolume(file.text);
     case "nested-same-axis-scroll":
       return applyNestedSameAxisScroll(file.text);
+    case "sv-indicator":
+      return applyScrollIndicator(file.text);
     case "cascade-popover":
       return applyCascadePopover(file.text);
     case "popover-as-warning":
