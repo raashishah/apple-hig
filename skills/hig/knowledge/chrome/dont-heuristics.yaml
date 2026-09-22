@@ -480,3 +480,9 @@ heuristics:
     match: made plural or possessive
   - id: ap-logo-word
     match: Apple logo used in place
+  - id: au-output-volume
+    match: system output volume
+  - id: au-repurpose
+    match: repurposed for a non-playback
+  - id: au-headphones
+    match: headphones disconnect

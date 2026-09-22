@@ -613,6 +613,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "applepay":
       return !present.includes(need);
+    case "audioplayer":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1191,6 +1193,13 @@ export function scanAffordances(files) {
     /\bPayWithApplePayButton\b/.test(blob)
   ) {
     found.push("applepay");
+  }
+  if (
+    /\bdata-playing-audio\b/.test(blob) ||
+    /\bAVAudioSession\b/.test(blob) ||
+    /\bMPNowPlayingInfoCenter\b/.test(blob)
+  ) {
+    found.push("audioplayer");
   }
   return found;
 }

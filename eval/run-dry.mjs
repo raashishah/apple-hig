@@ -151,6 +151,7 @@ const results = [];
     !(web.capabilities || []).includes("healthkit") &&
     launchedIds.includes("healthkit") &&
     launchedIds.includes("sign-in-with-apple") &&
+    launchedIds.includes("playing-audio") &&
     !launchedIds.includes("game-center") &&
     !launchedIds.includes("mac-chrome") &&
     requiredOk;
@@ -192,6 +193,7 @@ const results = [];
     !(j.capabilities || []).includes("healthkit") &&
     launchedIds.includes("healthkit") &&
     launchedIds.includes("sign-in-with-apple") &&
+    launchedIds.includes("playing-audio") &&
     !launchedIds.includes("game-center") &&
     surfaces.requiredIds.length === 12;
   results.push({
