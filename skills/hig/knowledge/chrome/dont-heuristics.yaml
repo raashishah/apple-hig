@@ -468,3 +468,9 @@ heuristics:
     match: Errors reported on iPhone
   - id: cp-iphone-interact
     match: iPhone interactions required
+  - id: sia-password
+    match: password asked for
+  - id: sia-email
+    match: personal email asked
+  - id: sia-logo
+    match: custom Apple logo

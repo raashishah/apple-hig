@@ -609,6 +609,8 @@ function affordanceMissing(need, present) {
     case "healthkit":
     case "carplay":
       return !present.includes(need);
+    case "siwa":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1173,6 +1175,13 @@ export function scanAffordances(files) {
     /\bCPTemplateApplicationScene\b/.test(blob)
   ) {
     found.push("carplay");
+  }
+  if (
+    /\bdata-siwa\b/.test(blob) ||
+    /\bSignInWithAppleButton\b/.test(blob) ||
+    /\bASAuthorizationAppleIDButton\b/.test(blob)
+  ) {
+    found.push("siwa");
   }
   return found;
 }

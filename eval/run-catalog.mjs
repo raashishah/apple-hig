@@ -98,6 +98,7 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["siri-app-shortcuts"]?.affordance === "appshortcut" &&
     surfaces.byId.healthkit?.affordance === "healthkit" &&
     surfaces.byId.carplay?.affordance === "carplay" &&
+    surfaces.byId["sign-in-with-apple"]?.affordance === "siwa" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -506,6 +507,7 @@ const results = [];
     "app-shortcuts",
     "healthkit",
     "carplay",
+    "sign-in-with-apple",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -977,6 +979,24 @@ const results = [];
       text: '<div data-carplay><button type="button">CarPlay</button></div>',
     },
   ]);
+  const siwaOnly = scanAffordances([
+    {
+      path: "Auth.tsx",
+      text: '<div data-siwa><button type="button">Sign in with Apple</button></div>',
+    },
+  ]);
+  const siwaPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: '<button type="button">Sign in with Apple</button>',
+    },
+  ]);
+  const siaMarkerOnly = scanAffordances([
+    {
+      path: "Auth.tsx",
+      text: '<div data-sia-password data-sia-email data-sia-logo><button type="button">Sign in with Apple</button></div>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1339,6 +1359,15 @@ const results = [];
       !formOnly.includes("carplay") &&
       !passList.includes("carplay") &&
       !pageOnly.includes("carplay") &&
+      siwaOnly.includes("siwa") &&
+      !siwaOnly.includes("account") &&
+      !accountOnly.includes("siwa") &&
+      !siwaPhraseOnly.includes("siwa") &&
+      !siaMarkerOnly.includes("siwa") &&
+      !carplayOnly.includes("siwa") &&
+      !formOnly.includes("siwa") &&
+      !passList.includes("siwa") &&
+      !pageOnly.includes("siwa") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2039,6 +2068,12 @@ const results = [];
       (catalog.byId.carplay?.dontHeuristicIds || []).includes("cp-iphone-interact") &&
       catalog.byId.carplay?.pack === "tech-carplay.md" &&
       catalog.byId.carplay?.appliesWhen === "always" &&
+      catalog.byId["sign-in-with-apple"]?.dontCoverageComplete === true &&
+      (catalog.byId["sign-in-with-apple"]?.dontHeuristicIds || []).includes("sia-password") &&
+      (catalog.byId["sign-in-with-apple"]?.dontHeuristicIds || []).includes("sia-email") &&
+      (catalog.byId["sign-in-with-apple"]?.dontHeuristicIds || []).includes("sia-logo") &&
+      catalog.byId["sign-in-with-apple"]?.pack === "tech-sign-in-with-apple.md" &&
+      catalog.byId["sign-in-with-apple"]?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2196,6 +2231,7 @@ const results = [];
       "app-shortcuts",
       "healthkit",
       "carplay",
+      "sign-in-with-apple",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -10644,6 +10680,137 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-carplay-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-siwa-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-siwa-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-siwa-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-siwa data-sia-password data-sia-email data-sia-logo>
+      <button type="button">Sign in with Apple</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-siwa>
+      Create a password to finish Sign in with Apple.
+      <button type="button">Sign in with Apple</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passSiwa: passStatus.topics["sign-in-with-apple"]?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixSiwa: fixStatus.topics["sign-in-with-apple"]?.state === "applied",
+      systemKept:
+        /\bdata-siwa\b/.test(fixed) && />\s*Sign in with Apple\s*</.test(fixed),
+      markersGone:
+        !/data-sia-password/.test(fixed) &&
+        !/data-sia-email/.test(fixed) &&
+        !/data-sia-logo/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdSiwa: holdStatus.topics["sign-in-with-apple"]?.state === "pending",
+      holdStillPassword:
+        /\bdata-siwa\b/.test(held) &&
+        /Create a password to finish Sign in with Apple/.test(held) &&
+        /Sign in with Apple/.test(held),
+      holdNotInvented:
+        !/SignInWithAppleButton/.test(held) &&
+        !/ASAuthorizationAppleIDButton/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passSiwa: passStatus.topics["sign-in-with-apple"]?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixSiwa: fixStatus.topics["sign-in-with-apple"]?.state,
+      holdSiwa: holdStatus.topics["sign-in-with-apple"]?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-siwa-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

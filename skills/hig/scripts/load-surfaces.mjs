@@ -356,6 +356,7 @@ export function loadSurfaces(skillRoot, options = {}) {
     "appshortcut",
     "healthkit",
     "carplay",
+    "siwa",
   ]);
   for (const s of parsed.surfaces) {
     if (s.gate?.startsWith("capability:") && requiredSet.has(s.id)) {
