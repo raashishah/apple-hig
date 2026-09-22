@@ -131,6 +131,8 @@ Playbook data (Apple URL + design rule) is allowed. Frozen policy in code is not
 
 78. Game Center leftover Don'ts. **Landed on this PR.** Account leftover Game Center Don'ts when every Don't has a scanner and the host has Game Center chrome. Skip-unless `gcaccess` affordance stays. Gate stays `capability:gamecenter`. Do not overlay `always`, because unknown chrome-pass must stay skipped-gate. The access point shown during active gameplay, official artwork resized or restyled, and custom links that say GameKit, game center, Awards, or Rankings scan from Apple's game-center page. Do not invent an access point, a Game Overlay, or a sign-in sheet. Do not complete Game Center authentication. Do not map game-center onto a bare Game Center phrase or import GameKit. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
 
+79. Panels Don'ts. **Landed on this PR.** Account panels Don'ts when every Don't has a scanner and the host has panel chrome. Skip-unless `panel` affordance stays. Gate is `always` and overlays catalog `desktop`. A panel listed in the Window menu documents list, a minimize button on a panel, and a HUD that obscures the content it adjusts scan from Apple's panels page. Do not invent a panel, a minimize button, or a Window menu. Do not map panels onto a sheet, a regular window, `data-window`, or `NSOpenPanel`. The Mac menu bar stays an unpackaged stub. Design-principles Don'ts stay pending. Visual any-host Apple-ness is still unproven.
+
 ## Non-goals
 
 - A widget kit

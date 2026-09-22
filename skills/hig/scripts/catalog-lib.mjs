@@ -617,6 +617,8 @@ function affordanceMissing(need, present) {
       return !present.includes(need);
     case "gcaccess":
       return !present.includes(need);
+    case "panel":
+      return !present.includes(need);
     default: {
       const _exhaustive = need;
       void _exhaustive;
@@ -1205,6 +1207,9 @@ export function scanAffordances(files) {
   }
   if (/\bdata-game-center\b/.test(blob) || /\bGKAccessPoint\b/.test(blob)) {
     found.push("gcaccess");
+  }
+  if (/\bdata-panel\b/.test(blob) || /\bNSPanel\b/.test(blob) || /\bdata-hud\b/.test(blob)) {
+    found.push("panel");
   }
   return found;
 }

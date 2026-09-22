@@ -492,3 +492,9 @@ heuristics:
     match: artwork resized or restyled
   - id: gc-terms
     match: say GameKit, game center
+  - id: pn-window-menu
+    match: Window menu documents list
+  - id: pn-minimize
+    match: minimize button on a panel
+  - id: pn-hud-obscure
+    match: obscures the content it adjusts

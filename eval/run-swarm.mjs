@@ -171,6 +171,7 @@ const results = [];
     webSkip.launched.some((s) => s.id === "healthkit") &&
     webSkip.launched.some((s) => s.id === "sign-in-with-apple") &&
     webSkip.launched.some((s) => s.id === "playing-audio") &&
+    webSkip.launched.some((s) => s.id === "panels") &&
     hk.launched.some((s) => s.id === "healthkit") &&
     !webSkip.launched.some((s) => s.id === "game-center") &&
     gc.launched.some((s) => s.id === "game-center") &&

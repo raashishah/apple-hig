@@ -105,6 +105,8 @@ function surfacesHavePatternAffordances(root) {
     surfaces.byId["playing-audio"]?.gate === "always" &&
     surfaces.byId["game-center"]?.affordance === "gcaccess" &&
     surfaces.byId["game-center"]?.gate === "capability:gamecenter" &&
+    surfaces.byId.panels?.affordance === "panel" &&
+    surfaces.byId.panels?.gate === "always" &&
     !surfaces.byId.layout?.affordance &&
     !surfaces.byId.writing?.affordance &&
     surfaces.requiredIds.length === 12
@@ -515,6 +517,7 @@ const results = [];
     "carplay",
     "sign-in-with-apple",
     "playing-audio",
+    "panels",
   ];
   results.push({
     case: "host-affordance-skips-missing-widgets",
@@ -1094,6 +1097,42 @@ const results = [];
       text: '<div data-gc-gameplay data-gc-artwork data-gc-terms><button type="button">Menu</button></div>',
     },
   ]);
+  const panelOnly = scanAffordances([
+    {
+      path: "Inspector.tsx",
+      text: '<div data-panel><button type="button">Inspector</button></div>',
+    },
+  ]);
+  const nsPanelOnly = scanAffordances([
+    {
+      path: "Inspector.swift",
+      text: "let panel = NSPanel()",
+    },
+  ]);
+  const hudOnly = scanAffordances([
+    {
+      path: "Hud.tsx",
+      text: '<div data-hud><button type="button">Adjust</button></div>',
+    },
+  ]);
+  const openPanelOnly = scanAffordances([
+    {
+      path: "Open.swift",
+      text: "let chooser = NSOpenPanel()",
+    },
+  ]);
+  const panelPhraseOnly = scanAffordances([
+    {
+      path: "Copy.tsx",
+      text: "<p>Open the panels to compare options.</p>",
+    },
+  ]);
+  const pnMarkerOnly = scanAffordances([
+    {
+      path: "Inspector.tsx",
+      text: '<div data-pn-window-menu data-pn-minimize data-pn-hud-obscure><button type="button">Inspector</button></div>',
+    },
+  ]);
   const walletOnly = scanAffordances([
     {
       path: "Wallet.tsx",
@@ -1503,6 +1542,18 @@ const results = [];
       !formOnly.includes("gcaccess") &&
       !passList.includes("gcaccess") &&
       !pageOnly.includes("gcaccess") &&
+      panelOnly.includes("panel") &&
+      !panelOnly.includes("appwindow") &&
+      nsPanelOnly.includes("panel") &&
+      hudOnly.includes("panel") &&
+      !openPanelOnly.includes("panel") &&
+      !panelPhraseOnly.includes("panel") &&
+      !pnMarkerOnly.includes("panel") &&
+      !appWindowOnly.includes("panel") &&
+      !dialogOnly.includes("panel") &&
+      !formOnly.includes("panel") &&
+      !passList.includes("panel") &&
+      !pageOnly.includes("panel") &&
       surfacesHavePatternAffordances(skillRoot),
     webCss,
     passList,
@@ -2227,6 +2278,12 @@ const results = [];
       (catalog.byId["game-center"]?.dontHeuristicIds || []).includes("gc-terms") &&
       catalog.byId["game-center"]?.pack === "tech-cluster-game-center.md" &&
       catalog.byId["game-center"]?.appliesWhen === "capability:gamecenter" &&
+      catalog.byId.panels?.dontCoverageComplete === true &&
+      (catalog.byId.panels?.dontHeuristicIds || []).includes("pn-window-menu") &&
+      (catalog.byId.panels?.dontHeuristicIds || []).includes("pn-minimize") &&
+      (catalog.byId.panels?.dontHeuristicIds || []).includes("pn-hud-obscure") &&
+      catalog.byId.panels?.pack === "components-panels.md" &&
+      catalog.byId.panels?.appliesWhen === "always" &&
       catalog.byId.workouts?.dontCoverageComplete === true &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-distract") &&
       (catalog.byId.workouts?.dontHeuristicIds || []).includes("wk-brief-session") &&
@@ -2386,6 +2443,7 @@ const results = [];
       "carplay",
       "sign-in-with-apple",
       "playing-audio",
+      "panels",
     ];
     const destUnchanged = passFiles.every(
       (name) => fs.readFileSync(path.join(skipDir, name), "utf8") === origPass[name],
@@ -11352,6 +11410,134 @@ struct OneTorch: ControlWidget {
     fs.rmSync(holdDir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-gamecenter-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-panels-pass-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-panels-fix-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-panels-hold-"));
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    fs.cpSync(src, passDir, { recursive: true });
+    fs.cpSync(src, fixDir, { recursive: true });
+    fs.cpSync(src, holdDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-panel data-pn-window-menu data-pn-minimize data-pn-hud-obscure>
+      <button type="button">Inspector</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-panel>
+      This panel is listed in the Window menu documents list.
+      <button type="button">Inspector</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const passFiles = [
+      "CohesiveForm.tsx",
+      "CompactListBrowser.tsx",
+      "SystemNav.tsx",
+      "CollapsibleSidebar.tsx",
+    ];
+    const origPass = Object.fromEntries(
+      passFiles.map((name) => [name, fs.readFileSync(path.join(src, name), "utf8")]),
+    );
+    const passReport = applyCatalog({
+      cwd: passDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const fixReport = applyCatalog({
+      cwd: fixDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const holdReport = applyCatalog({
+      cwd: holdDir,
+      skillRoot,
+      register: "product",
+      write: true,
+    });
+    const passStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(passDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(fixDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const holdStatus = parseCatalogStatus(
+      fs.readFileSync(path.join(holdDir, ".hig", "catalog-status.yaml"), "utf8"),
+    );
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const hostText = [
+      ...walkSource(passDir),
+      ...walkSource(fixDir),
+      ...walkSource(holdDir),
+    ]
+      .map((f) => f.text)
+      .join("\n");
+    const destUnchanged = passFiles.every(
+      (name) => fs.readFileSync(path.join(passDir, name), "utf8") === origPass[name],
+    );
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      passChrome: passReport.chrome.pass === true,
+      fixChrome: fixReport.chrome.pass === true,
+      holdChrome: holdReport.chrome.pass === true,
+      passPanels: passStatus.topics.panels?.state === "skipped-no-affordance",
+      passForms: passStatus.topics["entering-data"]?.state === "already-compliant",
+      passPrinciples: passStatus.topics["design-principles"]?.state === "pending",
+      remaining: passReport.plan.coverage.remaining > 0,
+      destUnchanged,
+      wavePrinciples: passReport.plan.waveTopicIds.includes("design-principles"),
+      fixPanels: fixStatus.topics.panels?.state === "applied",
+      systemKept: /\bdata-panel\b/.test(fixed) && />\s*Inspector\s*</.test(fixed),
+      markersGone:
+        !/data-pn-window-menu/.test(fixed) &&
+        !/data-pn-minimize/.test(fixed) &&
+        !/data-pn-hud-obscure/.test(fixed),
+      holdUnchanged: held === origHold,
+      holdPanels: holdStatus.topics.panels?.state === "pending",
+      holdStillListed:
+        /\bdata-panel\b/.test(held) &&
+        /Window menu documents list/.test(held) &&
+        /Inspector/.test(held),
+      holdNotInvented: !/NSPanel/.test(held),
+      holdPrinciples: holdStatus.topics["design-principles"]?.state === "pending",
+      holdRemaining: holdReport.plan.coverage.remaining > 0,
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPanels: passStatus.topics.panels?.state,
+      passForms: passStatus.topics["entering-data"]?.state,
+      fixPanels: fixStatus.topics.panels?.state,
+      holdPanels: holdStatus.topics.panels?.state,
+      remaining: passReport.plan.coverage.remaining,
+      fixed,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    fs.rmSync(passDir, { recursive: true, force: true });
+    fs.rmSync(fixDir, { recursive: true, force: true });
+    fs.rmSync(holdDir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-panels-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);
