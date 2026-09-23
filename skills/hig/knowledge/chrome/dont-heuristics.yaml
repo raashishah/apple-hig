@@ -668,6 +668,8 @@ heuristics:
     match: controls in locations that may be obscured by either hand
   - id: pe-on
     match: double tap that is on by default
+  - id: pe-mode
+    match: special mode before a pencil mark
   - id: gm-letter
     match: Abstract shapes or A, X, or R1 as artwork
   - id: id-reinvent

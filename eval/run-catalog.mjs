@@ -28388,6 +28388,166 @@ ${dots}
   results.push({ case: "catalog-apply-pencil-default-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-pass-"));
+  const inkDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-ink-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-hold-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-copy-"));
+  const onDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-on-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-fix-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-bare-"));
+  const phoneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pemode-phone-"));
+  const dirs = [passDir, inkDir, holdDir, copyDir, onDir, fixDir, sentenceDir, bareDir, phoneDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeIpad = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: ipad\nregister: product\nThis product is an iPad app.\n",
+      );
+      fs.writeFileSync(path.join(dir, "Canvas.swift"), "import PencilKit\n");
+    };
+    for (const dir of [inkDir, holdDir, copyDir, onDir, fixDir, sentenceDir]) writeIpad(dir);
+    fs.writeFileSync(
+      path.join(phoneDir, "DESIGN.md"),
+      "platform_primary: phone\nregister: product\nThis product is an iPhone app.\n",
+    );
+    fs.writeFileSync(path.join(phoneDir, "Canvas.swift"), "import PencilKit\n");
+    const ink = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(inkDir, "HostWidgets.tsx"), ink);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <button type="button">Draw mode</button>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <p>Avoid requiring people to tap a button or enter a special mode before they can make a mark.</p>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origOn = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <p>Don't turn it on by default.</p>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(onDir, "HostWidgets.tsx"), origOn);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-pencil data-pe-mode>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(phoneDir, "HostWidgets.tsx"), marked);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid requiring people to tap a button or enter a special mode before they can make a mark.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const names = ["pass", "ink", "hold", "copy", "on", "fix", "sentence", "bare", "phone"];
+    const dirBy = {
+      pass: passDir,
+      ink: inkDir,
+      hold: holdDir,
+      copy: copyDir,
+      on: onDir,
+      fix: fixDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+      phone: phoneDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const onned = fs.readFileSync(path.join(onDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const phoned = fs.readFileSync(path.join(phoneDir, "HostWidgets.tsx"), "utf8");
+    const canvas = fs.readFileSync(path.join(fixDir, "Canvas.swift"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const pencil = (name) => status[name].topics["apple-pencil-and-scribble"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["apple-pencil-and-scribble"]?.dontHeuristicIds || []).includes("pe-mode"),
+      onHeuristic: (catalog.byId["apple-pencil-and-scribble"]?.dontHeuristicIds || []).includes("pe-on"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passPencil: pencil("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      inkPencil: pencil("ink") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdPencil: pencil("hold") === "pending",
+      modeKept: />\s*Draw mode\s*</.test(held) && />\s*Ink\s*</.test(held),
+      copyUnchanged: copied === origCopy,
+      copyPencil: pencil("copy") === "pending",
+      onUnchanged: onned === origOn,
+      onPencil: pencil("on") === "pending",
+      fixPencil: pencil("fix") === "applied",
+      markerGone: !/data-pe-mode(?![\w-])/.test(fixed),
+      inkKept: /\bdata-pencil\b/.test(fixed) && />\s*Ink\s*</.test(fixed) && /import PencilKit/.test(canvas),
+      sentencePencil: pencil("sentence") === "skipped-no-affordance",
+      barePencil: pencil("bare") === "skipped-gate",
+      bareMarkerRemains: /data-pe-mode(?![\w-])/.test(bared),
+      phonePencil: pencil("phone") === "skipped-gate",
+      phoneMarkerRemains: /data-pe-mode(?![\w-])/.test(phoned),
+      noCanvasInvented: !/PKCanvasView|PKToolPicker|UIScribbleInteraction/.test(fixed + held),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPencil: pencil("pass"),
+      inkPencil: pencil("ink"),
+      holdPencil: pencil("hold"),
+      copyPencil: pencil("copy"),
+      onPencil: pencil("on"),
+      fixPencil: pencil("fix"),
+      sentencePencil: pencil("sentence"),
+      barePencil: pencil("bare"),
+      phonePencil: pencil("phone"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-pencil-ink-mode-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

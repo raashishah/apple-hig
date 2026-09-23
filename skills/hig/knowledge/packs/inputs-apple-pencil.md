@@ -40,6 +40,7 @@ Apple lists this page as iPadOS-only. Do not ship a Digital Crown or Eyes pack h
 - Continuously modifying the preview as Apple Pencil moves closer or farther.
 - Controls in locations that may be obscured by either hand.
 - A custom double-tap that is on by default.
+- A special mode before a Pencil mark.
 
 ## Checklist
 

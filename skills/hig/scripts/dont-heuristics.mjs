@@ -9090,6 +9090,38 @@ function applyPeOn(text) {
   return text.replace(/\s*data-pe-on(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasPeModeCopy(text) {
+  return (
+    /special mode before they can make a mark/i.test(text) ||
+    /tap a button or enter a special mode/i.test(text)
+  );
+}
+
+function hasPencilModeButton(text) {
+  if (!hasPencil(text)) return false;
+  if (/<(?:button|Button)\b[^>]*>\s*(?:Draw|Ink) mode\s*<\/(?:button|Button)>/i.test(text)) return true;
+  return /\bButton\s*\(\s*"(?:Draw|Ink) mode"\s*\)/.test(text);
+}
+
+function scanPeMode(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-mode(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a special mode before a Pencil mark"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeModeCopy(f.text) || hasPencilModeButton(f.text)) {
+      out.push(hit(f.path, "a special mode before a Pencil mark"));
+    }
+  }
+  return out;
+}
+
+function applyPeMode(text) {
+  return text.replace(/\s*data-pe-mode(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasGameControl(text) {
   return /\bdata-game-controls\b/.test(text);
 }
@@ -12780,6 +12812,8 @@ function scanHeuristic(id, files) {
       return scanPeHand(files);
     case "pe-on":
       return scanPeOn(files);
+    case "pe-mode":
+      return scanPeMode(files);
     case "gm-letter":
       return scanGmLetter(files);
     case "id-reinvent":
@@ -13512,6 +13546,8 @@ function applyHeuristic(id, file) {
       return applyPeHand(file.text);
     case "pe-on":
       return applyPeOn(file.text);
+    case "pe-mode":
+      return applyPeMode(file.text);
     case "gm-letter":
       return applyGmLetter(file.text);
     case "id-reinvent":
