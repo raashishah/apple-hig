@@ -29024,6 +29024,199 @@ struct SaveButton: View {
   results.push({ case: "catalog-apply-button-white-fill-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-clean-"));
+  const remindDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-remind-"));
+  const siwaDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-siwa-"));
+  const marketDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-market-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-hold-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-sentence-"));
+  const looseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-loose-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acp-bare-"));
+  const dirs = [passDir, cleanDir, remindDir, siwaDir, marketDir, holdDir, copyDir, sentenceDir, looseDir, fixDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [cleanDir, remindDir, siwaDir, marketDir, holdDir, copyDir, sentenceDir, looseDir, fixDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const codeOnly = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), codeOnly);
+    fs.writeFileSync(
+      path.join(remindDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+new Notification("Return the car soon");
+`,
+    );
+    fs.writeFileSync(
+      path.join(siwaDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Sign in with Apple</button>
+    </div>
+  );
+}
+`,
+    );
+    const origMarket = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't use App Clips solely for marketing purposes.</p>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(marketDir, "HostWidgets.tsx"), origMarket);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+new Notification("Weekend sale", { promotional: true });
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't send purely promotional notifications, and only use notifications in response to an explicit user action.</p>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+new Notification("Return the car soon");
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Don't send purely promotional notifications, and only use notifications in response to an explicit user action.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origLoose = `export function HostWidgets() {
+  return <p data-ac-promo>Weekend sale</p>;
+}
+`;
+    fs.writeFileSync(path.join(looseDir, "HostWidgets.tsx"), origLoose);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-promo>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "clean", "remind", "siwa", "market", "hold", "copy", "sentence", "loose", "fix", "bare"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      remind: remindDir,
+      siwa: siwaDir,
+      market: marketDir,
+      hold: holdDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      loose: looseDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const reminded = fs.readFileSync(path.join(remindDir, "HostWidgets.tsx"), "utf8");
+    const marketed = fs.readFileSync(path.join(marketDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const loose = fs.readFileSync(path.join(looseDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const clip = (name) => status[name].topics["app-clips"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-promo"),
+      adsHeuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-ads"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passClip: clip("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanClip: clip("clean") === "already-compliant",
+      remindClip: clip("remind") === "already-compliant",
+      remindKept: /Return the car soon/.test(reminded),
+      siwaClip: clip("siwa") === "already-compliant",
+      siwaKept: />\s*Sign in with Apple\s*</.test(fs.readFileSync(path.join(siwaDir, "HostWidgets.tsx"), "utf8")),
+      marketUnchanged: marketed === origMarket,
+      marketClip: clip("market") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdClip: clip("hold") === "pending",
+      noticeKept: /promotional: true/.test(held) && /Weekend sale/.test(held),
+      copyUnchanged: copied === origCopy,
+      copyClip: clip("copy") === "pending",
+      sentenceClip: clip("sentence") === "skipped-no-affordance",
+      looseClip: clip("loose") === "skipped-no-affordance",
+      looseMarkerRemains: /data-ac-promo(?![\w-])/.test(loose),
+      fixClip: clip("fix") === "applied",
+      markerGone: !/data-ac-promo(?![\w-])/.test(fixed),
+      codeKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
+      bareClip: clip("bare") === "skipped-gate",
+      bareMarkerRemains: /data-ac-promo(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: clip("pass"),
+      cleanClip: clip("clean"),
+      remindClip: clip("remind"),
+      siwaClip: clip("siwa"),
+      marketClip: clip("market"),
+      holdClip: clip("hold"),
+      copyClip: clip("copy"),
+      sentenceClip: clip("sentence"),
+      looseClip: clip("loose"),
+      fixClip: clip("fix"),
+      bareClip: clip("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clip-promo-notification-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

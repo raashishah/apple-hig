@@ -25,3 +25,4 @@ People scan a generated App Clip Code. The code stays the one Apple generated.
 - An App Clip Code without clear space.
 - A screenshot of the app interface on an App Clip Code.
 - An advertisement in an App Clip.
+- A purely promotional notification from an App Clip.

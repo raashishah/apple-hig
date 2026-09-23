@@ -10167,6 +10167,34 @@ function applyAcAds(text) {
   return text.replace(/\s*data-ac-ads(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasPromotionalNotification(text) {
+  if (!hasAppClipCode(text) || !hasNotificationChrome(text)) return false;
+  return /\bpromotional\s*[:=]\s*true\b/.test(text);
+}
+
+function hasAcPromoCopy(text) {
+  return /purely promotional notifications/i.test(text);
+}
+
+function scanAcPromo(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-promo(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a purely promotional notification from an App Clip"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasPromotionalNotification(f.text) || (hasAcPromoCopy(f.text) && hasNotificationChrome(f.text))) {
+      out.push(hit(f.path, "a purely promotional notification from an App Clip"));
+    }
+  }
+  return out;
+}
+
+function applyAcPromo(text) {
+  return text.replace(/\s*data-ac-promo(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -13032,6 +13060,8 @@ function scanHeuristic(id, files) {
       return scanAcShot(files);
     case "ac-ads":
       return scanAcAds(files);
+    case "ac-promo":
+      return scanAcPromo(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -13772,6 +13802,8 @@ function applyHeuristic(id, file) {
       return applyAcShot(file.text);
     case "ac-ads":
       return applyAcAds(file.text);
+    case "ac-promo":
+      return applyAcPromo(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
