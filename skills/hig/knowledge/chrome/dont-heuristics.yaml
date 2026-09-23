@@ -484,6 +484,8 @@ heuristics:
     match: presented as human-authored
   - id: genai-no-revert
     match: no way to dismiss, revert, or retry
+  - id: ga-harm
+    match: automating a destructive action inside a generative feature
   - id: always-on-sensitive
     match: Sensitive information
   - id: always-on-stop-motion

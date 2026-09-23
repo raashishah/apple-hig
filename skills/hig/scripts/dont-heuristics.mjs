@@ -6468,6 +6468,49 @@ function applyGenaiNoRevert(text) {
   return text.replace(/\s*data-genai-no-revert(?:="[^"]*")?/g, "");
 }
 
+function genaiRegions(text) {
+  const regions = [];
+  for (const block of blocksWithAttr(text, "data-generative")) regions.push(block.text);
+  const apis = /\b(?:LanguageModelSession|SystemLanguageModel|ImagePlaygroundView|FoundationModels)\b/g;
+  let found;
+  while ((found = apis.exec(text))) regions.push(text.slice(found.index, found.index + 800));
+  return regions;
+}
+
+function regionAutomatesHarm(region) {
+  return (
+    /<button\b[^>]*>\s*(?:Delete|Empty Trash|Purchase|Buy)\b/i.test(region) ||
+    /\bButton\s*\(\s*"(?:Delete|Empty Trash|Purchase|Buy)\b/.test(region)
+  );
+}
+
+function hasGenaiHarmCopy(text) {
+  return (
+    /automating destructive actions/i.test(text) ||
+    /destructive action inside a generative feature/i.test(text)
+  );
+}
+
+function scanGenaiHarm(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ga-harm(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "automating a destructive action inside a generative feature"));
+      continue;
+    }
+    if (!hasGenai(f.text)) continue;
+    const harm = genaiRegions(f.text).some(regionAutomatesHarm);
+    if (harm || hasGenaiHarmCopy(f.text)) {
+      out.push(hit(f.path, "automating a destructive action inside a generative feature"));
+    }
+  }
+  return out;
+}
+
+function applyGenaiHarm(text) {
+  return text.replace(/\s*data-ga-harm(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasAlwaysOn(text) {
   return (
     /\bdata-always-on\b/.test(text) ||
@@ -12218,6 +12261,8 @@ function scanHeuristic(id, files) {
       return scanAiAsHuman(files);
     case "genai-no-revert":
       return scanGenaiNoRevert(files);
+    case "ga-harm":
+      return scanGenaiHarm(files);
     case "always-on-sensitive":
       return scanAlwaysOnSensitive(files);
     case "always-on-stop-motion":
@@ -12932,6 +12977,8 @@ function applyHeuristic(id, file) {
       return applyAiAsHuman(file.text);
     case "genai-no-revert":
       return applyGenaiNoRevert(file.text);
+    case "ga-harm":
+      return applyGenaiHarm(file.text);
     case "always-on-sensitive":
       return applyAlwaysOnSensitive(file.text);
     case "always-on-stop-motion":

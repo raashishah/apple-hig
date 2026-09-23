@@ -18,6 +18,7 @@ Generative AI discloses that content is generated and keeps people in control of
 
 - AI content presented as human-authored.
 - Generated content with no way to dismiss, revert, or retry.
+- Automating a destructive action inside a generative feature.
 
 ## Apply in host
 

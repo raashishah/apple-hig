@@ -27176,6 +27176,138 @@ ${dots}
   results.push({ case: "catalog-apply-context-menu-groups-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-pass-"));
+  const draftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-draft-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-outside-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-hold-"));
+  const buyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-buy-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-api-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gah-fix-"));
+  const dirs = [passDir, draftDir, outsideDir, holdDir, buyDir, apiDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(
+      path.join(draftDir, "HostWidgets.tsx"),
+      host(`<div data-generative><button type="button">Draft</button></div>`),
+    );
+    fs.writeFileSync(
+      path.join(outsideDir, "HostWidgets.tsx"),
+      host(`<button type="button">Delete</button><div data-generative><button type="button">Draft</button></div>`),
+    );
+    const origHold = host(
+      `<div data-generative><button type="button">Delete</button></div>`,
+    );
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origBuy = host(
+      `<div data-generative><button type="button">Purchase</button></div>`,
+    );
+    fs.writeFileSync(path.join(buyDir, "HostWidgets.tsx"), origBuy);
+    const origApi = `export function HostWidgets() {
+  ImagePlaygroundView()
+  Button("Delete") {}
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origCopy = host(
+      `<div data-generative><button type="button">Draft</button></div><p>Avoid automating destructive actions, like deleting photos.</p>`,
+    );
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid automating destructive actions, like deleting photos.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(
+      `<div data-generative data-ga-harm><button type="button">Draft</button></div>`,
+    );
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "draft", "outside", "hold", "buy", "api", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      draft: draftDir,
+      outside: outsideDir,
+      hold: holdDir,
+      buy: buyDir,
+      api: apiDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const bought = fs.readFileSync(path.join(buyDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const genai = (name) => status[name].topics["generative-ai"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["generative-ai"]?.dontHeuristicIds || []).includes("ga-harm"),
+      revert: (catalog.byId["generative-ai"]?.dontHeuristicIds || []).includes("genai-no-revert"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passGenai: genai("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      draftGenai: genai("draft") === "already-compliant",
+      outsideGenai: genai("outside") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdGenai: genai("hold") === "pending",
+      deleteKept: />\s*Delete\s*</.test(held),
+      buyUnchanged: bought === origBuy,
+      buyGenai: genai("buy") === "pending",
+      purchaseKept: />\s*Purchase\s*</.test(bought),
+      apiUnchanged: api === origApi,
+      apiGenai: genai("api") === "pending",
+      apiKept: /Button\("Delete"\)/.test(api),
+      copyUnchanged: copied === origCopy,
+      copyGenai: genai("copy") === "pending",
+      sentenceGenai: genai("sentence") === "skipped-no-affordance",
+      fixGenai: genai("fix") === "applied",
+      markerGone: !/data-ga-harm(?![\w-])/.test(fixed),
+      draftKept: />\s*Draft\s*</.test(fixed),
+      featureKept: /data-generative/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passGenai: genai("pass"),
+      draftGenai: genai("draft"),
+      outsideGenai: genai("outside"),
+      holdGenai: genai("hold"),
+      buyGenai: genai("buy"),
+      apiGenai: genai("api"),
+      copyGenai: genai("copy"),
+      sentenceGenai: genai("sentence"),
+      fixGenai: genai("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-genai-destructive-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
