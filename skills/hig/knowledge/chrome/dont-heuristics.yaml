@@ -202,6 +202,8 @@ heuristics:
     match: view's actions in one pull-down button
   - id: al-lines
     match: alert title that wraps to more than two lines
+  - id: al-punct
+    match: ends with punctuation
   - id: al-scroll
     match: alert that scrolls
   - id: ash-scroll

@@ -693,7 +693,8 @@ export function scanAffordances(files) {
     /role=["'](dialog|alertdialog)["']/i.test(blob) ||
     /\.sheet\s*\(/.test(blob) ||
     /\bconfirmationDialog\s*\(/.test(blob) ||
-    /\bUIAlertController\b/.test(blob)
+    /\bUIAlertController\b/.test(blob) ||
+    /\.alert\s*\([\s\S]{0,600}?\)\s*\{[\s\S]{0,600}?\bButton\s*\(/.test(blob)
   ) {
     found.push("overlay");
   }

@@ -12259,6 +12259,63 @@ function applyAlertTitleLines(text) {
   return text.replace(/\s*data-al-lines(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function collectedAlertTitles(text) {
+  const titles = [];
+  const roleRe = /<([A-Za-z][\w]*)\b[^>]*role=["']alertdialog["'][^>]*>[\s\S]*?<\/\1>/gi;
+  let found;
+  while ((found = roleRe.exec(text))) {
+    const heading = found[0].match(/<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/i);
+    if (heading) titles.push(heading[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim());
+  }
+  if (/\bUIAlertController\b/.test(text)) {
+    const titled = /\btitle:\s*"([^"]*)"/g;
+    let title;
+    while ((title = titled.exec(text))) titles.push(title[1].trim());
+  }
+  if (/\.alert\s*\(/.test(text)) {
+    const titled = /\.alert\(\s*"([^"]*)"/g;
+    let title;
+    while ((title = titled.exec(text))) titles.push(title[1].trim());
+  }
+  return titles;
+}
+
+function shortAlertTitleHasPunctuation(text) {
+  return collectedAlertTitles(text).some((title) => {
+    const trimmed = title.trim();
+    if (!/[.!?]$/.test(trimmed)) return false;
+    const words = trimmed.replace(/[.!?]+$/g, "").trim().split(/\s+/).filter(Boolean);
+    return words.length > 0 && words.length <= 4;
+  });
+}
+
+function hasAlertPunctuationCopy(text) {
+  return /do not add ending punctuation|don['’]?t add ending punctuation/i.test(text);
+}
+
+function hasAlertTitleWidget(text) {
+  return /role=["']alertdialog["']/i.test(text) || /\bUIAlertController\b/.test(text) || /\.alert\s*\(/.test(text);
+}
+
+function scanAlertPunctuation(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-al-punct(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a short alert title that ends with punctuation"));
+      continue;
+    }
+    if (!hasAlertTitleWidget(f.text)) continue;
+    if (shortAlertTitleHasPunctuation(f.text) || hasAlertPunctuationCopy(f.text)) {
+      out.push(hit(f.path, "a short alert title that ends with punctuation"));
+    }
+  }
+  return out;
+}
+
+function applyAlertPunctuation(text) {
+  return text.replace(/\s*data-al-punct(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasAlertScrollWidget(text) {
   return /role=["']alertdialog["']/i.test(text) || /\bUIAlertController\b/.test(text);
 }
@@ -12975,6 +13032,8 @@ function scanHeuristic(id, files) {
       return scanPullDownAllActions(files);
     case "al-lines":
       return scanAlertTitleLines(files);
+    case "al-punct":
+      return scanAlertPunctuation(files);
     case "al-scroll":
       return scanAlertScroll(files);
     case "ash-scroll":
@@ -13743,6 +13802,8 @@ function applyHeuristic(id, file) {
       return applyPullDownAllActions(file.text);
     case "al-lines":
       return applyAlertTitleLines(file.text);
+    case "al-punct":
+      return applyAlertPunctuation(file.text);
     case "al-scroll":
       return applyAlertScroll(file.text);
     case "ash-scroll":

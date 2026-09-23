@@ -31,6 +31,7 @@
 - Cancel, Done, and Back together in a sheet.
 - Relying solely on the Done button to exit a sheet.
 - An alert title that wraps to more than two lines.
+- A short alert title that ends with punctuation.
 - An alert that scrolls.
 - An action sheet that scrolls.
 - An alert message that explains a button.

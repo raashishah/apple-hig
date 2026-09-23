@@ -31748,6 +31748,193 @@ struct Choose: View {
   results.push({ case: "catalog-apply-action-sheet-scroll-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-clean-"));
+  const longerDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-longer-"));
+  const sheetDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-sheet-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-alpunct-bare-"));
+  const dirs = [passDir, cleanDir, longerDir, sheetDir, holdDir, swiftDir, copyDir, sentenceDir, fixDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const origClean = `export function HostWidgets() {
+  return (
+    <div role="alertdialog">
+      <h2>Saved</h2>
+      <button type="button">Keep</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), origClean);
+    const origLonger = `import SwiftUI
+
+struct SaveWork: View {
+  var body: some View {
+    Text("Note")
+      .alert("Please save your work before you continue.", isPresented: $show) {
+        Button("Keep") { }
+      }
+  }
+}
+`;
+    fs.writeFileSync(path.join(longerDir, "SaveWork.swift"), origLonger);
+    const origSheet = `export function HostWidgets() {
+  return (
+    <div role="dialog">
+      <h2>Saved.</h2>
+      <button type="button">Keep</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(sheetDir, "HostWidgets.tsx"), origSheet);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div role="alertdialog">
+      <h2>Saved.</h2>
+      <button type="button">Keep</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct SavedNote: View {
+  var body: some View {
+    Text("Note")
+      .alert("Saved.", isPresented: $show) {
+        Button("Keep") { }
+      }
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "SavedNote.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div role="alertdialog">
+      <h2>Saved</h2>
+      <p>If an alert title is a sentence fragment, do not add ending punctuation.</p>
+      <button type="button">Keep</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>If an alert title is a sentence fragment, do not add ending punctuation.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return (
+    <div role="alertdialog" data-al-punct>
+      <h2>Saved</h2>
+      <button type="button">Keep</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const loose = `export function HostWidgets() {
+  return <p data-al-punct>Saved</p>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), loose);
+    const names = ["pass", "clean", "longer", "sheet", "hold", "swift", "copy", "sentence", "fix", "bare"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      longer: longerDir,
+      sheet: sheetDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const cleaned = fs.readFileSync(path.join(cleanDir, "HostWidgets.tsx"), "utf8");
+    const longer = fs.readFileSync(path.join(longerDir, "SaveWork.swift"), "utf8");
+    const sheet = fs.readFileSync(path.join(sheetDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "SavedNote.swift"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const alerts = (name) => status[name].topics.alerts?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-punct"),
+      linesHeuristic: (catalog.byId.alerts?.dontHeuristicIds || []).includes("al-lines"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passAlerts: alerts("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanUnchanged: cleaned === origClean,
+      cleanAlerts: alerts("clean") === "already-compliant",
+      longerUnchanged: longer === origLonger,
+      longerAlerts: alerts("longer") === "already-compliant",
+      sheetUnchanged: sheet === origSheet,
+      sheetAlerts: alerts("sheet") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdAlerts: alerts("hold") === "pending",
+      titleKept: /<h2>Saved\.<\/h2>/.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftAlerts: alerts("swift") === "pending",
+      swiftTitleKept: /\.alert\("Saved\."/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyAlerts: alerts("copy") === "pending",
+      sentenceKept: /do not add ending punctuation/.test(copied),
+      sentenceUnchanged: sentence === origSentence,
+      sentenceAlerts: alerts("sentence") === "skipped-no-affordance",
+      fixAlerts: alerts("fix") === "applied",
+      markerGone: !/data-al-punct(?![\w-])/.test(fixed),
+      fixTitleKept: /<h2>Saved<\/h2>/.test(fixed),
+      bareAlerts: alerts("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-al-punct(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAlerts: alerts("pass"),
+      cleanAlerts: alerts("clean"),
+      longerAlerts: alerts("longer"),
+      sheetAlerts: alerts("sheet"),
+      holdAlerts: alerts("hold"),
+      swiftAlerts: alerts("swift"),
+      copyAlerts: alerts("copy"),
+      sentenceAlerts: alerts("sentence"),
+      fixAlerts: alerts("fix"),
+      bareAlerts: alerts("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-alert-title-punctuation-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
