@@ -9152,6 +9152,39 @@ function applyPeMode(text) {
   return text.replace(/\s*data-pe-mode(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasPeFarCopy(text) {
+  return (
+    /affect content on other parts of the screen/i.test(text) ||
+    /seemingly disconnected actions/i.test(text)
+  );
+}
+
+function hasPencilDistantAction(text) {
+  if (!hasPencil(text)) return false;
+  if (/\baffectsDistant\s*=\s*(?:true|\{)/.test(text)) return true;
+  if (/\bpencilAffectsRemote\s*=\s*true\b/.test(text)) return true;
+  return /\bdistantTarget\s*=/.test(text);
+}
+
+function scanPeFar(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-far(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a Pencil mark that affects content on other parts of the screen"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeFarCopy(f.text) || hasPencilDistantAction(f.text)) {
+      out.push(hit(f.path, "a Pencil mark that affects content on other parts of the screen"));
+    }
+  }
+  return out;
+}
+
+function applyPeFar(text) {
+  return text.replace(/\s*data-pe-far(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasGameControl(text) {
   return /\bdata-game-controls\b/.test(text);
 }
@@ -12846,6 +12879,8 @@ function scanHeuristic(id, files) {
       return scanPeOn(files);
     case "pe-mode":
       return scanPeMode(files);
+    case "pe-far":
+      return scanPeFar(files);
     case "gm-letter":
       return scanGmLetter(files);
     case "id-reinvent":
@@ -13582,6 +13617,8 @@ function applyHeuristic(id, file) {
       return applyPeOn(file.text);
     case "pe-mode":
       return applyPeMode(file.text);
+    case "pe-far":
+      return applyPeFar(file.text);
     case "gm-letter":
       return applyGmLetter(file.text);
     case "id-reinvent":

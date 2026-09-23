@@ -41,6 +41,7 @@ Apple lists this page as iPadOS-only. Do not ship a Digital Crown or Eyes pack h
 - Controls in locations that may be obscured by either hand.
 - A custom double-tap that is on by default.
 - A special mode before a Pencil mark.
+- A Pencil mark that affects content on other parts of the screen.
 
 ## Checklist
 

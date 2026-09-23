@@ -672,6 +672,8 @@ heuristics:
     match: double tap that is on by default
   - id: pe-mode
     match: special mode before a pencil mark
+  - id: pe-far
+    match: affects content on other parts of the screen
   - id: gm-letter
     match: Abstract shapes or A, X, or R1 as artwork
   - id: id-reinvent
