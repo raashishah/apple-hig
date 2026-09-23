@@ -28213,6 +28213,181 @@ ${dots}
   results.push({ case: "catalog-apply-app-clip-ad-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-pass-"));
+  const systemDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-system-"));
+  const offDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-off-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-hold-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-copy-"));
+  const modifyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-modify-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-fix-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-bare-"));
+  const phoneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-peon-phone-"));
+  const dirs = [passDir, systemDir, offDir, holdDir, copyDir, modifyDir, fixDir, sentenceDir, bareDir, phoneDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeIpad = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: ipad\nregister: product\nThis product is an iPad app.\n",
+      );
+      fs.writeFileSync(path.join(dir, "Canvas.swift"), "import PencilKit\n");
+    };
+    for (const dir of [systemDir, offDir, holdDir, copyDir, modifyDir, fixDir, sentenceDir]) writeIpad(dir);
+    fs.writeFileSync(
+      path.join(phoneDir, "DESIGN.md"),
+      "platform_primary: phone\nregister: product\nThis product is an iPhone app.\n",
+    );
+    fs.writeFileSync(path.join(phoneDir, "Canvas.swift"), "import PencilKit\n");
+    const system = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <p>Follow the system double-tap setting.</p>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(systemDir, "HostWidgets.tsx"), system);
+    const off = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <label>Custom double-tap <input type="checkbox" /></label>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(offDir, "HostWidgets.tsx"), off);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <label><input type="checkbox" checked /> Custom double-tap</label>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <p>Don't turn it on by default.</p>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origModify = `export function HostWidgets() {
+  return (
+    <div data-pencil>
+      <p>Avoid using the double-tap gesture to perform an action that modifies content.</p>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(modifyDir, "HostWidgets.tsx"), origModify);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-pencil data-pe-on>
+      <button type="button">Ink</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(phoneDir, "HostWidgets.tsx"), marked);
+    const origSentence = `export function HostWidgets() {
+  return <p>Don't turn it on by default.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const names = ["pass", "system", "off", "hold", "copy", "modify", "fix", "sentence", "bare", "phone"];
+    const dirBy = {
+      pass: passDir,
+      system: systemDir,
+      off: offDir,
+      hold: holdDir,
+      copy: copyDir,
+      modify: modifyDir,
+      fix: fixDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+      phone: phoneDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const modified = fs.readFileSync(path.join(modifyDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const phoned = fs.readFileSync(path.join(phoneDir, "HostWidgets.tsx"), "utf8");
+    const canvas = fs.readFileSync(path.join(fixDir, "Canvas.swift"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const pencil = (name) => status[name].topics["apple-pencil-and-scribble"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["apple-pencil-and-scribble"]?.dontHeuristicIds || []).includes("pe-on"),
+      hand: (catalog.byId["apple-pencil-and-scribble"]?.dontHeuristicIds || []).includes("pe-hand"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passPencil: pencil("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      systemPencil: pencil("system") === "already-compliant",
+      offPencil: pencil("off") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdPencil: pencil("hold") === "pending",
+      checkedKept: /checked/.test(held) && /Custom double-tap/.test(held),
+      copyUnchanged: copied === origCopy,
+      copyPencil: pencil("copy") === "pending",
+      modifyUnchanged: modified === origModify,
+      modifyPencil: pencil("modify") === "pending",
+      fixPencil: pencil("fix") === "applied",
+      markerGone: !/data-pe-on(?![\w-])/.test(fixed),
+      inkKept: /\bdata-pencil\b/.test(fixed) && />\s*Ink\s*</.test(fixed) && /import PencilKit/.test(canvas),
+      sentencePencil: pencil("sentence") === "skipped-no-affordance",
+      barePencil: pencil("bare") === "skipped-gate",
+      bareMarkerRemains: /data-pe-on(?![\w-])/.test(bared),
+      phonePencil: pencil("phone") === "skipped-gate",
+      phoneMarkerRemains: /data-pe-on(?![\w-])/.test(phoned),
+      noCanvasInvented: !/PKCanvasView|PKToolPicker|UIScribbleInteraction/.test(fixed + held),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPencil: pencil("pass"),
+      systemPencil: pencil("system"),
+      offPencil: pencil("off"),
+      holdPencil: pencil("hold"),
+      copyPencil: pencil("copy"),
+      modifyPencil: pencil("modify"),
+      fixPencil: pencil("fix"),
+      sentencePencil: pencil("sentence"),
+      barePencil: pencil("bare"),
+      phonePencil: pencil("phone"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-pencil-default-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -9057,6 +9057,39 @@ function applyPeHand(text) {
   return text.replace(/\s*data-pe-hand(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasPeOnCopy(text) {
+  return /don['’]?t turn it on by default/i.test(text);
+}
+
+function hasCustomDoubleTapOnByDefault(text) {
+  if (!hasPencil(text)) return false;
+  if (/\bcustomDoubleTap\s*=\s*true\b/.test(text)) return true;
+  if (/Toggle\(\s*"Custom double-tap"\s*,[\s\S]{0,80}\.constant\(\s*true\s*\)/.test(text)) return true;
+  return (
+    /<label\b[^>]*>[\s\S]{0,200}\bchecked\b[\s\S]{0,80}custom double-tap/i.test(text) ||
+    /\bchecked\b[^>]*>[\s\S]{0,80}custom double-tap/i.test(text)
+  );
+}
+
+function scanPeOn(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-on(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a custom double-tap that is on by default"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeOnCopy(f.text) || hasCustomDoubleTapOnByDefault(f.text)) {
+      out.push(hit(f.path, "a custom double-tap that is on by default"));
+    }
+  }
+  return out;
+}
+
+function applyPeOn(text) {
+  return text.replace(/\s*data-pe-on(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasGameControl(text) {
   return /\bdata-game-controls\b/.test(text);
 }
@@ -12745,6 +12778,8 @@ function scanHeuristic(id, files) {
       return scanPePreview(files);
     case "pe-hand":
       return scanPeHand(files);
+    case "pe-on":
+      return scanPeOn(files);
     case "gm-letter":
       return scanGmLetter(files);
     case "id-reinvent":
@@ -13475,6 +13510,8 @@ function applyHeuristic(id, file) {
       return applyPePreview(file.text);
     case "pe-hand":
       return applyPeHand(file.text);
+    case "pe-on":
+      return applyPeOn(file.text);
     case "gm-letter":
       return applyGmLetter(file.text);
     case "id-reinvent":
