@@ -9260,6 +9260,34 @@ function applyPeFar(text) {
   return text.replace(/\s*data-pe-far(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasPeSuggestCopy(text) {
+  return /autocompletion text/i.test(text);
+}
+
+function hasPencilAutocomplete(text) {
+  if (!hasPencil(text)) return false;
+  return /\bautocompletionText\s*[:=(]/.test(text);
+}
+
+function scanPeSuggest(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pe-suggest(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "autocomplete text while writing with Pencil"));
+      continue;
+    }
+    if (!hasPencil(f.text)) continue;
+    if (hasPeSuggestCopy(f.text) || hasPencilAutocomplete(f.text)) {
+      out.push(hit(f.path, "autocomplete text while writing with Pencil"));
+    }
+  }
+  return out;
+}
+
+function applyPeSuggest(text) {
+  return text.replace(/\s*data-pe-suggest(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasGameControl(text) {
   return /\bdata-game-controls\b/.test(text);
 }
@@ -13113,6 +13141,8 @@ function scanHeuristic(id, files) {
       return scanPeMode(files);
     case "pe-far":
       return scanPeFar(files);
+    case "pe-suggest":
+      return scanPeSuggest(files);
     case "gm-letter":
       return scanGmLetter(files);
     case "id-reinvent":
@@ -13861,6 +13891,8 @@ function applyHeuristic(id, file) {
       return applyPeMode(file.text);
     case "pe-far":
       return applyPeFar(file.text);
+    case "pe-suggest":
+      return applyPeSuggest(file.text);
     case "gm-letter":
       return applyGmLetter(file.text);
     case "id-reinvent":
