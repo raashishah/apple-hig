@@ -10356,6 +10356,35 @@ function applyAcAgain(text) {
   return text.replace(/\s*data-ac-again(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcWideCopy(text) {
+  return /scan from a wide angle/i.test(text);
+}
+
+function hasWideScanAngle(text) {
+  if (!hasAppClipCode(text)) return false;
+  if (/\bscanAngle\s*[:=(]\s*["']wide["']/i.test(text)) return true;
+  return /\bwideAngle\s*[:=]\s*\{?\s*true\b/.test(text);
+}
+
+function scanAcWide(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-wide(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an App Clip Code that requires a wide scan angle"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcWideCopy(f.text) || hasWideScanAngle(f.text)) {
+      out.push(hit(f.path, "an App Clip Code that requires a wide scan angle"));
+    }
+  }
+  return out;
+}
+
+function applyAcWide(text) {
+  return text.replace(/\s*data-ac-wide(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -13233,6 +13262,8 @@ function scanHeuristic(id, files) {
       return scanAcPromo(files);
     case "ac-again":
       return scanAcAgain(files);
+    case "ac-wide":
+      return scanAcWide(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -13985,6 +14016,8 @@ function applyHeuristic(id, file) {
       return applyAcPromo(file.text);
     case "ac-again":
       return applyAcAgain(file.text);
+    case "ac-wide":
+      return applyAcWide(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

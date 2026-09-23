@@ -744,3 +744,5 @@ heuristics:
     match: purely promotional notification
   - id: ac-again
     match: log in again
+  - id: ac-wide
+    match: wide scan angle
