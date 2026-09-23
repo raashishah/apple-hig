@@ -9438,6 +9438,29 @@ function applyWlStrip(text) {
   return text.replace(/\s*data-wl-strip(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasWalletDuplicateCopy(text) {
+  return /avoid sending duplicate notifications/i.test(text);
+}
+
+function scanWalletDuplicate(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wl-dup(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "duplicate notifications on a Wallet pass"));
+      continue;
+    }
+    if (!hasPass(f.text)) continue;
+    if (hasDuplicateNotificationTitle(f.text) || hasWalletDuplicateCopy(f.text)) {
+      out.push(hit(f.path, "duplicate notifications on a Wallet pass"));
+    }
+  }
+  return out;
+}
+
+function applyWalletDuplicate(text) {
+  return text.replace(/\s*data-wl-dup(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasShazam(text) {
   return /\bdata-shazam\b/.test(text) || /\bSHSession\b/.test(text) || /\bSHManagedSession\b/.test(text);
 }
@@ -12716,6 +12739,8 @@ function scanHeuristic(id, files) {
       return scanWlLogoShadow(files);
     case "wl-strip":
       return scanWlStrip(files);
+    case "wl-dup":
+      return scanWalletDuplicate(files);
     case "sz-mic":
       return scanSzMic(files);
     case "px-cancel":
@@ -13442,6 +13467,8 @@ function applyHeuristic(id, file) {
       return applyWlLogoShadow(file.text);
     case "wl-strip":
       return applyWlStrip(file.text);
+    case "wl-dup":
+      return applyWalletDuplicate(file.text);
     case "sz-mic":
       return applySzMic(file.text);
     case "px-cancel":

@@ -16,3 +16,4 @@ A pass can update with a change message. That message is for a real change, not 
 - Asking again after people decline a Wallet suggestion.
 - Inner drop shadows on logo artwork.
 - Text embedded in the strip image.
+- Duplicate notifications on a Wallet pass.
