@@ -17,3 +17,4 @@ A pass can update with a change message. That message is for a real change, not 
 - Inner drop shadows on logo artwork.
 - Text embedded in the strip image.
 - Duplicate notifications on a Wallet pass.
+- A Wallet pass image with added padding.

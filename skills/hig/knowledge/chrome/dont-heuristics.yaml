@@ -706,6 +706,8 @@ heuristics:
     match: text embedded in the strip image
   - id: wl-dup
     match: duplicate notifications on a wallet pass
+  - id: wl-pad
+    match: added padding
   - id: sz-mic
     match: microphone that stays on after the recognition sample
   - id: px-cancel

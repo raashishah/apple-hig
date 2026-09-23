@@ -9692,6 +9692,34 @@ function applyWalletDuplicate(text) {
   return text.replace(/\s*data-wl-dup(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasWlPadCopy(text) {
+  return /adding padding to images/i.test(text);
+}
+
+function hasPassImagePadding(text) {
+  if (!hasPass(text)) return false;
+  return /\bimagePadding\s*[:=(]/.test(text);
+}
+
+function scanWlPad(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wl-pad(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a Wallet pass image with added padding"));
+      continue;
+    }
+    if (!hasPass(f.text)) continue;
+    if (hasWlPadCopy(f.text) || hasPassImagePadding(f.text)) {
+      out.push(hit(f.path, "a Wallet pass image with added padding"));
+    }
+  }
+  return out;
+}
+
+function applyWlPad(text) {
+  return text.replace(/\s*data-wl-pad(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasShazam(text) {
   return /\bdata-shazam\b/.test(text) || /\bSHSession\b/.test(text) || /\bSHManagedSession\b/.test(text);
 }
@@ -13167,6 +13195,8 @@ function scanHeuristic(id, files) {
       return scanWlStrip(files);
     case "wl-dup":
       return scanWalletDuplicate(files);
+    case "wl-pad":
+      return scanWlPad(files);
     case "sz-mic":
       return scanSzMic(files);
     case "px-cancel":
@@ -13917,6 +13947,8 @@ function applyHeuristic(id, file) {
       return applyWlStrip(file.text);
     case "wl-dup":
       return applyWalletDuplicate(file.text);
+    case "wl-pad":
+      return applyWlPad(file.text);
     case "sz-mic":
       return applySzMic(file.text);
     case "px-cancel":
