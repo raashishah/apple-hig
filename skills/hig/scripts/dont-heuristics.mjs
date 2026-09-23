@@ -11793,6 +11793,37 @@ function applyRoboticInvalidName(text) {
   return text.replace(/\s*data-wr-name(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasClickHereLink(text) {
+  const stripped = stripWritingComments(text).replace(
+    /for links, avoid using ["“]?click here\.?["”]?/gi,
+    "",
+  );
+  const tags = /<(a|button)\b[^>]*>([^<]*)<\/\1>/gi;
+  let found;
+  while ((found = tags.exec(stripped))) {
+    if (/^\s*click here\.?\s*$/i.test(found[2])) return true;
+  }
+  return /\b(?:Link|Button)\s*\(\s*"click here\.?"/i.test(stripped);
+}
+
+function scanClickHereLink(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wr-here(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a link that says Click here"));
+      continue;
+    }
+    if (hasClickHereLink(f.text)) {
+      out.push(hit(f.path, "a link that says Click here"));
+    }
+  }
+  return out;
+}
+
+function applyClickHereLink(text) {
+  return text.replace(/\s*data-wr-here(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -12012,6 +12043,8 @@ function scanHeuristic(id, files) {
       return scanWeCopy(files);
     case "wr-name":
       return scanRoboticInvalidName(files);
+    case "wr-here":
+      return scanClickHereLink(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -12730,6 +12763,8 @@ function applyHeuristic(id, file) {
       return applyWeCopy(file.text);
     case "wr-name":
       return applyRoboticInvalidName(file.text);
+    case "wr-here":
+      return applyClickHereLink(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":

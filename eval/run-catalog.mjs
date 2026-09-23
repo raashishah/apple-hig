@@ -27416,6 +27416,129 @@ ${dots}
   results.push({ case: "catalog-apply-robotic-invalid-name-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-pass-"));
+  const learnDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-learn-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-sentence-"));
+  const commentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-comment-"));
+  const proseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-prose-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-hold-"));
+  const buttonDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-button-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-api-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrh-fix-"));
+  const dirs = [passDir, learnDir, sentenceDir, commentDir, proseDir, holdDir, buttonDir, apiDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(
+      path.join(learnDir, "HostWidgets.tsx"),
+      host(`<a href="/guide">Learn more</a>`),
+    );
+    const origSentence = host(
+      `<p>For links, avoid using "Click here" in favor of more descriptive words.</p>`,
+    );
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origComment = `export function HostWidgets() {
+  // Click here
+  return <a href="/guide">Save</a>;
+}
+`;
+    fs.writeFileSync(path.join(commentDir, "HostWidgets.tsx"), origComment);
+    fs.writeFileSync(path.join(proseDir, "HostWidgets.tsx"), host(`<p>Click here</p>`));
+    const origHold = host(`<a href="/guide">Click here</a>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origButton = host(`<button type="button">Click here</button>`);
+    fs.writeFileSync(path.join(buttonDir, "HostWidgets.tsx"), origButton);
+    const origApi = `export function HostWidgets() {
+  Link("Click here")
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const marked = host(`<a href="/guide" data-wr-here>Learn more</a>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "learn", "sentence", "comment", "prose", "hold", "button", "api", "fix"];
+    const dirBy = {
+      pass: passDir,
+      learn: learnDir,
+      sentence: sentenceDir,
+      comment: commentDir,
+      prose: proseDir,
+      hold: holdDir,
+      button: buttonDir,
+      api: apiDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const button = fs.readFileSync(path.join(buttonDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const writing = (name) => status[name].topics.writing?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.writing?.dontHeuristicIds || []).includes("wr-here"),
+      name: (catalog.byId.writing?.dontHeuristicIds || []).includes("wr-name"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passWriting: writing("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      learnWriting: writing("learn") === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceWriting: writing("sentence") === "already-compliant",
+      commentWriting: writing("comment") === "already-compliant",
+      proseWriting: writing("prose") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdWriting: writing("hold") === "pending",
+      holdText: />\s*Click here\s*</.test(held),
+      buttonUnchanged: button === origButton,
+      buttonWriting: writing("button") === "pending",
+      buttonText: />\s*Click here\s*</.test(button),
+      apiUnchanged: api === origApi,
+      apiWriting: writing("api") === "pending",
+      apiText: /Link\("Click here"\)/.test(api),
+      fixWriting: writing("fix") === "applied",
+      markerGone: !/data-wr-here(?![\w-])/.test(fixed),
+      learnKept: /Learn more/.test(fixed),
+      hrefKept: /href="\/guide"/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWriting: writing("pass"),
+      learnWriting: writing("learn"),
+      sentenceWriting: writing("sentence"),
+      commentWriting: writing("comment"),
+      proseWriting: writing("prose"),
+      holdWriting: writing("hold"),
+      buttonWriting: writing("button"),
+      apiWriting: writing("api"),
+      fixWriting: writing("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-click-here-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
