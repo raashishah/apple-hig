@@ -28548,6 +28548,177 @@ ${dots}
   results.push({ case: "catalog-apply-pencil-ink-mode-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-plain-"));
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-named-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-hold-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-copy-"));
+  const instructDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-instruct-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-fix-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-sentence-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-bare-"));
+  const phoneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-pttrack-phone-"));
+  const dirs = [passDir, plainDir, namedDir, holdDir, copyDir, instructDir, fixDir, sentenceDir, bareDir, phoneDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const writeDesktop = (dir) => {
+      fs.writeFileSync(
+        path.join(dir, "DESIGN.md"),
+        "platform_primary: desktop\nregister: product\nThis product is a Mac app.\n",
+      );
+    };
+    for (const dir of [plainDir, namedDir, holdDir, copyDir, instructDir, fixDir, sentenceDir]) writeDesktop(dir);
+    fs.writeFileSync(
+      path.join(phoneDir, "DESIGN.md"),
+      "platform_primary: phone\nregister: product\nThis product is an iPhone app.\n",
+    );
+    const plain = `export function HostWidgets() {
+  return (
+    <div data-pointer>
+      <button type="button">Select</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), plain);
+    const named = `export function HostWidgets() {
+  return (
+    <div data-pointer>
+      <p>Swipe between pages stays a system gesture.</p>
+      <button type="button">Select</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(namedDir, "HostWidgets.tsx"), named);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-pointer>
+      <div trackpadGesture="mission-control" />
+      <button type="button">Select</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-pointer>
+      <p>Avoid redefining systemwide trackpad gestures.</p>
+      <button type="button">Select</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origInstruct = `export function HostWidgets() {
+  return (
+    <div data-pointer>
+      <p>instructional text with a pointer.</p>
+      <button type="button">Select</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(instructDir, "HostWidgets.tsx"), origInstruct);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-pointer data-pt-track>
+      <button type="button">Select</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(phoneDir, "HostWidgets.tsx"), marked);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid redefining systemwide trackpad gestures.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const names = ["pass", "plain", "named", "hold", "copy", "instruct", "fix", "sentence", "bare", "phone"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      named: namedDir,
+      hold: holdDir,
+      copy: copyDir,
+      instruct: instructDir,
+      fix: fixDir,
+      sentence: sentenceDir,
+      bare: bareDir,
+      phone: phoneDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const instructed = fs.readFileSync(path.join(instructDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const phoned = fs.readFileSync(path.join(phoneDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const pointing = (name) => status[name].topics["pointing-devices"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["pointing-devices"]?.dontHeuristicIds || []).includes("pt-track"),
+      instructHeuristic: (catalog.byId["pointing-devices"]?.dontHeuristicIds || []).includes("pt-instruct"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passPointing: pointing("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainPointing: pointing("plain") === "already-compliant",
+      namedPointing: pointing("named") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdPointing: pointing("hold") === "pending",
+      gestureKept: /trackpadGesture="mission-control"/.test(held) && />\s*Select\s*</.test(held),
+      copyUnchanged: copied === origCopy,
+      copyPointing: pointing("copy") === "pending",
+      instructUnchanged: instructed === origInstruct,
+      instructPointing: pointing("instruct") === "pending",
+      fixPointing: pointing("fix") === "applied",
+      markerGone: !/data-pt-track(?![\w-])/.test(fixed),
+      pointerKept: /\bdata-pointer\b/.test(fixed) && />\s*Select\s*</.test(fixed),
+      sentencePointing: pointing("sentence") === "skipped-no-affordance",
+      barePointing: pointing("bare") === "skipped-gate",
+      bareMarkerRemains: /data-pt-track(?![\w-])/.test(bared),
+      phonePointing: pointing("phone") === "skipped-gate",
+      phoneMarkerRemains: /data-pt-track(?![\w-])/.test(phoned),
+      noPointerInvented: !/UIPointerStyle|NSCursor/.test(fixed + held),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passPointing: pointing("pass"),
+      plainPointing: pointing("plain"),
+      namedPointing: pointing("named"),
+      holdPointing: pointing("hold"),
+      copyPointing: pointing("copy"),
+      instructPointing: pointing("instruct"),
+      fixPointing: pointing("fix"),
+      sentencePointing: pointing("sentence"),
+      barePointing: pointing("bare"),
+      phonePointing: pointing("phone"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-pointer-system-gesture-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

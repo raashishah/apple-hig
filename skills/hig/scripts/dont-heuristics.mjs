@@ -8863,6 +8863,36 @@ function applyPtDecorative(text) {
   return text.replace(/\s*data-pt-decorative(?:="[^"]*")?/g, "");
 }
 
+function hasPtTrackCopy(text) {
+  return /redefining systemwide trackpad gestures/i.test(text);
+}
+
+function hasRedefinedSystemTrackpad(text) {
+  if (!hasPointer(text)) return false;
+  if (/\bswipeBetweenPages\s*[:=]/.test(text)) return true;
+  if (/\b(?:missionControl|revealDock)\s*[:=]\s*(?:custom|true|\{)/.test(text)) return true;
+  return /trackpadGesture\s*=\s*["'](?:mission-control|dock-reveal|swipe-between-pages)["']/i.test(text);
+}
+
+function scanPtTrack(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-pt-track(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a redefined systemwide trackpad gesture"));
+      continue;
+    }
+    if (!hasPointer(f.text)) continue;
+    if (hasPtTrackCopy(f.text) || hasRedefinedSystemTrackpad(f.text)) {
+      out.push(hit(f.path, "a redefined systemwide trackpad gesture"));
+    }
+  }
+  return out;
+}
+
+function applyPtTrack(text) {
+  return text.replace(/\s*data-pt-track(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasPencil(text) {
   return (
     /\bdata-pencil\b/.test(text) ||
@@ -12798,6 +12828,8 @@ function scanHeuristic(id, files) {
       return scanPtInstruct(files);
     case "pt-decorative":
       return scanPtDecorative(files);
+    case "pt-track":
+      return scanPtTrack(files);
     case "pe-hover":
       return scanPeHover(files);
     case "pe-double-tap":
@@ -13532,6 +13564,8 @@ function applyHeuristic(id, file) {
       return applyPtInstruct(file.text);
     case "pt-decorative":
       return applyPtDecorative(file.text);
+    case "pt-track":
+      return applyPtTrack(file.text);
     case "pe-hover":
       return applyPeHover(file.text);
     case "pe-double-tap":

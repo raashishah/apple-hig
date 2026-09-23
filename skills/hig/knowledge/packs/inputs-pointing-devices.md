@@ -35,6 +35,7 @@ Pointer is extra input on iPad — it does not replace touch. visionOS pointer/e
 
 - Instructional text displayed with a pointer.
 - A purely decorative pointer effect.
+- A redefined systemwide trackpad gesture.
 
 ## Checklist
 

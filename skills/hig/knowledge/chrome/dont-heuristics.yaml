@@ -654,6 +654,8 @@ heuristics:
     match: instructional text displayed with a pointer
   - id: pt-decorative
     match: purely decorative pointer effect
+  - id: pt-track
+    match: systemwide trackpad gesture
   - id: pe-hover
     match: Hover that initiates an action
   - id: pe-double-tap
