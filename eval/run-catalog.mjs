@@ -29429,6 +29429,206 @@ struct ClipHandoff: View {
   results.push({ case: "catalog-apply-app-clip-login-again-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-pass-"));
+  const viewDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-view-"));
+  const spacedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-spaced-"));
+  const tenthDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-tenth-"));
+  const jargonDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-jargon-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-sentence-"));
+  const looseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-loose-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arb-fix-"));
+  const dirs = [passDir, viewDir, spacedDir, tenthDir, jargonDir, holdDir, swiftDir, copyDir, sentenceDir, looseDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const viewOnly = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <button type="button">View</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(viewDir, "HostWidgets.tsx"), viewOnly);
+    fs.writeFileSync(
+      path.join(spacedDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <img alt="AR Badge" clearSpace="10%" />
+      <button type="button">View</button>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(tenthDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <img alt="AR Badge" clearSpace={0.1} />
+      <button type="button">View</button>
+    </div>
+  );
+}
+`,
+    );
+    const origJargon = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      Unable to find a plane. Adjust tracking.
+      <button type="button">View</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(jargonDir, "HostWidgets.tsx"), origJargon);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <img alt="AR Badge" clearSpace={0} />
+      <button type="button">View</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct BadgeSpace: View {
+  var body: some View {
+    ARView()
+    ARBadge(clearSpace: 0)
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Canvas.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <img alt="AR Badge" clearSpace="10%" />
+      <p>Don't allow other elements to infringe on this space and occlude the badge in any way.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    fs.writeFileSync(
+      path.join(sentenceDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return <p>Don't allow other elements to infringe on this space and occlude the badge in any way.</p>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(looseDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return <p data-xr-badge>Badge</p>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-ar data-xr-badge>
+      <img alt="AR Badge" clearSpace="10%" />
+      <button type="button">View</button>
+    </div>
+  );
+}
+`,
+    );
+    const names = ["pass", "view", "spaced", "tenth", "jargon", "hold", "swift", "copy", "sentence", "loose", "fix"];
+    const dirBy = {
+      pass: passDir,
+      view: viewDir,
+      spaced: spacedDir,
+      tenth: tenthDir,
+      jargon: jargonDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      loose: looseDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const jargoned = fs.readFileSync(path.join(jargonDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Canvas.swift"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const loose = fs.readFileSync(path.join(looseDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const ar = (name) => status[name].topics["augmented-reality"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["augmented-reality"]?.dontHeuristicIds || []).includes("ar-badge"),
+      jargonHeuristic: (catalog.byId["augmented-reality"]?.dontHeuristicIds || []).includes("ar-jargon"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passAr: ar("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      viewAr: ar("view") === "already-compliant",
+      viewKept: />\s*View\s*</.test(fs.readFileSync(path.join(viewDir, "HostWidgets.tsx"), "utf8")),
+      spacedAr: ar("spaced") === "already-compliant",
+      tenthAr: ar("tenth") === "already-compliant",
+      jargonUnchanged: jargoned === origJargon,
+      jargonAr: ar("jargon") === "pending",
+      trackingKept: /Adjust tracking/.test(jargoned),
+      holdUnchanged: held === origHold,
+      holdAr: ar("hold") === "pending",
+      zeroKept: /clearSpace=\{0\}/.test(held) && /alt="AR Badge"/.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftAr: ar("swift") === "pending",
+      swiftKept: /ARBadge\(clearSpace: 0\)/.test(swiftKept) && /ARView\(\)/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyAr: ar("copy") === "pending",
+      sentenceAr: ar("sentence") === "skipped-no-affordance",
+      looseAr: ar("loose") === "skipped-no-affordance",
+      looseMarkerRemains: /data-xr-badge(?![\w-])/.test(loose),
+      fixAr: ar("fix") === "applied",
+      markerGone: !/data-xr-badge(?![\w-])/.test(fixed),
+      badgeKept: /alt="AR Badge"/.test(fixed) && />\s*View\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAr: ar("pass"),
+      viewAr: ar("view"),
+      spacedAr: ar("spaced"),
+      tenthAr: ar("tenth"),
+      jargonAr: ar("jargon"),
+      holdAr: ar("hold"),
+      swiftAr: ar("swift"),
+      copyAr: ar("copy"),
+      sentenceAr: ar("sentence"),
+      looseAr: ar("loose"),
+      fixAr: ar("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-ar-badge-clear-space-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

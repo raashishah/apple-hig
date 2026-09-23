@@ -6922,6 +6922,38 @@ function applyArGlyphMisused(text) {
     .replace(/\s*data-ar-non-arkit(?:="[^"]*")?/g, "");
 }
 
+function hasArBadge(text) {
+  return /\bdata-ar-badge\b/.test(text) || /\bARBadge\s*\(/.test(text) || /alt=["']AR Badge["']/i.test(text);
+}
+
+function hasBadgeClearanceZero(text) {
+  if (!hasAr(text) || !hasArBadge(text)) return false;
+  return /\b(?:clearSpace|badgeClearance)\s*[:=]\s*\{?\s*["']?0(?![\d.])/.test(text);
+}
+
+function hasArBadgeCopy(text) {
+  return /occlude the badge/i.test(text);
+}
+
+function scanArBadge(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-xr-badge(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an AR badge with no clear space"));
+      continue;
+    }
+    if (!hasAr(f.text) || !hasArBadge(f.text)) continue;
+    if (hasBadgeClearanceZero(f.text) || hasArBadgeCopy(f.text)) {
+      out.push(hit(f.path, "an AR badge with no clear space"));
+    }
+  }
+  return out;
+}
+
+function applyArBadge(text) {
+  return text.replace(/\s*data-xr-badge(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasTapToPay(text) {
   return (
     /\bdata-tap-to-pay\b/.test(text) ||
@@ -12884,6 +12916,8 @@ function scanHeuristic(id, files) {
       return scanArJargon(files);
     case "ar-glyph-misused":
       return scanArGlyphMisused(files);
+    case "ar-badge":
+      return scanArBadge(files);
     case "ttp-apple-logo":
       return scanTtpAppleLogo(files);
     case "ttp-nonpayment-label":
@@ -13628,6 +13662,8 @@ function applyHeuristic(id, file) {
       return applyArJargon(file.text);
     case "ar-glyph-misused":
       return applyArGlyphMisused(file.text);
+    case "ar-badge":
+      return applyArBadge(file.text);
     case "ttp-apple-logo":
       return applyTtpAppleLogo(file.text);
     case "ttp-nonpayment-label":

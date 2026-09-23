@@ -526,6 +526,8 @@ heuristics:
     match: world detection
   - id: ar-glyph-misused
     match: non-ARKit
+  - id: ar-badge
+    match: no clear space
   - id: ttp-apple-logo
     match: Apple logo
   - id: ttp-nonpayment-label
