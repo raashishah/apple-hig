@@ -8375,6 +8375,36 @@ function applyGcTerms(text) {
   return text.replace(/\s*data-gc-terms(?:="[^"]*")?/g, "");
 }
 
+function hasGcReskinCopy(text) {
+  return /re-skin game center or in-app purchase chrome/i.test(text);
+}
+
+function hasReskinnedChrome(text) {
+  if (!hasGameCenter(text)) return false;
+  return (
+    /\bclass(?:Name)?=["'][^"']*\breskin\b/i.test(text) || /\bcustomChrome\b/.test(text)
+  );
+}
+
+function scanGcReskin(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-gc-reskin(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "reskinned game center or in-app purchase chrome"));
+      continue;
+    }
+    if (!hasGameCenter(f.text)) continue;
+    if (hasGcReskinCopy(f.text) || hasReskinnedChrome(f.text)) {
+      out.push(hit(f.path, "reskinned game center or in-app purchase chrome"));
+    }
+  }
+  return out;
+}
+
+function applyGcReskin(text) {
+  return text.replace(/\s*data-gc-reskin(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasPanel(text) {
   return /\bdata-panel\b/.test(text) || /\bNSPanel\b/.test(text) || /\bdata-hud\b/.test(text);
 }
@@ -13504,6 +13534,8 @@ function scanHeuristic(id, files) {
       return scanGcArtwork(files);
     case "gc-terms":
       return scanGcTerms(files);
+    case "gc-reskin":
+      return scanGcReskin(files);
     case "pn-window-menu":
       return scanPnWindowMenu(files);
     case "pn-minimize":
@@ -14276,6 +14308,8 @@ function applyHeuristic(id, file) {
       return applyGcArtwork(file.text);
     case "gc-terms":
       return applyGcTerms(file.text);
+    case "gc-reskin":
+      return applyGcReskin(file.text);
     case "pn-window-menu":
       return applyPnWindowMenu(file.text);
     case "pn-minimize":

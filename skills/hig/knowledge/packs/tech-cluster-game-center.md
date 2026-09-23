@@ -20,6 +20,7 @@ Prefer the system access point. Do not reimplement achievements, leaderboards, o
 - The access point shown during active gameplay.
 - Official Game Center artwork resized or restyled.
 - Custom links that say GameKit, game center, Awards, or Rankings.
+- Re-skin Game Center or In-App Purchase chrome.
 
 ## Apply in host
 
@@ -38,4 +39,5 @@ Map onto existing Game Center chrome (`GKAccessPoint`, `data-game-center`). Do n
 - [ ] The access point is not shown during active gameplay
 - [ ] Official artwork is not resized or restyled
 - [ ] Custom links do not say GameKit, game center, Awards, or Rankings
+- [ ] Game Center and In-App Purchase chrome are not reskinned
 - [ ] A bare Game Center phrase and `import GameKit` stay themselves

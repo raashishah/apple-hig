@@ -630,6 +630,8 @@ heuristics:
     match: artwork resized or restyled
   - id: gc-terms
     match: say GameKit, game center
+  - id: gc-reskin
+    match: Re-skin Game Center or In-App Purchase chrome
   - id: pn-window-menu
     match: Window menu documents list
   - id: pn-minimize

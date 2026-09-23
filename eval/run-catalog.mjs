@@ -32098,6 +32098,211 @@ bar.view.layer?.backgroundColor = NSColor.white.cgColor
   results.push({ case: "catalog-apply-opaque-title-bar-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-clean-"));
+  const importDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-import-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-hold-"));
+  const iapDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-iap-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-sentence-"));
+  const aloneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-alone-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-gcreskin-bare-"));
+  const dirs = [
+    passDir,
+    cleanDir,
+    importDir,
+    holdDir,
+    iapDir,
+    swiftDir,
+    copyDir,
+    sentenceDir,
+    aloneDir,
+    fixDir,
+    bareDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const gameKitOnly = `import GameKit\nlet player = GKLocalPlayer.local\n`;
+    fs.writeFileSync(path.join(importDir, "Player.swift"), gameKitOnly);
+    fs.writeFileSync(path.join(sentenceDir, "Player.swift"), gameKitOnly);
+    fs.writeFileSync(path.join(bareDir, "Player.swift"), gameKitOnly);
+    fs.writeFileSync(path.join(aloneDir, "Player.swift"), gameKitOnly);
+    const origClean = `export function HostWidgets() {
+  return (
+    <div data-game-center>
+      <button type="button">Menu</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), origClean);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-game-center className="reskin">
+      <button type="button">Menu</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origIap = `export function HostWidgets() {
+  return (
+    <div data-game-center>
+      <button type="button" className="reskin">Buy</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(iapDir, "HostWidgets.tsx"), origIap);
+    const origSwift = `import GameKit
+
+let point = GKAccessPoint.shared
+point.customChrome = true
+`;
+    fs.writeFileSync(path.join(swiftDir, "AccessPoint.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-game-center>
+      <p>Re-skin Game Center or In-App Purchase chrome.</p>
+      <button type="button">Menu</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Re-skin Game Center or In-App Purchase chrome.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origAlone = `export function HostWidgets() {
+  return <button type="button" className="reskin">Buy</button>;
+}
+`;
+    fs.writeFileSync(path.join(aloneDir, "HostWidgets.tsx"), origAlone);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-game-center data-gc-reskin>
+      <button type="button">Menu</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const loose = `export function HostWidgets() {
+  return <p data-gc-reskin>Menu</p>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), loose);
+    const names = [
+      "pass",
+      "clean",
+      "importOnly",
+      "hold",
+      "iap",
+      "swift",
+      "copy",
+      "sentence",
+      "alone",
+      "fix",
+      "bare",
+    ];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      importOnly: importDir,
+      hold: holdDir,
+      iap: iapDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      alone: aloneDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const cleaned = fs.readFileSync(path.join(cleanDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const iapKept = fs.readFileSync(path.join(iapDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "AccessPoint.swift"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const alone = fs.readFileSync(path.join(aloneDir, "HostWidgets.tsx"), "utf8");
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const center = (name) => status[name].topics["game-center"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["game-center"]?.dontHeuristicIds || []).includes("gc-reskin"),
+      artworkHeuristic: (catalog.byId["game-center"]?.dontHeuristicIds || []).includes("gc-artwork"),
+      centerComplete: catalog.byId["game-center"]?.dontCoverageComplete === true,
+      gamesOpen: catalog.byId["designing-for-games"]?.dontCoverageComplete === false,
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passCenter: center("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      importCenter: center("importOnly") === "skipped-no-affordance",
+      cleanUnchanged: cleaned === origClean,
+      cleanCenter: center("clean") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdCenter: center("hold") === "pending",
+      reskinKept: /className="reskin"/.test(held),
+      iapUnchanged: iapKept === origIap,
+      iapCenter: center("iap") === "pending",
+      buyKept: />Buy</.test(iapKept),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftCenter: center("swift") === "pending",
+      swiftChromeKept: /customChrome/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyCenter: center("copy") === "pending",
+      sentenceKept: /Re-skin Game Center or In-App Purchase chrome/.test(copied),
+      sentenceUnchanged: sentence === origSentence,
+      sentenceCenter: center("sentence") === "skipped-no-affordance",
+      aloneUnchanged: alone === origAlone,
+      aloneCenter: center("alone") === "skipped-no-affordance",
+      fixCenter: center("fix") === "applied",
+      markerGone: !/data-gc-reskin(?![\w-])/.test(fixed),
+      fixMenuKept: />Menu</.test(fixed) && /data-game-center/.test(fixed),
+      bareCenter: center("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-gc-reskin(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passCenter: center("pass"),
+      importCenter: center("importOnly"),
+      cleanCenter: center("clean"),
+      holdCenter: center("hold"),
+      iapCenter: center("iap"),
+      swiftCenter: center("swift"),
+      copyCenter: center("copy"),
+      sentenceCenter: center("sentence"),
+      aloneCenter: center("alone"),
+      fixCenter: center("fix"),
+      bareCenter: center("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-game-center-reskin-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
