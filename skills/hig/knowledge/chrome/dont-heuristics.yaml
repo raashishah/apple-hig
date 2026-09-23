@@ -746,3 +746,5 @@ heuristics:
     match: log in again
   - id: ac-wide
     match: wide scan angle
+  - id: ac-fold
+    match: paper, plastic, or fabric

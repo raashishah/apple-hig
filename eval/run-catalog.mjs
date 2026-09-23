@@ -30363,6 +30363,215 @@ struct ClipCode: View {
   results.push({ case: "catalog-apply-app-clip-wide-angle-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-clean-"));
+  const cardDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-card-"));
+  const siwaDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-siwa-"));
+  const wideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-wide-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-sentence-"));
+  const looseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-loose-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acfold-bare-"));
+  const dirs = [passDir, cleanDir, cardDir, siwaDir, wideDir, holdDir, swiftDir, copyDir, sentenceDir, looseDir, fixDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [cleanDir, cardDir, siwaDir, wideDir, holdDir, swiftDir, copyDir, sentenceDir, looseDir, fixDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const codeOnly = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), codeOnly);
+    const origCard = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code material="card">
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cardDir, "HostWidgets.tsx"), origCard);
+    fs.writeFileSync(
+      path.join(siwaDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Sign in with Apple</button>
+    </div>
+  );
+}
+`,
+    );
+    const origWide = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code scanAngle="wide">
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(wideDir, "HostWidgets.tsx"), origWide);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code material="paper">
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct ClipCode: View {
+  var body: some View {
+    Button("Code")
+      .accessibilityIdentifier("data-app-clip-code")
+      .material("fabric")
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Canvas.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Avoid displaying App Clip Codes on deformable materials that readily fold or crumple, such as paper, plastic, or fabric.</p>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid displaying App Clip Codes on deformable materials that readily fold or crumple, such as paper, plastic, or fabric.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-fold>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const loose = `export function HostWidgets() {
+  return <span data-ac-fold>Code</span>;
+}
+`;
+    fs.writeFileSync(path.join(looseDir, "HostWidgets.tsx"), loose);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), loose);
+    const names = ["pass", "clean", "card", "siwa", "wide", "hold", "swift", "copy", "sentence", "loose", "fix", "bare"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      card: cardDir,
+      siwa: siwaDir,
+      wide: wideDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      loose: looseDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const carded = fs.readFileSync(path.join(cardDir, "HostWidgets.tsx"), "utf8");
+    const widened = fs.readFileSync(path.join(wideDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Canvas.swift"), "utf8");
+    const loosed = fs.readFileSync(path.join(looseDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const clip = (name) => status[name].topics["app-clips"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-fold"),
+      wideHeuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-wide"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passClip: clip("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanClip: clip("clean") === "already-compliant",
+      cardUnchanged: carded === origCard,
+      cardClip: clip("card") === "already-compliant",
+      siwaClip: clip("siwa") === "already-compliant",
+      wideUnchanged: widened === origWide,
+      wideClip: clip("wide") === "pending",
+      holdUnchanged: held === origHold,
+      holdClip: clip("hold") === "pending",
+      paperKept: /material="paper"/.test(held) && />\s*Code\s*</.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftClip: clip("swift") === "pending",
+      swiftKept: /material\("fabric"\)/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyClip: clip("copy") === "pending",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceClip: clip("sentence") === "skipped-no-affordance",
+      looseClip: clip("loose") === "skipped-no-affordance",
+      looseMarkerRemains: /data-ac-fold(?![\w-])/.test(loosed),
+      fixClip: clip("fix") === "applied",
+      markerGone: !/data-ac-fold(?![\w-])/.test(fixed),
+      codeKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
+      entitlementKept: fs.readFileSync(path.join(fixDir, "App.entitlements"), "utf8").includes(
+        "com.apple.developer.associated-appclip-app-identifiers",
+      ),
+      bareClip: clip("bare") === "skipped-gate",
+      bareMarkerRemains: /data-ac-fold(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: clip("pass"),
+      cleanClip: clip("clean"),
+      cardClip: clip("card"),
+      siwaClip: clip("siwa"),
+      wideClip: clip("wide"),
+      holdClip: clip("hold"),
+      swiftClip: clip("swift"),
+      copyClip: clip("copy"),
+      sentenceClip: clip("sentence"),
+      looseClip: clip("loose"),
+      fixClip: clip("fix"),
+      bareClip: clip("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clip-deformable-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

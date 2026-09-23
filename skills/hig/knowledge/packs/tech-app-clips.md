@@ -28,3 +28,4 @@ People scan a generated App Clip Code. The code stays the one Apple generated.
 - A purely promotional notification from an App Clip.
 - A Log in again control on the transition from an App Clip to the app.
 - An App Clip Code that requires a wide scan angle.
+- An App Clip Code on paper, plastic, or fabric.

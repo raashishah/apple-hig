@@ -10385,6 +10385,34 @@ function applyAcWide(text) {
   return text.replace(/\s*data-ac-wide(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcFoldCopy(text) {
+  return /deformable materials/i.test(text);
+}
+
+function hasDeformableCode(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /\b(?:material|substrate)\s*[:=(]\s*["'](?:paper|plastic|fabric)["']/i.test(text);
+}
+
+function scanAcFold(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-fold(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an App Clip Code on paper, plastic, or fabric"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcFoldCopy(f.text) || hasDeformableCode(f.text)) {
+      out.push(hit(f.path, "an App Clip Code on paper, plastic, or fabric"));
+    }
+  }
+  return out;
+}
+
+function applyAcFold(text) {
+  return text.replace(/\s*data-ac-fold(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -13264,6 +13292,8 @@ function scanHeuristic(id, files) {
       return scanAcAgain(files);
     case "ac-wide":
       return scanAcWide(files);
+    case "ac-fold":
+      return scanAcFold(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -14018,6 +14048,8 @@ function applyHeuristic(id, file) {
       return applyAcAgain(file.text);
     case "ac-wide":
       return applyAcWide(file.text);
+    case "ac-fold":
+      return applyAcFold(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
