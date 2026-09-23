@@ -21,6 +21,7 @@ A window presents app content with system frames and controls. Not supported on 
 - Custom window frames or controls that replace the system window.
 - A window called a scene in user-facing content.
 - Critical information or actions in a window bottom bar.
+- Opaque custom title bars that fight system window materials.
 
 ## Apply in host
 

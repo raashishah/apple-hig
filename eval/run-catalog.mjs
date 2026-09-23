@@ -2993,6 +2993,7 @@ const results = [];
       (catalog.byId.windows?.dontHeuristicIds || []).includes(
         "critical-window-bottom-bar",
       ) &&
+      (catalog.byId.windows?.dontHeuristicIds || []).includes("wn-opaque") &&
       catalog.byId.windows?.pack === "components-windows.md" &&
       catalog.byId["playing-video"]?.dontCoverageComplete === true &&
       (catalog.byId["playing-video"]?.dontHeuristicIds || []).includes(
@@ -31933,6 +31934,168 @@ struct SavedNote: View {
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-alert-title-punctuation-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-clean-"));
+  const materialDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-material-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wnopaque-bare-"));
+  const dirs = [passDir, cleanDir, materialDir, holdDir, swiftDir, copyDir, sentenceDir, fixDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const origClean = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <h2>Notes</h2>
+      <button type="button" style={{ background: "#fff" }}>Save</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), origClean);
+    const origMaterial = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <div className="title-bar">Notes</div>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(materialDir, "HostWidgets.tsx"), origMaterial);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <div className="title-bar" style={{ background: "#fff" }}>Notes</div>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import AppKit
+
+let window = NSWindow()
+let bar = NSTitlebarAccessoryViewController()
+bar.view.layer?.backgroundColor = NSColor.white.cgColor
+`;
+    fs.writeFileSync(path.join(swiftDir, "NotesWindow.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <h2>Notes</h2>
+      <p>Opaque custom title bars that fight system window materials.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Opaque custom title bars that fight system window materials.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-window data-wn-opaque>
+      <h2>Notes</h2>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const loose = `export function HostWidgets() {
+  return <p data-wn-opaque>Notes</p>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), loose);
+    const names = ["pass", "clean", "material", "hold", "swift", "copy", "sentence", "fix", "bare"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      material: materialDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const cleaned = fs.readFileSync(path.join(cleanDir, "HostWidgets.tsx"), "utf8");
+    const material = fs.readFileSync(path.join(materialDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "NotesWindow.swift"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const windows = (name) => status[name].topics.windows?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.windows?.dontHeuristicIds || []).includes("wn-opaque"),
+      frameHeuristic: (catalog.byId.windows?.dontHeuristicIds || []).includes("custom-window-frame"),
+      windowsComplete: catalog.byId.windows?.dontCoverageComplete === true,
+      macosOpen: catalog.byId["designing-for-macos"]?.dontCoverageComplete === false,
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passWindows: windows("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanUnchanged: cleaned === origClean,
+      cleanWindows: windows("clean") === "already-compliant",
+      materialUnchanged: material === origMaterial,
+      materialWindows: windows("material") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdWindows: windows("hold") === "pending",
+      fillKept: /background:\s*"#fff"/.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftWindows: windows("swift") === "pending",
+      swiftFillKept: /NSColor\.white/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyWindows: windows("copy") === "pending",
+      sentenceKept: /Opaque custom title bars/.test(copied),
+      sentenceUnchanged: sentence === origSentence,
+      sentenceWindows: windows("sentence") === "skipped-no-affordance",
+      fixWindows: windows("fix") === "applied",
+      markerGone: !/data-wn-opaque(?![\w-])/.test(fixed),
+      fixTitleKept: /<h2>Notes<\/h2>/.test(fixed) && /data-window/.test(fixed),
+      bareWindows: windows("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-wn-opaque(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWindows: windows("pass"),
+      cleanWindows: windows("clean"),
+      materialWindows: windows("material"),
+      holdWindows: windows("hold"),
+      swiftWindows: windows("swift"),
+      copyWindows: windows("copy"),
+      sentenceWindows: windows("sentence"),
+      fixWindows: windows("fix"),
+      bareWindows: windows("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-opaque-title-bar-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

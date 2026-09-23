@@ -462,6 +462,8 @@ heuristics:
     match: called a scene
   - id: critical-window-bottom-bar
     match: window bottom bar
+  - id: wn-opaque
+    match: opaque custom title bars
   - id: custom-video-player
     match: diverges from the system player
   - id: letterbox-video-padding

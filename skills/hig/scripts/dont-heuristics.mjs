@@ -5914,6 +5914,50 @@ function hasAppWindow(text) {
   );
 }
 
+function hasOpaqueTitleBarCopy(text) {
+  return /opaque custom title bars/i.test(text);
+}
+
+function opaqueFill(chunk) {
+  return (
+    /background(?:-color)?\s*:\s*["']?#(?:fff|ffffff|000|000000)\b/i.test(chunk) ||
+    /background(?:-color)?\s*:\s*["']?(?:white|black)\b/i.test(chunk) ||
+    /backgroundColor\s*[:=]\s*["']?(?:#(?:fff|ffffff|000|000000)|white|black)\b/i.test(chunk) ||
+    /\bNSColor\.(?:white|black)\b/.test(chunk)
+  );
+}
+
+function opaqueTitleBarChunks(text) {
+  const chunks = [];
+  const tagRe = /<(header|div|nav)\b[^>]*\b(?:title-bar|titlebar|data-title-bar)\b[^>]*>/gi;
+  let m;
+  while ((m = tagRe.exec(text))) chunks.push(m[0]);
+  const cssRe = /\.(?:title-bar|titlebar)\b[^{]*\{[^}]*\}/gi;
+  while ((m = cssRe.exec(text))) chunks.push(m[0]);
+  const swiftRe = /\bNSTitlebarAccessoryViewController\b[\s\S]{0,500}/g;
+  while ((m = swiftRe.exec(text))) chunks.push(m[0]);
+  return chunks;
+}
+
+function scanOpaqueTitleBar(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wn-opaque(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an opaque custom title bar"));
+      continue;
+    }
+    if (!hasAppWindow(f.text)) continue;
+    if (hasOpaqueTitleBarCopy(f.text) || opaqueTitleBarChunks(f.text).some(opaqueFill)) {
+      out.push(hit(f.path, "an opaque custom title bar"));
+    }
+  }
+  return out;
+}
+
+function applyOpaqueTitleBar(text) {
+  return text.replace(/\s*data-wn-opaque(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanOpenWindowAsDefault(files) {
   const out = [];
   for (const f of files) {
@@ -13292,6 +13336,8 @@ function scanHeuristic(id, files) {
       return scanCallWindowScene(files);
     case "critical-window-bottom-bar":
       return scanCriticalWindowBottomBar(files);
+    case "wn-opaque":
+      return scanOpaqueTitleBar(files);
     case "custom-video-player":
       return scanCustomVideoPlayer(files);
     case "letterbox-video-padding":
@@ -14062,6 +14108,8 @@ function applyHeuristic(id, file) {
       return applyCallWindowScene(file.text);
     case "critical-window-bottom-bar":
       return applyCriticalWindowBottomBar(file.text);
+    case "wn-opaque":
+      return applyOpaqueTitleBar(file.text);
     case "custom-video-player":
       return applyCustomVideoPlayer(file.text);
     case "letterbox-video-padding":
