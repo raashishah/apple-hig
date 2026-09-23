@@ -196,6 +196,8 @@ heuristics:
     match: toolbar item with no visible text and no accessible name
   - id: tb-pull
     match: pull-down menu in a toolbar
+  - id: tb-over
+    match: overflow menu added
   - id: pd-all
     match: view's actions in one pull-down button
   - id: al-lines

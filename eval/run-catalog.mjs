@@ -31141,6 +31141,205 @@ struct Term: View {
   results.push({ case: "catalog-apply-inclusion-undefined-term-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-plain-"));
+  const menuDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-menu-"));
+  const systemDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-system-"));
+  const pullDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-pull-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-outside-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-tbover-fix-"));
+  const dirs = [passDir, plainDir, menuDir, systemDir, pullDir, outsideDir, holdDir, swiftDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const origPlain = `export function HostWidgets() {
+  return (
+    <header role="toolbar">
+      <button type="button">Save</button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origMenu = `export function HostWidgets() {
+  return (
+    <div role="menu">
+      <button type="button">Overflow</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(menuDir, "HostWidgets.tsx"), origMenu);
+    const origSystem = `import SwiftUI
+
+struct Notes: View {
+  var body: some View {
+    Text("Notes")
+      .toolbar {
+        ToolbarItem(placement: .overflow) {
+          Button("Save") { }
+        }
+      }
+  }
+}
+`;
+    fs.writeFileSync(path.join(systemDir, "Notes.swift"), origSystem);
+    const origPull = `export function HostWidgets() {
+  return (
+    <header role="toolbar">
+      <button type="button" aria-haspopup="menu">Actions</button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(pullDir, "HostWidgets.tsx"), origPull);
+    const origOutside = `export function HostWidgets() {
+  return <div overflowMenu={true}><button type="button">Save</button></div>;
+}
+`;
+    fs.writeFileSync(path.join(outsideDir, "HostWidgets.tsx"), origOutside);
+    const origHold = `export function HostWidgets() {
+  return (
+    <header role="toolbar">
+      <button type="button">Overflow</button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct Notes: View {
+  var body: some View {
+    Text("Notes")
+      .toolbar {
+        OverflowMenu()
+      }
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Notes.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <header role="toolbar">
+      <p>Don't add an overflow menu manually.</p>
+      <button type="button">Overflow</button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Don't add an overflow menu manually.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return (
+    <header role="toolbar">
+      <button type="button" data-tb-over aria-label="Save">Save</button>
+    </header>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "plain", "menu", "system", "pull", "outside", "hold", "swift", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      menu: menuDir,
+      system: systemDir,
+      pull: pullDir,
+      outside: outsideDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const plain = fs.readFileSync(path.join(plainDir, "HostWidgets.tsx"), "utf8");
+    const menu = fs.readFileSync(path.join(menuDir, "HostWidgets.tsx"), "utf8");
+    const system = fs.readFileSync(path.join(systemDir, "Notes.swift"), "utf8");
+    const pulled = fs.readFileSync(path.join(pullDir, "HostWidgets.tsx"), "utf8");
+    const outside = fs.readFileSync(path.join(outsideDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Notes.swift"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const bars = (name) => status[name].topics.toolbars?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.toolbars?.dontHeuristicIds || []).includes("tb-over"),
+      pullHeuristic: (catalog.byId.toolbars?.dontHeuristicIds || []).includes("tb-pull"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passBars: bars("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainUnchanged: plain === origPlain,
+      plainBars: bars("plain") === "already-compliant",
+      menuUnchanged: menu === origMenu,
+      menuBars: bars("menu") === "already-compliant",
+      systemUnchanged: system === origSystem,
+      systemBars: bars("system") === "already-compliant",
+      pullUnchanged: pulled === origPull,
+      pullBars: bars("pull") === "pending",
+      outsideUnchanged: outside === origOutside,
+      outsideBars: bars("outside") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdBars: bars("hold") === "pending",
+      overflowKept: />\s*Overflow\s*</.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftBars: bars("swift") === "pending",
+      swiftKept: /OverflowMenu\(\)/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyBars: bars("copy") === "pending",
+      sentenceKept: /overflow menu manually/.test(copied),
+      sentenceUnchanged: sentence === origSentence,
+      sentenceBars: bars("sentence") === "already-compliant",
+      fixBars: bars("fix") === "applied",
+      markerGone: !/data-tb-over(?![\w-])/.test(fixed),
+      saveKept: />\s*Save\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passBars: bars("pass"),
+      plainBars: bars("plain"),
+      menuBars: bars("menu"),
+      systemBars: bars("system"),
+      pullBars: bars("pull"),
+      outsideBars: bars("outside"),
+      holdBars: bars("hold"),
+      swiftBars: bars("swift"),
+      copyBars: bars("copy"),
+      sentenceBars: bars("sentence"),
+      fixBars: bars("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-toolbar-overflow-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

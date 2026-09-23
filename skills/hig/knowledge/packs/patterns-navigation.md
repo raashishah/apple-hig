@@ -40,6 +40,7 @@
 - A window titled with the app name.
 - A toolbar item with no visible text and no accessible name.
 - A pull-down menu in a toolbar.
+- An overflow menu added in a toolbar.
 
 ## Interaction states
 

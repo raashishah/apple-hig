@@ -11953,6 +11953,56 @@ function applyToolbarPullDown(text) {
   return text.replace(/\s*data-tb-pull(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function regionHasManualOverflow(region) {
+  if (/\boverflowMenu\s*[:=({]/.test(region)) return true;
+  if (/\bOverflowMenu\s*\(/.test(region)) return true;
+  if (/\bButton\s*\(\s*"Overflow"\s*\)/.test(region)) return true;
+  const re = /<(button|a|span)\b([^>]*)>([^<]*)<\/\1>/gi;
+  let found;
+  while ((found = re.exec(region))) {
+    const label = (found[2].match(/\baria-label\s*=\s*["']([^"']*)["']/i) || [])[1] || "";
+    const text = found[3].replace(/\s+/g, " ").trim();
+    if (text === "Overflow" || label === "Overflow") return true;
+  }
+  return false;
+}
+
+function hasManualOverflowInToolbar(text) {
+  for (const region of elementsWithRole(text, "toolbar")) {
+    if (regionHasManualOverflow(region)) return true;
+  }
+  for (const region of dataToolbarRegions(text)) {
+    if (regionHasManualOverflow(region)) return true;
+  }
+  const re = /\.toolbar\s*\{/g;
+  let found;
+  while ((found = re.exec(text))) {
+    const open = found.index + found[0].lastIndexOf("{");
+    const close = matchingBrace(text, open);
+    if (close < 0) continue;
+    if (regionHasManualOverflow(text.slice(found.index, close + 1))) return true;
+  }
+  return false;
+}
+
+function scanToolbarOverflow(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-tb-over(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an overflow menu added in a toolbar"));
+      continue;
+    }
+    if (hasManualOverflowInToolbar(f.text)) {
+      out.push(hit(f.path, "an overflow menu added in a toolbar"));
+    }
+  }
+  return out;
+}
+
+function applyToolbarOverflow(text) {
+  return text.replace(/\s*data-tb-over(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function roleSpans(text, role) {
   const out = [];
   const openRe = new RegExp(
@@ -12838,6 +12888,8 @@ function scanHeuristic(id, files) {
       return scanToolbarUnnamed(files);
     case "tb-pull":
       return scanToolbarPullDown(files);
+    case "tb-over":
+      return scanToolbarOverflow(files);
     case "pd-all":
       return scanPullDownAllActions(files);
     case "al-lines":
@@ -13600,6 +13652,8 @@ function applyHeuristic(id, file) {
       return applyToolbarUnnamed(file.text);
     case "tb-pull":
       return applyToolbarPullDown(file.text);
+    case "tb-over":
+      return applyToolbarOverflow(file.text);
     case "pd-all":
       return applyPullDownAllActions(file.text);
     case "al-lines":
