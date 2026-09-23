@@ -748,3 +748,5 @@ heuristics:
     match: wide scan angle
   - id: ac-fold
     match: paper, plastic, or fabric
+  - id: ac-tm
+    match: trademark as translatable

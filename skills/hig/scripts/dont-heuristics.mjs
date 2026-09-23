@@ -10413,6 +10413,40 @@ function applyAcFold(text) {
   return text.replace(/\s*data-ac-fold(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcTmCopy(text) {
+  return /don['’]?t translate any Apple trademark/i.test(text);
+}
+
+function hasTranslatableTrademark(text) {
+  if (!hasAppClipCode(text)) return false;
+  const re = /<([A-Za-z][\w]*)\b([^>]*\btranslate\s*=\s*["']yes["'][^>]*)>([^<]*)<\/\1>/gi;
+  let found;
+  while ((found = re.exec(text))) {
+    const visible = found[3].replace(/\s+/g, " ").trim();
+    if (/^(?:App Clip|App Clips|App Clip Code|App Clip Codes)$/.test(visible)) return true;
+  }
+  return /\b(?:Text|Button)\s*\(\s*"(?:App Clip|App Clips|App Clip Code|App Clip Codes)"\s*\)[\s\S]{0,160}?\.translate\(\s*true\s*\)/.test(text);
+}
+
+function scanAcTm(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-tm(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an App Clip Code that marks an Apple trademark as translatable"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcTmCopy(f.text) || hasTranslatableTrademark(f.text)) {
+      out.push(hit(f.path, "an App Clip Code that marks an Apple trademark as translatable"));
+    }
+  }
+  return out;
+}
+
+function applyAcTm(text) {
+  return text.replace(/\s*data-ac-tm(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -13294,6 +13328,8 @@ function scanHeuristic(id, files) {
       return scanAcWide(files);
     case "ac-fold":
       return scanAcFold(files);
+    case "ac-tm":
+      return scanAcTm(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -14050,6 +14086,8 @@ function applyHeuristic(id, file) {
       return applyAcWide(file.text);
     case "ac-fold":
       return applyAcFold(file.text);
+    case "ac-tm":
+      return applyAcTm(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
