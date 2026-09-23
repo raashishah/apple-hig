@@ -28878,6 +28878,152 @@ ${dots}
   results.push({ case: "catalog-apply-pencil-distant-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-plain-"));
+  const toggleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-toggle-"));
+  const inkDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-ink-"));
+  const colorDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-color-"));
+  const classDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-class-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-btw-fix-"));
+  const dirs = [passDir, plainDir, toggleDir, inkDir, colorDir, classDir, holdDir, swiftDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), host(`<button type="button">Save</button>`));
+    fs.writeFileSync(
+      path.join(toggleDir, "HostWidgets.tsx"),
+      host(`<button type="button" role="switch" style="background:#fff;color:#000">On</button>`),
+    );
+    fs.writeFileSync(
+      path.join(inkDir, "HostWidgets.tsx"),
+      host(`<button type="button" style="background:#000;color:#fff">Save</button>`),
+    );
+    fs.writeFileSync(
+      path.join(colorDir, "HostWidgets.tsx"),
+      host(`<button type="button" style="background:#007aff;color:white">Save</button>`),
+    );
+    const origClass = host(`<button type="button" className="bg-white text-black">Save</button>`);
+    fs.writeFileSync(path.join(classDir, "HostWidgets.tsx"), origClass);
+    const origHold = host(`<button type="button" style="background:#fff;color:#000">Save</button>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct SaveButton: View {
+  var body: some View {
+    Button("Save")
+      .background(.white)
+      .foregroundStyle(.black)
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Canvas.swift"), origSwift);
+    const origCopy = host(`<button type="button">Save</button>
+    <p>Avoid creating a custom button that uses a white background fill and black text or icons.</p>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    fs.writeFileSync(
+      path.join(sentenceDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return <p>Avoid creating a custom button that uses a white background fill and black text or icons.</p>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      host(`<button type="button" data-bt-white>Save</button>`),
+    );
+    const names = ["pass", "plain", "toggle", "ink", "color", "class", "hold", "swift", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      toggle: toggleDir,
+      ink: inkDir,
+      color: colorDir,
+      class: classDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const classKept = fs.readFileSync(path.join(classDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Canvas.swift"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const buttons = (name) => status[name].topics.buttons?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.buttons?.dontHeuristicIds || []).includes("bt-white"),
+      borderHeuristic: (catalog.byId.buttons?.dontHeuristicIds || []).includes("bt-border"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passButtons: buttons("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainButtons: buttons("plain") === "already-compliant",
+      toggleButtons: buttons("toggle") === "already-compliant",
+      inkButtons: buttons("ink") === "already-compliant",
+      colorButtons: buttons("color") === "already-compliant",
+      classUnchanged: classKept === origClass,
+      classButtons: buttons("class") === "pending",
+      classKept: /bg-white text-black/.test(classKept),
+      holdUnchanged: held === origHold,
+      holdButtons: buttons("hold") === "pending",
+      fillKept: /background:#fff/.test(held) && /color:#000/.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftButtons: buttons("swift") === "pending",
+      swiftKept: /Button\("Save"\)/.test(swiftKept) && /\.background\(\.white\)/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyButtons: buttons("copy") === "pending",
+      sentenceButtons: buttons("sentence") === "already-compliant",
+      fixButtons: buttons("fix") === "applied",
+      markerGone: !/data-bt-white(?![\w-])/.test(fixed),
+      labelKept: />\s*Save\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passButtons: buttons("pass"),
+      plainButtons: buttons("plain"),
+      toggleButtons: buttons("toggle"),
+      inkButtons: buttons("ink"),
+      colorButtons: buttons("color"),
+      classButtons: buttons("class"),
+      holdButtons: buttons("hold"),
+      swiftButtons: buttons("swift"),
+      copyButtons: buttons("copy"),
+      sentenceButtons: buttons("sentence"),
+      fixButtons: buttons("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-button-white-fill-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

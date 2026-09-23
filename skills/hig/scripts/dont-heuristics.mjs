@@ -10626,6 +10626,99 @@ function applyImageButtonBorder(text) {
   return text.replace(/\s*data-bt-border(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function isReservedToggleTag(tag) {
+  return (
+    /\brole\s*=\s*["'](?:switch|checkbox|radio)["']/i.test(tag) ||
+    /\btype\s*=\s*["'](?:checkbox|radio)["']/i.test(tag)
+  );
+}
+
+function declaresWhiteFill(chunk) {
+  return /(?:background(?:-color)?|backgroundColor)\s*[:=]\s*["']?\s*(?:white|#fff\b|#ffffff\b|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\))/i.test(
+    chunk,
+  );
+}
+
+function declaresBlackInk(chunk) {
+  return /(?<![\w-])(?:color|foreground(?:Color|Style)?)\s*[:=]\s*["']?\s*(?:black|#000\b|#000000\b|rgb\(\s*0\s*,\s*0\s*,\s*0\s*\))/i.test(
+    chunk,
+  );
+}
+
+function classHasWhiteFillBlackInk(tag) {
+  const named = tag.match(/\bclass(?:Name)?\s*=\s*["']([^"']+)["']/i);
+  if (!named) return false;
+  const parts = named[1].split(/\s+/);
+  const white = parts.some((part) => part === "bg-white");
+  const black = parts.some((part) => part === "text-black");
+  return white && black;
+}
+
+function tagIsWhiteFillBlackButton(tag) {
+  if (isReservedToggleTag(tag)) return false;
+  if (classHasWhiteFillBlackInk(tag)) return true;
+  return declaresWhiteFill(tag) && declaresBlackInk(tag);
+}
+
+function hasSwiftWhiteFillBlackButton(text) {
+  const re = /\bButton\s*\(/g;
+  let found;
+  while ((found = re.exec(text))) {
+    const slice = text.slice(found.index, found.index + 500);
+    if (
+      /\.background\(\s*\.white\s*\)/.test(slice) &&
+      /\.foreground(?:Style|Color)\(\s*\.black\s*\)/.test(slice)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasWhiteFillBlackButton(text) {
+  const re = /<button\b[^>]*>/gi;
+  let found;
+  while ((found = re.exec(text))) {
+    if (tagIsWhiteFillBlackButton(found[0])) return true;
+  }
+  return hasSwiftWhiteFillBlackButton(text);
+}
+
+function hasWhiteFillCopy(text) {
+  return /white background fill and black text/i.test(text);
+}
+
+function hasNonToggleButton(text) {
+  const re = /<button\b[^>]*>/gi;
+  let found;
+  while ((found = re.exec(text))) {
+    if (!isReservedToggleTag(found[0])) return true;
+  }
+  return /\bButton\s*\(/.test(text);
+}
+
+function scanWhiteFillButton(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-bt-white(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a custom button with a white background fill and black text"));
+      continue;
+    }
+    if (hasWhiteFillBlackButton(f.text)) {
+      out.push(hit(f.path, "a custom button with a white background fill and black text"));
+      continue;
+    }
+    if (hasWhiteFillCopy(f.text) && hasNonToggleButton(f.text)) {
+      out.push(hit(f.path, "a custom button with a white background fill and black text"));
+    }
+  }
+  return out;
+}
+
+function applyWhiteFillButton(text) {
+  return text.replace(/\s*data-bt-white(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasSegmentedWidget(text) {
   return (
     /role=["']radiogroup["']/i.test(text) ||
@@ -12467,6 +12560,8 @@ function scanHeuristic(id, files) {
       return scanSquareButtonLabel(files);
     case "bt-border":
       return scanImageButtonBorder(files);
+    case "bt-white":
+      return scanWhiteFillButton(files);
     case "sg-mix":
       return scanSegmentMix(files);
     case "sg-count":
@@ -13205,6 +13300,8 @@ function applyHeuristic(id, file) {
       return applySquareButtonLabel(file.text);
     case "bt-border":
       return applyImageButtonBorder(file.text);
+    case "bt-white":
+      return applyWhiteFillButton(file.text);
     case "sg-mix":
       return applySegmentMix(file.text);
     case "sg-count":

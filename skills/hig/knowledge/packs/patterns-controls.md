@@ -26,6 +26,7 @@
 - A toggle that relies solely on different colors to communicate state.
 - A label that introduces a square button.
 - An image button with a system border.
+- A custom button with a white background fill and black text.
 
 ## Apply in host
 

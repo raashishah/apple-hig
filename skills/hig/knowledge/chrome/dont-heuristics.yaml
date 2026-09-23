@@ -266,6 +266,8 @@ heuristics:
     match: label that introduces a square button
   - id: bt-border
     match: image button with a system border
+  - id: bt-white
+    match: white background fill and black text
   - id: fake-in-app-widget
     match: Mirror a fake Home Screen widget inside the app
   - id: stretch-small-widget-large
