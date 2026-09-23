@@ -11762,6 +11762,37 @@ function applyWeCopy(text) {
   return text.replace(/\s*data-wr-we(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasRoboticInvalidName(text) {
+  const stripped = stripWritingComments(text).replace(
+    /avoid robotic error messages with no helpful information, like ["“]?invalid name\.?["”]?/gi,
+    "",
+  );
+  const nodes = />([^<]+)</g;
+  let found;
+  while ((found = nodes.exec(stripped))) {
+    if (/^\s*Invalid name\.?\s*$/i.test(found[1])) return true;
+  }
+  return /\bText\s*\(\s*"Invalid name\.?"\s*\)/.test(stripped);
+}
+
+function scanRoboticInvalidName(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wr-name(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a robotic error that says Invalid name"));
+      continue;
+    }
+    if (hasRoboticInvalidName(f.text)) {
+      out.push(hit(f.path, "a robotic error that says Invalid name"));
+    }
+  }
+  return out;
+}
+
+function applyRoboticInvalidName(text) {
+  return text.replace(/\s*data-wr-name(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -11979,6 +12010,8 @@ function scanHeuristic(id, files) {
       return scanExplainAlertButton(files);
     case "wr-we":
       return scanWeCopy(files);
+    case "wr-name":
+      return scanRoboticInvalidName(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -12695,6 +12728,8 @@ function applyHeuristic(id, file) {
       return applyExplainAlertButton(file.text);
     case "wr-we":
       return applyWeCopy(file.text);
+    case "wr-name":
+      return applyRoboticInvalidName(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":

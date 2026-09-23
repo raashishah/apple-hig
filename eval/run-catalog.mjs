@@ -27308,6 +27308,114 @@ ${dots}
   results.push({ case: "catalog-apply-genai-destructive-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrn-pass-"));
+  const helpfulDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrn-helpful-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrn-sentence-"));
+  const commentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrn-comment-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrn-hold-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrn-api-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrn-fix-"));
+  const dirs = [passDir, helpfulDir, sentenceDir, commentDir, holdDir, apiDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(
+      path.join(helpfulDir, "HostWidgets.tsx"),
+      host(`<p>Use only letters for your name</p>`),
+    );
+    const origSentence = host(
+      `<p>Avoid robotic error messages with no helpful information, like "Invalid name."</p>`,
+    );
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origComment = `export function HostWidgets() {
+  // Invalid name
+  return <p>Save</p>;
+}
+`;
+    fs.writeFileSync(path.join(commentDir, "HostWidgets.tsx"), origComment);
+    const origHold = host(`<p role="alert">Invalid name</p>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origApi = `export function HostWidgets() {
+  Text("Invalid name")
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const marked = host(`<p data-wr-name>Use only letters for your name</p>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "helpful", "sentence", "comment", "hold", "api", "fix"];
+    const dirBy = {
+      pass: passDir,
+      helpful: helpfulDir,
+      sentence: sentenceDir,
+      comment: commentDir,
+      hold: holdDir,
+      api: apiDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const writing = (name) => status[name].topics.writing?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.writing?.dontHeuristicIds || []).includes("wr-name"),
+      we: (catalog.byId.writing?.dontHeuristicIds || []).includes("wr-we"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passWriting: writing("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      helpfulWriting: writing("helpful") === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceWriting: writing("sentence") === "already-compliant",
+      commentWriting: writing("comment") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdWriting: writing("hold") === "pending",
+      holdText: />\s*Invalid name\s*</.test(held),
+      apiUnchanged: api === origApi,
+      apiWriting: writing("api") === "pending",
+      apiText: /Text\("Invalid name"\)/.test(api),
+      fixWriting: writing("fix") === "applied",
+      markerGone: !/data-wr-name(?![\w-])/.test(fixed),
+      helpfulKept: /Use only letters for your name/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWriting: writing("pass"),
+      helpfulWriting: writing("helpful"),
+      sentenceWriting: writing("sentence"),
+      commentWriting: writing("comment"),
+      holdWriting: writing("hold"),
+      apiWriting: writing("api"),
+      fixWriting: writing("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-robotic-invalid-name-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);
