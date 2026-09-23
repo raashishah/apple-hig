@@ -170,6 +170,8 @@ heuristics:
     match: section index on a list that also shows disclosure indicators
   - id: ls-mask
     match: image in a list with a corner mask
+  - id: ls-tall
+    match: over-large table row made of a long paragraph
   - id: hd-punct
     match: column heading that ends with punctuation
   - id: dv-thick

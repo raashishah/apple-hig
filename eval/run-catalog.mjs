@@ -27539,6 +27539,123 @@ ${dots}
   results.push({ case: "catalog-apply-click-here-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lst-pass-"));
+  const shortDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lst-short-"));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lst-outside-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lst-sentence-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lst-hold-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lst-api-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lst-copy-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-lst-fix-"));
+  const dirs = [passDir, shortDir, outsideDir, sentenceDir, holdDir, apiDir, copyDir, fixDir];
+  const paragraph =
+    "The orchard keeps a written account of every harvest, including the weather, the pickers, and the barrels that left for the press before dawn.";
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(path.join(shortDir, "HostWidgets.tsx"), host(`<ul><li>Item A</li></ul>`));
+    fs.writeFileSync(path.join(outsideDir, "HostWidgets.tsx"), host(`<p>${paragraph}</p>`));
+    const origSentence = host(
+      `<p>If each item consists of a large amount of text, consider alternatives that help you avoid displaying over-large table rows.</p>`,
+    );
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origHold = host(`<ul><li>${paragraph}</li></ul>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origApi = `export function HostWidgets() {
+  List {
+    Text("${paragraph}")
+  }
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origCopy = host(
+      `<ul><li>Item A</li></ul><p>If each item consists of a large amount of text, consider alternatives that help you avoid displaying over-large table rows.</p>`,
+    );
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const marked = host(`<ul data-ls-tall><li>Item A</li></ul>`);
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "short", "outside", "sentence", "hold", "api", "copy", "fix"];
+    const dirBy = {
+      pass: passDir,
+      short: shortDir,
+      outside: outsideDir,
+      sentence: sentenceDir,
+      hold: holdDir,
+      api: apiDir,
+      copy: copyDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const lists = (name) => status[name].topics["lists-and-tables"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["lists-and-tables"]?.dontHeuristicIds || []).includes("ls-tall"),
+      split: (catalog.byId["split-views"]?.dontHeuristicIds || []).includes("ls-tall"),
+      mask: (catalog.byId["lists-and-tables"]?.dontHeuristicIds || []).includes("ls-mask"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passLists: lists("pass") === "already-compliant",
+      passSplit: status.pass.topics["split-views"]?.state === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      shortLists: lists("short") === "already-compliant",
+      outsideLists: lists("outside") === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceLists: lists("sentence") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdLists: lists("hold") === "pending",
+      paragraphKept: held.includes(paragraph),
+      apiUnchanged: api === origApi,
+      apiLists: lists("api") === "pending",
+      apiKept: api.includes(paragraph),
+      copyUnchanged: copied === origCopy,
+      copyLists: lists("copy") === "pending",
+      fixLists: lists("fix") === "applied",
+      markerGone: !/data-ls-tall(?![\w-])/.test(fixed),
+      rowKept: />\s*Item A\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passLists: lists("pass"),
+      passSplit: status.pass.topics["split-views"]?.state,
+      shortLists: lists("short"),
+      outsideLists: lists("outside"),
+      sentenceLists: lists("sentence"),
+      holdLists: lists("hold"),
+      apiLists: lists("api"),
+      copyLists: lists("copy"),
+      fixLists: lists("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-overlarge-row-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -10754,6 +10754,84 @@ function applyListCornerMask(text) {
   return text.replace(/\s*data-ls-mask(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+const OVERLARGE_ROW_CHARS = 100;
+
+function visibleRowText(html) {
+  return String(html || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function rowIsOverlarge(text) {
+  return visibleRowText(text).length >= OVERLARGE_ROW_CHARS;
+}
+
+function htmlRowsAreOverlarge(text) {
+  for (const region of listRegions(text)) {
+    const rows = region.match(/<(li|tr)\b[^>]*>[\s\S]*?<\/\1>/gi) || [];
+    for (const row of rows) {
+      if (rowIsOverlarge(row)) return true;
+    }
+  }
+  return false;
+}
+
+function swiftListBodies(text) {
+  const out = [];
+  const re = /\bList\s*[\({]/g;
+  let found;
+  while ((found = re.exec(text))) {
+    const brace = text.indexOf("{", found.index);
+    if (brace < 0 || brace - found.index > 80) continue;
+    const close = matchingBrace(text, brace);
+    if (close < 0) continue;
+    out.push(text.slice(brace + 1, close));
+  }
+  return out;
+}
+
+function swiftRowsAreOverlarge(text) {
+  const re = /\bText\s*\(\s*"([^"]+)"/g;
+  for (const body of swiftListBodies(text)) {
+    let found;
+    while ((found = re.exec(body))) {
+      if (rowIsOverlarge(found[1])) return true;
+    }
+  }
+  return false;
+}
+
+function fileHasListRows(text) {
+  return listRegions(text).length > 0 || swiftListBodies(text).length > 0;
+}
+
+function hasOverlargeRowCopy(text) {
+  return /over-large table rows/i.test(text);
+}
+
+function scanOverlargeRow(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ls-tall(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an over-large table row made of a long paragraph"));
+      continue;
+    }
+    if (htmlRowsAreOverlarge(f.text) || swiftRowsAreOverlarge(f.text)) {
+      out.push(hit(f.path, "an over-large table row made of a long paragraph"));
+      continue;
+    }
+    if (fileHasListRows(f.text) && hasOverlargeRowCopy(f.text)) {
+      out.push(hit(f.path, "an over-large table row made of a long paragraph"));
+    }
+  }
+  return out;
+}
+
+function applyOverlargeRow(text) {
+  return text.replace(/\s*data-ls-tall(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function stripOutlineRegions(text) {
   return text
     .replace(/<([A-Za-z][\w]*)\b[^>]*\bdata-outline\b[^>]*>[\s\S]*?<\/\1>/gi, "")
@@ -12009,6 +12087,8 @@ function scanHeuristic(id, files) {
       return scanIndexBesideDisclosure(files);
     case "ls-mask":
       return scanListCornerMask(files);
+    case "ls-tall":
+      return scanOverlargeRow(files);
     case "hd-punct":
       return scanColumnPunctuation(files);
     case "dv-thick":
@@ -12729,6 +12809,8 @@ function applyHeuristic(id, file) {
       return applyIndexBesideDisclosure(file.text);
     case "ls-mask":
       return applyListCornerMask(file.text);
+    case "ls-tall":
+      return applyOverlargeRow(file.text);
     case "hd-punct":
       return applyColumnPunctuation(file.text);
     case "dv-thick":

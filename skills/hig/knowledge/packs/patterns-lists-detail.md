@@ -26,6 +26,7 @@
 - Putting the only primary CTA only in the list toolbar when detail is the work surface.
 - A section index on a list that also shows disclosure indicators.
 - An image in a list with a corner mask.
+- An over-large table row made of a long paragraph.
 - A column heading that ends with punctuation.
 - A split view with a divider thicker than a hairline.
 
