@@ -1467,6 +1467,34 @@ function applyInAvatar(text) {
   return text.replace(/\s*data-in-av(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasUndefinedAbbreviation(text) {
+  const re = /<abbr\b([^>]*)>([^<]*)<\/abbr>/gi;
+  let found;
+  while ((found = re.exec(text))) {
+    if (/\btitle\s*=\s*["'][^"']+["']/i.test(found[1])) continue;
+    if (found[2].replace(/\s+/g, " ").trim()) return true;
+  }
+  return /\bAbbreviation\s*\(\s*"[^"]+"\s*\)/.test(text);
+}
+
+function scanInTerm(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-in-term(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an abbreviation with no definition"));
+      continue;
+    }
+    if (hasUndefinedAbbreviation(f.text)) {
+      out.push(hit(f.path, "an abbreviation with no definition"));
+    }
+  }
+  return out;
+}
+
+function applyInTerm(text) {
+  return text.replace(/\s*data-in-term(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function fileHasSettings(file) {
   return (
     /data-settings/.test(file.text) ||
@@ -12702,6 +12730,8 @@ function scanHeuristic(id, files) {
       return scanLockedSkin(files);
     case "in-avatar":
       return scanInAvatar(files);
+    case "in-term":
+      return scanInTerm(files);
     case "settings-required-for-first-run":
       return scanSettingsFirstRun(files);
     case "nested-prefs-no-grouping":
@@ -13462,6 +13492,8 @@ function applyHeuristic(id, file) {
       return file.text;
     case "in-avatar":
       return applyInAvatar(file.text);
+    case "in-term":
+      return applyInTerm(file.text);
     case "settings-required-for-first-run":
       return file.text;
     case "nested-prefs-no-grouping":

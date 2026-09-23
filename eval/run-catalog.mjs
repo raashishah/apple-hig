@@ -30991,6 +30991,156 @@ struct ClipCode: View {
   results.push({ case: "catalog-apply-app-clip-sentence-case-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-plain-"));
+  const definedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-defined-"));
+  const swiftDefDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-swiftdef-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-interm-fix-"));
+  const dirs = [passDir, plainDir, definedDir, swiftDefDir, holdDir, swiftDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const origPlain = `export function HostWidgets() {
+  return <p>Hello</p>;
+}
+`;
+    fs.writeFileSync(path.join(plainDir, "HostWidgets.tsx"), origPlain);
+    const origDefined = `export function HostWidgets() {
+  return <p><abbr title="Application programming interface">API</abbr></p>;
+}
+`;
+    fs.writeFileSync(path.join(definedDir, "HostWidgets.tsx"), origDefined);
+    const origSwiftDef = `import SwiftUI
+
+struct Term: View {
+  var body: some View {
+    Abbreviation("API", definition: "Application programming interface")
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDefDir, "Term.swift"), origSwiftDef);
+    const origHold = `export function HostWidgets() {
+  return <p><abbr>API</abbr></p>;
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct Term: View {
+  var body: some View {
+    Abbreviation("API")
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Term.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <p>
+      Avoid using specialized or technical terms without defining them.
+      <abbr>API</abbr>
+    </p>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid using specialized or technical terms without defining them.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return <p data-in-term>Hello</p>;
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "plain", "defined", "swiftDef", "hold", "swift", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      defined: definedDir,
+      swiftDef: swiftDefDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const defined = fs.readFileSync(path.join(definedDir, "HostWidgets.tsx"), "utf8");
+    const plain = fs.readFileSync(path.join(plainDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Term.swift"), "utf8");
+    const swiftDefKept = fs.readFileSync(path.join(swiftDefDir, "Term.swift"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const inclusion = (name) => status[name].topics.inclusion?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.inclusion?.dontHeuristicIds || []).includes("in-term"),
+      avatarHeuristic: (catalog.byId.inclusion?.dontHeuristicIds || []).includes("in-avatar"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passInclusion: inclusion("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainUnchanged: plain === origPlain,
+      plainInclusion: inclusion("plain") === "already-compliant",
+      definedUnchanged: defined === origDefined,
+      definedInclusion: inclusion("defined") === "already-compliant",
+      swiftDefUnchanged: swiftDefKept === origSwiftDef,
+      swiftDefInclusion: inclusion("swiftDef") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdInclusion: inclusion("hold") === "pending",
+      abbrKept: /<abbr>API<\/abbr>/.test(held),
+      noTitleAdded: !/\btitle\s*=/.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftInclusion: inclusion("swift") === "pending",
+      swiftKept: /Abbreviation\("API"\)/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyInclusion: inclusion("copy") === "pending",
+      sentenceKept: /without defining them/.test(copied),
+      sentenceUnchanged: sentence === origSentence,
+      sentenceInclusion: inclusion("sentence") === "already-compliant",
+      fixInclusion: inclusion("fix") === "applied",
+      markerGone: !/data-in-term(?![\w-])/.test(fixed),
+      helloKept: />\s*Hello\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passInclusion: inclusion("pass"),
+      plainInclusion: inclusion("plain"),
+      definedInclusion: inclusion("defined"),
+      swiftDefInclusion: inclusion("swiftDef"),
+      holdInclusion: inclusion("hold"),
+      swiftInclusion: inclusion("swift"),
+      copyInclusion: inclusion("copy"),
+      sentenceInclusion: inclusion("sentence"),
+      fixInclusion: inclusion("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-inclusion-undefined-term-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

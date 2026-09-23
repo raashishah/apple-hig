@@ -88,6 +88,8 @@ heuristics:
     match: Skin-tone or hair defaults that cannot be changed
   - id: in-avatar
     match: specific gender referenced in an avatar
+  - id: in-term
+    match: abbreviation with no definition
   - id: settings-required-for-first-run
     match: Require Settings to complete first-run
   - id: nested-prefs-no-grouping
