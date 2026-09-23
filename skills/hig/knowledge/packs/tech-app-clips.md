@@ -26,3 +26,4 @@ People scan a generated App Clip Code. The code stays the one Apple generated.
 - A screenshot of the app interface on an App Clip Code.
 - An advertisement in an App Clip.
 - A purely promotional notification from an App Clip.
+- A Log in again control on the transition from an App Clip to the app.

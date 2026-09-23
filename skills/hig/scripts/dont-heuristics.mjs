@@ -10195,6 +10195,36 @@ function applyAcPromo(text) {
   return text.replace(/\s*data-ac-promo(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasLoginAgain(text) {
+  if (!hasAppClipCode(text)) return false;
+  if (/\bloginAgain\s*[:=]\s*\{?\s*true\b/.test(text)) return true;
+  if (/<(?:button|a)\b[^>]*>\s*(?:Log|Sign) in again\s*<\/(?:button|a)>/i.test(text)) return true;
+  return /\b(?:Link|Button)\s*\(\s*"(?:Log|Sign) in again"\s*\)/.test(text);
+}
+
+function hasAcAgainCopy(text) {
+  return /log in again when they transition/i.test(text);
+}
+
+function scanAcAgain(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-again(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a Log in again control on the transition from an App Clip to the app"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasLoginAgain(f.text) || hasAcAgainCopy(f.text)) {
+      out.push(hit(f.path, "a Log in again control on the transition from an App Clip to the app"));
+    }
+  }
+  return out;
+}
+
+function applyAcAgain(text) {
+  return text.replace(/\s*data-ac-again(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -13062,6 +13092,8 @@ function scanHeuristic(id, files) {
       return scanAcAds(files);
     case "ac-promo":
       return scanAcPromo(files);
+    case "ac-again":
+      return scanAcAgain(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -13804,6 +13836,8 @@ function applyHeuristic(id, file) {
       return applyAcAds(file.text);
     case "ac-promo":
       return applyAcPromo(file.text);
+    case "ac-again":
+      return applyAcAgain(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

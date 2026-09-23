@@ -29217,6 +29217,218 @@ new Notification("Return the car soon");
   results.push({ case: "catalog-apply-app-clip-promo-notification-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-clean-"));
+  const siwaDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-siwa-"));
+  const remindDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-remind-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-hold-"));
+  const attrDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-attr-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-sentence-"));
+  const looseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-loose-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca2-bare-"));
+  const dirs = [passDir, cleanDir, siwaDir, remindDir, holdDir, attrDir, swiftDir, copyDir, sentenceDir, looseDir, fixDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [cleanDir, siwaDir, remindDir, holdDir, attrDir, swiftDir, copyDir, sentenceDir, looseDir, fixDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const codeOnly = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), codeOnly);
+    fs.writeFileSync(
+      path.join(siwaDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Sign in with Apple</button>
+    </div>
+  );
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(remindDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+new Notification("Return the car soon");
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Log in again</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origAttr = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code loginAgain={true}>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(attrDir, "HostWidgets.tsx"), origAttr);
+    const origSwift = `import SwiftUI
+
+struct ClipHandoff: View {
+  var body: some View {
+    Button("Log in again")
+      .accessibilityIdentifier("data-app-clip-code")
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Canvas.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't require people to log in again when they transition from the App Clip to the app.</p>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    fs.writeFileSync(
+      path.join(sentenceDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return <p>Don't require people to log in again when they transition from the App Clip to the app.</p>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(looseDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return <p data-ac-again>Log in again</p>;
+}
+`,
+    );
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-again>
+      <button type="button">Sign in with Apple</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "clean", "siwa", "remind", "hold", "attr", "swift", "copy", "sentence", "loose", "fix", "bare"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      siwa: siwaDir,
+      remind: remindDir,
+      hold: holdDir,
+      attr: attrDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      loose: looseDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const attrKept = fs.readFileSync(path.join(attrDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Canvas.swift"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const loose = fs.readFileSync(path.join(looseDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const reminded = fs.readFileSync(path.join(remindDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const clip = (name) => status[name].topics["app-clips"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-again"),
+      promoHeuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-promo"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passClip: clip("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanClip: clip("clean") === "already-compliant",
+      siwaClip: clip("siwa") === "already-compliant",
+      siwaKept: />\s*Sign in with Apple\s*</.test(fs.readFileSync(path.join(siwaDir, "HostWidgets.tsx"), "utf8")),
+      remindClip: clip("remind") === "already-compliant",
+      remindKept: /Return the car soon/.test(reminded),
+      holdUnchanged: held === origHold,
+      holdClip: clip("hold") === "pending",
+      againKept: />\s*Log in again\s*</.test(held),
+      attrUnchanged: attrKept === origAttr,
+      attrClip: clip("attr") === "pending",
+      flagKept: /loginAgain=\{true\}/.test(attrKept),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftClip: clip("swift") === "pending",
+      swiftKept: /Button\("Log in again"\)/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyClip: clip("copy") === "pending",
+      sentenceClip: clip("sentence") === "skipped-no-affordance",
+      looseClip: clip("loose") === "skipped-no-affordance",
+      looseMarkerRemains: /data-ac-again(?![\w-])/.test(loose),
+      fixClip: clip("fix") === "applied",
+      markerGone: !/data-ac-again(?![\w-])/.test(fixed),
+      signKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Sign in with Apple\s*</.test(fixed),
+      bareClip: clip("bare") === "skipped-gate",
+      bareMarkerRemains: /data-ac-again(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: clip("pass"),
+      cleanClip: clip("clean"),
+      siwaClip: clip("siwa"),
+      remindClip: clip("remind"),
+      holdClip: clip("hold"),
+      attrClip: clip("attr"),
+      swiftClip: clip("swift"),
+      copyClip: clip("copy"),
+      sentenceClip: clip("sentence"),
+      looseClip: clip("loose"),
+      fixClip: clip("fix"),
+      bareClip: clip("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clip-login-again-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

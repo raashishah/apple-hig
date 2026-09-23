@@ -734,3 +734,5 @@ heuristics:
     match: advertisement in an app clip
   - id: ac-promo
     match: purely promotional notification
+  - id: ac-again
+    match: log in again
