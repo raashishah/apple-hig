@@ -26911,6 +26911,145 @@ ${dots}
   results.push({ case: "catalog-apply-pulldown-all-actions-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-pass-"));
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-plain-"));
+  const titleDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-title-"));
+  const popDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-pop-"));
+  const helpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-help-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-hold-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-api-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-hpw-fix-"));
+  const dirs = [passDir, plainDir, titleDir, popDir, helpDir, holdDir, apiDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(
+      path.join(plainDir, "HostWidgets.tsx"),
+      host(`<span role="tooltip">Show the date controls.</span>`),
+    );
+    fs.writeFileSync(
+      path.join(titleDir, "HostWidgets.tsx"),
+      host(`<button type="button" title="popover">Save</button>`),
+    );
+    fs.writeFileSync(
+      path.join(popDir, "HostWidgets.tsx"),
+      host(`<div popover="auto">Details</div>`),
+    );
+    const origHelp = `export function HostWidgets() {
+  Button("Save")
+    .help("Show details")
+}
+`;
+    fs.writeFileSync(path.join(helpDir, "HostWidgets.tsx"), origHelp);
+    const origHold = host(`<span role="tooltip">Open the popover.</span>`);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origApi = `export function HostWidgets() {
+  Button("Save")
+    .help("Open the popover")
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origCopy = host(
+      `<span role="tooltip">Show the date controls.</span><p>Avoid using the word popover in help documentation.</p>`,
+    );
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid using the word popover in help documentation.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(
+      `<span role="tooltip" data-hp-word>Show the date controls.</span>`,
+    );
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "plain", "title", "pop", "help", "hold", "api", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      plain: plainDir,
+      title: titleDir,
+      pop: popDir,
+      help: helpDir,
+      hold: holdDir,
+      api: apiDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const helped = fs.readFileSync(path.join(helpDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const helpTopic = (name) => status[name].topics["offering-help"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["offering-help"]?.dontHeuristicIds || []).includes("hp-word"),
+      promo: (catalog.byId["offering-help"]?.dontHeuristicIds || []).includes("promotional-tip"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passHelp: helpTopic("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      plainHelp: helpTopic("plain") === "already-compliant",
+      titleHelp: helpTopic("title") === "skipped-no-affordance",
+      popHelp: helpTopic("pop") === "skipped-no-affordance",
+      helpUnchanged: helped === origHelp,
+      cleanHelp: helpTopic("help") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdHelp: helpTopic("hold") === "pending",
+      tipKept: /Open the popover/.test(held),
+      apiUnchanged: api === origApi,
+      apiHelp: helpTopic("api") === "pending",
+      apiKept: /\.help\("Open the popover"\)/.test(api),
+      copyUnchanged: copied === origCopy,
+      copyHelp: helpTopic("copy") === "pending",
+      sentenceHelp: helpTopic("sentence") === "skipped-no-affordance",
+      fixHelp: helpTopic("fix") === "applied",
+      markerGone: !/data-hp-word(?![\w-])/.test(fixed),
+      plainKept: /Show the date controls/.test(fixed),
+      tooltipKept: /role="tooltip"/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passHelp: helpTopic("pass"),
+      plainHelp: helpTopic("plain"),
+      titleHelp: helpTopic("title"),
+      popHelp: helpTopic("pop"),
+      cleanHelp: helpTopic("help"),
+      holdHelp: helpTopic("hold"),
+      apiHelp: helpTopic("api"),
+      copyHelp: helpTopic("copy"),
+      sentenceHelp: helpTopic("sentence"),
+      fixHelp: helpTopic("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-help-popover-word-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

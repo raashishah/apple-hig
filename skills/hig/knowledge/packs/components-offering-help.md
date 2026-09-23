@@ -21,6 +21,7 @@ Offering help is contextual assistance: a tip, tooltip, or help overlay tied to 
 - Help copy that tells people to click on iPhone or tap on Mac.
 - Help content that explains how standard components work.
 - Promotional content in a tip.
+- The word popover in help documentation.
 
 ## Apply in host
 

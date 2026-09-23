@@ -4975,6 +4975,49 @@ function applyPromotionalTip(text) {
   return text.replace(/\s*data-promotional-tip(?:="[^"]*")?/g, "");
 }
 
+function helpMessageTexts(text) {
+  const out = [];
+  const quoted = /(?:\.help|popoverTip|TipView)\s*\(\s*"([^"]*)"/g;
+  let found;
+  while ((found = quoted.exec(text))) out.push(found[1]);
+  for (const region of elementsWithRole(text, "tooltip")) {
+    out.push(region.replace(/<[^>]+>/g, " "));
+  }
+  for (const attr of ["data-help", "data-tip", "data-tooltip"]) {
+    for (const block of blocksWithAttr(text, attr)) {
+      out.push(block.text.replace(/<[^>]+>/g, " "));
+    }
+  }
+  return out;
+}
+
+function helpSaysPopover(text) {
+  return helpMessageTexts(text).some((message) => /\bpopover\b/i.test(message));
+}
+
+function hasHelpPopoverWordCopy(text) {
+  return /word popover in help/i.test(text) || /popover in help documentation/i.test(text);
+}
+
+function scanHelpPopoverWord(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-hp-word(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "the word popover in help documentation"));
+      continue;
+    }
+    if (!hasHelpWidget(f.text)) continue;
+    if (helpSaysPopover(f.text) || hasHelpPopoverWordCopy(f.text)) {
+      out.push(hit(f.path, "the word popover in help documentation"));
+    }
+  }
+  return out;
+}
+
+function applyHelpPopoverWord(text) {
+  return text.replace(/\s*data-hp-word(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasWebView(text) {
   return (
     /\bdata-web-view\b/.test(text) ||
@@ -12027,6 +12070,8 @@ function scanHeuristic(id, files) {
       return scanStandardComponentHelp(files);
     case "promotional-tip":
       return scanPromotionalTip(files);
+    case "hp-word":
+      return scanHelpPopoverWord(files);
     case "missing-web-view-back-forward":
       return scanMissingWebViewBackForward(files);
     case "safari-replica-web-view":
@@ -12737,6 +12782,8 @@ function applyHeuristic(id, file) {
       return applyStandardComponentHelp(file.text);
     case "promotional-tip":
       return applyPromotionalTip(file.text);
+    case "hp-word":
+      return applyHelpPopoverWord(file.text);
     case "missing-web-view-back-forward":
       return applyMissingWebViewBackForward(file.text);
     case "safari-replica-web-view":
