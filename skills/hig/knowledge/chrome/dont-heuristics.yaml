@@ -204,6 +204,8 @@ heuristics:
     match: alert title that wraps to more than two lines
   - id: al-scroll
     match: alert that scrolls
+  - id: ash-scroll
+    match: action sheet that scrolls
   - id: al-hint
     match: alert message that explains a button
   - id: wr-we

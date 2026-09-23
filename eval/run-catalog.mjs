@@ -31566,6 +31566,188 @@ struct ClipCode: View {
   results.push({ case: "catalog-apply-app-clip-gloss-finish-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-pass-"));
+  const stillDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-still-"));
+  const sheetDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-sheet-"));
+  const alertDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-alert-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-ashscroll-bare-"));
+  const dirs = [passDir, stillDir, sheetDir, alertDir, holdDir, swiftDir, copyDir, sentenceDir, fixDir, bareDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const origStill = `export function HostWidgets() {
+  return (
+    <div role="dialog" data-action-sheet>
+      <button type="button">Save</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(stillDir, "HostWidgets.tsx"), origStill);
+    const origSheet = `import SwiftUI
+
+struct Notes: View {
+  var body: some View {
+    Text("Notes")
+      .sheet(isPresented: $show) {
+        ScrollView { Text("Details") }
+      }
+  }
+}
+`;
+    fs.writeFileSync(path.join(sheetDir, "Notes.swift"), origSheet);
+    const origAlert = `export function HostWidgets() {
+  return (
+    <div role="alertdialog" style="overflow: auto">
+      <p>Details</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(alertDir, "HostWidgets.tsx"), origAlert);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div role="dialog" data-action-sheet style="overflow: auto">
+      <button type="button">Save</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct Choose: View {
+  var body: some View {
+    Text("Notes")
+      .confirmationDialog("Choose", isPresented: $show) {
+        ScrollView { Button("Save") { } }
+      }
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Choose.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div role="dialog" data-action-sheet>
+      <p>Avoid letting an action sheet scroll.</p>
+      <button type="button">Save</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid letting an action sheet scroll.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return (
+    <div role="dialog" data-action-sheet data-act-scroll>
+      <button type="button">Save</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const loose = `export function HostWidgets() {
+  return <p data-act-scroll>Save</p>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), loose);
+    const names = ["pass", "still", "sheet", "alert", "hold", "swift", "copy", "sentence", "fix", "bare"];
+    const dirBy = {
+      pass: passDir,
+      still: stillDir,
+      sheet: sheetDir,
+      alert: alertDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const still = fs.readFileSync(path.join(stillDir, "HostWidgets.tsx"), "utf8");
+    const sheet = fs.readFileSync(path.join(sheetDir, "Notes.swift"), "utf8");
+    const alert = fs.readFileSync(path.join(alertDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Choose.swift"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const sheetState = (name) => status[name].topics["action-sheets"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["action-sheets"]?.dontHeuristicIds || []).includes("ash-scroll"),
+      alertHeuristic: (catalog.byId["action-sheets"]?.dontHeuristicIds || []).includes("al-scroll"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passSheet: sheetState("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      stillUnchanged: still === origStill,
+      stillSheet: sheetState("still") === "already-compliant",
+      taskUnchanged: sheet === origSheet,
+      taskSheet: sheetState("sheet") === "already-compliant",
+      alertUnchanged: alert === origAlert,
+      alertSheet: sheetState("alert") === "pending",
+      holdUnchanged: held === origHold,
+      holdSheet: sheetState("hold") === "pending",
+      scrollKept: /overflow:\s*auto/.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftSheet: sheetState("swift") === "pending",
+      swiftKept: /\bScrollView\b/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copySheet: sheetState("copy") === "pending",
+      sentenceKept: /letting an action sheet scroll/.test(copied),
+      sentenceUnchanged: sentence === origSentence,
+      sentenceSheet: sheetState("sentence") === "skipped-no-affordance",
+      fixSheet: sheetState("fix") === "applied",
+      markerGone: !/data-act-scroll(?![\w-])/.test(fixed),
+      dialogKept: /data-action-sheet/.test(fixed) && />\s*Save\s*</.test(fixed),
+      bareSheet: sheetState("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-act-scroll(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passSheet: sheetState("pass"),
+      stillSheet: sheetState("still"),
+      taskSheet: sheetState("sheet"),
+      alertSheet: sheetState("alert"),
+      holdSheet: sheetState("hold"),
+      swiftSheet: sheetState("swift"),
+      copySheet: sheetState("copy"),
+      sentenceSheet: sheetState("sentence"),
+      fixSheet: sheetState("fix"),
+      bareSheet: sheetState("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-action-sheet-scroll-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -12306,6 +12306,59 @@ function applyAlertScroll(text) {
   return text.replace(/\s*data-al-scroll(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasActionSheetWidget(text) {
+  return /\bconfirmationDialog\s*\(/.test(text) || /\.actionSheet\b/.test(text) || /\bdata-action-sheet\b/.test(text);
+}
+
+function actionSheetScrolls(text) {
+  if (/\bconfirmationDialog\s*\(/.test(text)) {
+    const re = /\bconfirmationDialog\s*\(/g;
+    let found;
+    while ((found = re.exec(text))) {
+      const slice = text.slice(found.index, found.index + 800);
+      if (/\bScrollView\b/.test(slice)) return true;
+    }
+  }
+  if (/\.actionSheet\b/.test(text)) {
+    const re = /\.actionSheet\b/g;
+    let found;
+    while ((found = re.exec(text))) {
+      const slice = text.slice(found.index, found.index + 800);
+      if (/\bScrollView\b/.test(slice)) return true;
+    }
+  }
+  const tagRe = /<[^>]*\bdata-action-sheet\b[^>]*>/gi;
+  let tag;
+  while ((tag = tagRe.exec(text))) {
+    if (/(?<![\w-])overflow(?:-[xy])?\s*:\s*["']?(?:auto|scroll)\b/i.test(tag[0])) return true;
+    if (/\boverflow[XY]?\s*:\s*["'](?:auto|scroll)["']/.test(tag[0])) return true;
+  }
+  return false;
+}
+
+function hasActionSheetScrollCopy(text) {
+  return /letting an action sheet scroll/i.test(text);
+}
+
+function scanActionSheetScroll(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-act-scroll(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an action sheet that scrolls"));
+      continue;
+    }
+    if (!hasActionSheetWidget(f.text)) continue;
+    if (actionSheetScrolls(f.text) || hasActionSheetScrollCopy(f.text)) {
+      out.push(hit(f.path, "an action sheet that scrolls"));
+    }
+  }
+  return out;
+}
+
+function applyActionSheetScroll(text) {
+  return text.replace(/\s*data-act-scroll(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function alertButtonLabel(chunk) {
   const open = chunk.match(/^<[^>]*>/);
   const tag = open ? open[0] : "";
@@ -12924,6 +12977,8 @@ function scanHeuristic(id, files) {
       return scanAlertTitleLines(files);
     case "al-scroll":
       return scanAlertScroll(files);
+    case "ash-scroll":
+      return scanActionSheetScroll(files);
     case "al-hint":
       return scanExplainAlertButton(files);
     case "wr-we":
@@ -13690,6 +13745,8 @@ function applyHeuristic(id, file) {
       return applyAlertTitleLines(file.text);
     case "al-scroll":
       return applyAlertScroll(file.text);
+    case "ash-scroll":
+      return applyActionSheetScroll(file.text);
     case "al-hint":
       return applyExplainAlertButton(file.text);
     case "wr-we":
