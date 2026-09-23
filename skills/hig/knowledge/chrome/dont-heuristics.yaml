@@ -464,6 +464,8 @@ heuristics:
     match: window bottom bar
   - id: wn-opaque
     match: opaque custom title bars
+  - id: wn-canon
+    match: iPhone tab-bar-only exclusive canon
   - id: custom-video-player
     match: diverges from the system player
   - id: letterbox-video-padding

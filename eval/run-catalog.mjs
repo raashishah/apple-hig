@@ -32303,6 +32303,236 @@ point.customChrome = true
   results.push({ case: "catalog-apply-game-center-reskin-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-clean-"));
+  const splitDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-split-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-hold-"));
+  const classDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-class-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-swift-"));
+  const uiwindowDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-uiwindow-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-sentence-"));
+  const aloneDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-alone-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wncanon-bare-"));
+  const dirs = [
+    passDir,
+    cleanDir,
+    splitDir,
+    holdDir,
+    classDir,
+    swiftDir,
+    uiwindowDir,
+    copyDir,
+    sentenceDir,
+    aloneDir,
+    fixDir,
+    bareDir,
+  ];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const origClean = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <h2>Notes</h2>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), origClean);
+    const origSplit = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <aside data-sidebar>Library</aside>
+      <nav data-tab-bar role="tablist">
+        <button type="button">Home</button>
+      </nav>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(splitDir, "HostWidgets.tsx"), origSplit);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <nav data-tab-bar role="tablist">
+        <button type="button">Home</button>
+      </nav>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origClass = `export function HostWidgets() {
+  return (
+    <div data-window className="tab-canon">
+      <h2>Notes</h2>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(classDir, "HostWidgets.tsx"), origClass);
+    const origSwift = `let window = NSWindow()
+window.tabBarOnlyCanon = true
+`;
+    fs.writeFileSync(path.join(swiftDir, "Window.swift"), origSwift);
+    const origUiWindow = `let window = UIWindow()
+window.rootViewController = UITabBarController()
+`;
+    fs.writeFileSync(path.join(uiwindowDir, "PhoneWindow.swift"), origUiWindow);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-window>
+      <p>iPhone tab-bar-only exclusive canon.</p>
+      <h2>Notes</h2>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>iPhone tab-bar-only exclusive canon.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origAlone = `export function HostWidgets() {
+  return (
+    <nav data-tab-bar role="tablist">
+      <button type="button">Home</button>
+    </nav>
+  );
+}
+`;
+    fs.writeFileSync(path.join(aloneDir, "HostWidgets.tsx"), origAlone);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-window data-wn-canon>
+      <h2>Notes</h2>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const loose = `export function HostWidgets() {
+  return <p data-wn-canon>Notes</p>;
+}
+`;
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), loose);
+    const names = [
+      "pass",
+      "clean",
+      "split",
+      "hold",
+      "classHold",
+      "swift",
+      "uiwindow",
+      "copy",
+      "sentence",
+      "alone",
+      "fix",
+      "bare",
+    ];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      split: splitDir,
+      hold: holdDir,
+      classHold: classDir,
+      swift: swiftDir,
+      uiwindow: uiwindowDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      alone: aloneDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const cleaned = fs.readFileSync(path.join(cleanDir, "HostWidgets.tsx"), "utf8");
+    const splitKept = fs.readFileSync(path.join(splitDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const classKept = fs.readFileSync(path.join(classDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Window.swift"), "utf8");
+    const uiKept = fs.readFileSync(path.join(uiwindowDir, "PhoneWindow.swift"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const alone = fs.readFileSync(path.join(aloneDir, "HostWidgets.tsx"), "utf8");
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const windows = (name) => status[name].topics.windows?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.windows?.dontHeuristicIds || []).includes("wn-canon"),
+      opaqueHeuristic: (catalog.byId.windows?.dontHeuristicIds || []).includes("wn-opaque"),
+      windowsComplete: catalog.byId.windows?.dontCoverageComplete === true,
+      macosOpen: catalog.byId["designing-for-macos"]?.dontCoverageComplete === false,
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passWindows: windows("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanUnchanged: cleaned === origClean,
+      cleanWindows: windows("clean") === "already-compliant",
+      splitUnchanged: splitKept === origSplit,
+      splitWindows: windows("split") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdWindows: windows("hold") === "pending",
+      homeKept: />Home</.test(held),
+      classUnchanged: classKept === origClass,
+      classWindows: windows("classHold") === "pending",
+      classKeptToken: /tab-canon/.test(classKept),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftWindows: windows("swift") === "pending",
+      swiftFlagKept: /tabBarOnlyCanon/.test(swiftKept),
+      uiUnchanged: uiKept === origUiWindow,
+      uiWindows: windows("uiwindow") === "skipped-no-affordance",
+      copyUnchanged: copied === origCopy,
+      copyWindows: windows("copy") === "pending",
+      sentenceKept: /iPhone tab-bar-only exclusive canon/.test(copied),
+      sentenceUnchanged: sentence === origSentence,
+      sentenceWindows: windows("sentence") === "skipped-no-affordance",
+      aloneUnchanged: alone === origAlone,
+      aloneWindows: windows("alone") === "skipped-no-affordance",
+      fixWindows: windows("fix") === "applied",
+      markerGone: !/data-wn-canon(?![\w-])/.test(fixed),
+      fixNotesKept: />Notes</.test(fixed) && /data-window/.test(fixed),
+      bareWindows: windows("bare") === "skipped-no-affordance",
+      bareMarkerRemains: /data-wn-canon(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWindows: windows("pass"),
+      cleanWindows: windows("clean"),
+      splitWindows: windows("split"),
+      holdWindows: windows("hold"),
+      classWindows: windows("classHold"),
+      swiftWindows: windows("swift"),
+      uiWindows: windows("uiwindow"),
+      copyWindows: windows("copy"),
+      sentenceWindows: windows("sentence"),
+      aloneWindows: windows("alone"),
+      fixWindows: windows("fix"),
+      bareWindows: windows("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-mac-tab-canon-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

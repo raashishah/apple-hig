@@ -21,12 +21,12 @@ export const NEXT_DONT = {
   instructions:
     "Which unmatched Apple HIG Don't should the next mechanical scanner account?",
   criteria: {
-    gc_reskin:
-      "Re-skin Game Center or In-App Purchase chrome.",
-    carplay_poi_pixels:
-      "Pack pixel templates for CarPlay points of interest or map chrome.",
-    airplay_routing_replica:
-      "Reimplement AirPlay / SharePlay / Home routing UI.",
+    mac_tab_canon:
+      "iPhone tab-bar-only exclusive canon.",
+    ios_tabs_on_windows:
+      "Force iPhone tab-bar-only canon onto Mac document windows or `register: brand` landings.",
+    dock_pixel_specs:
+      "Reprint Dock/path-control pixel specs.",
   },
 };
 

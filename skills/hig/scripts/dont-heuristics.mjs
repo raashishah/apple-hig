@@ -5958,6 +5958,52 @@ function applyOpaqueTitleBar(text) {
   return text.replace(/\s*data-wn-opaque(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasTabCanonCopy(text) {
+  return /iphone tab-bar-only exclusive canon/i.test(text);
+}
+
+function hasTabCanonSignal(text) {
+  return /\btab-canon\b/.test(text) || /\btabBarOnlyCanon\b/.test(text);
+}
+
+function windowHasExclusiveTabBar(text) {
+  const windows = [
+    ...blocksWithAttr(text, "data-window"),
+    ...blocksWithAttr(text, "data-app-window"),
+  ];
+  for (const block of windows) {
+    const hasTab = /\bdata-tab-bar\b/.test(block.text) || /\brole=["']tablist["']/.test(block.text);
+    const hasSplit =
+      /\bdata-sidebar\b/.test(block.text) ||
+      /\bNavigationSplitView\b/.test(block.text) ||
+      /\bNSSplitView\b/.test(block.text);
+    if (hasTab && !hasSplit) return true;
+  }
+  if (!windows.length && /\bNSWindow(?:Controller)?\b/.test(text) && /\bUITabBar\b/.test(text)) {
+    return !/\bNSSplitView\b/.test(text) && !/\bNavigationSplitView\b/.test(text);
+  }
+  return false;
+}
+
+function scanWnCanon(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wn-canon(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an iphone tab bar used as the exclusive window canon"));
+      continue;
+    }
+    if (!hasAppWindow(f.text)) continue;
+    if (hasTabCanonCopy(f.text) || hasTabCanonSignal(f.text) || windowHasExclusiveTabBar(f.text)) {
+      out.push(hit(f.path, "an iphone tab bar used as the exclusive window canon"));
+    }
+  }
+  return out;
+}
+
+function applyWnCanon(text) {
+  return text.replace(/\s*data-wn-canon(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanOpenWindowAsDefault(files) {
   const out = [];
   for (const f of files) {
@@ -13368,6 +13414,8 @@ function scanHeuristic(id, files) {
       return scanCriticalWindowBottomBar(files);
     case "wn-opaque":
       return scanOpaqueTitleBar(files);
+    case "wn-canon":
+      return scanWnCanon(files);
     case "custom-video-player":
       return scanCustomVideoPlayer(files);
     case "letterbox-video-padding":
@@ -14142,6 +14190,8 @@ function applyHeuristic(id, file) {
       return applyCriticalWindowBottomBar(file.text);
     case "wn-opaque":
       return applyOpaqueTitleBar(file.text);
+    case "wn-canon":
+      return applyWnCanon(file.text);
     case "custom-video-player":
       return applyCustomVideoPlayer(file.text);
     case "letterbox-video-padding":

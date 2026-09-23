@@ -22,6 +22,7 @@ A window presents app content with system frames and controls. Not supported on 
 - A window called a scene in user-facing content.
 - Critical information or actions in a window bottom bar.
 - Opaque custom title bars that fight system window materials.
+- iPhone tab-bar-only exclusive canon.
 
 ## Apply in host
 
@@ -41,4 +42,5 @@ Map onto an existing app window (`data-window`, `NSWindow`, `openWindow`). Do no
 - [ ] Frames and controls stay system-provided
 - [ ] User-facing copy says window, not scene
 - [ ] Critical actions are not in a bottom bar
+- [ ] iPhone tab-bar-only is not the exclusive canon
 - [ ] The host document is not treated as this widget
