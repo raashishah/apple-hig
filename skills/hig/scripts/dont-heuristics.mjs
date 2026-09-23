@@ -2961,6 +2961,48 @@ function applyContextMenuHeight(text) {
   return text.replace(/\s*data-mn-tall(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function contextMenuSeparatorCount(region) {
+  const patterns = [/<hr\b/gi, /role=["']separator["']/gi, /\bDivider\s*\(/g, /\bseparatorItem\b/g];
+  let count = 0;
+  for (const pattern of patterns) {
+    const found = region.match(pattern);
+    if (found) count += found.length;
+  }
+  return count;
+}
+
+function contextMenuHasTooManyGroups(region) {
+  const groups = (region.match(/role=["']group["']/gi) || []).length;
+  return contextMenuSeparatorCount(region) >= 3 || groups >= 4;
+}
+
+function hasContextMenuGroupCopy(text) {
+  return (
+    /more than about three groups in a context menu/i.test(text) ||
+    /three groups in a context menu/i.test(text)
+  );
+}
+
+function scanContextMenuGroups(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-mn-grp(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "more than about three groups in a context menu"));
+      continue;
+    }
+    if (!hasContextMenuLaunch(f.text)) continue;
+    const tooMany = launchedContextMenuRegions(f.text).some(contextMenuHasTooManyGroups);
+    if (tooMany || hasContextMenuGroupCopy(f.text)) {
+      out.push(hit(f.path, "more than about three groups in a context menu"));
+    }
+  }
+  return out;
+}
+
+function applyContextMenuGroups(text) {
+  return text.replace(/\s*data-mn-grp(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMixMenuIcons(files) {
   const out = [];
   for (const f of files) {
@@ -11906,6 +11948,8 @@ function scanHeuristic(id, files) {
       return scanContextShortcut(files);
     case "mn-tall":
       return scanContextMenuHeight(files);
+    case "mn-grp":
+      return scanContextMenuGroups(files);
     case "picker-owns-the-screen":
       return scanPickerScreen(files);
     case "stepper-no-neighbouring-value":
@@ -12618,6 +12662,8 @@ function applyHeuristic(id, file) {
       return applyContextShortcut(file.text);
     case "mn-tall":
       return applyContextMenuHeight(file.text);
+    case "mn-grp":
+      return applyContextMenuGroups(file.text);
     case "picker-owns-the-screen":
       return file.text;
     case "stepper-no-neighbouring-value":

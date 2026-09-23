@@ -27050,6 +27050,132 @@ ${dots}
   results.push({ case: "catalog-apply-help-popover-word-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mng-pass-"));
+  const fewDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mng-few-"));
+  const menuDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mng-menu-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mng-hold-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mng-api-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mng-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mng-sentence-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-mng-fix-"));
+  const dirs = [passDir, fewDir, menuDir, holdDir, apiDir, copyDir, sentenceDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    const three = `<div oncontextmenu="openMenu()" role="menu"><button role="menuitem" type="button">Copy</button><hr /><button role="menuitem" type="button">Rename</button><hr /><button role="menuitem" type="button">Delete</button></div>`;
+    const four = `<div oncontextmenu="openMenu()" role="menu"><button role="menuitem" type="button">Copy</button><hr /><button role="menuitem" type="button">Duplicate</button><hr /><button role="menuitem" type="button">Rename</button><hr /><button role="menuitem" type="button">Delete</button></div>`;
+    fs.writeFileSync(path.join(fewDir, "HostWidgets.tsx"), host(three));
+    fs.writeFileSync(
+      path.join(menuDir, "HostWidgets.tsx"),
+      host(`<div role="menu"><button role="menuitem" type="button">Copy</button><hr /><button role="menuitem" type="button">Duplicate</button><hr /><button role="menuitem" type="button">Rename</button><hr /><button role="menuitem" type="button">Delete</button></div>`),
+    );
+    const origHold = host(four);
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origApi = `export function HostWidgets() {
+  Text("Note")
+    .contextMenu(menuItems: {
+      Button("Copy") {}
+      Divider()
+      Button("Duplicate") {}
+      Divider()
+      Button("Rename") {}
+      Divider()
+      Button("Delete") {}
+    })
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origCopy = host(
+      `<div oncontextmenu="openMenu()" role="menu"><button role="menuitem" type="button">Copy</button></div><p>Avoid more than about three groups in a context menu.</p>`,
+    );
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid more than about three groups in a context menu.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = host(
+      `<div oncontextmenu="openMenu()" role="menu" data-mn-grp><button role="menuitem" type="button">Copy</button></div>`,
+    );
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "few", "menu", "hold", "api", "copy", "sentence", "fix"];
+    const dirBy = {
+      pass: passDir,
+      few: fewDir,
+      menu: menuDir,
+      hold: holdDir,
+      api: apiDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const menus = (name) => status[name].topics["context-menus"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["context-menus"]?.dontHeuristicIds || []).includes("mn-grp"),
+      tall: (catalog.byId["context-menus"]?.dontHeuristicIds || []).includes("mn-tall"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passMenus: menus("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      fewMenus: menus("few") === "already-compliant",
+      plainMenus: menus("menu") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdMenus: menus("hold") === "pending",
+      sepsKept: (held.match(/<hr\b/g) || []).length === 3,
+      apiUnchanged: api === origApi,
+      apiMenus: menus("api") === "pending",
+      dividersKept: (api.match(/\bDivider\s*\(/g) || []).length === 3,
+      copyUnchanged: copied === origCopy,
+      copyMenus: menus("copy") === "pending",
+      sentenceMenus: menus("sentence") === "skipped-no-affordance",
+      fixMenus: menus("fix") === "applied",
+      markerGone: !/data-mn-grp(?![\w-])/.test(fixed),
+      itemKept: />\s*Copy\s*</.test(fixed),
+      launchKept: /oncontextmenu=/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passMenus: menus("pass"),
+      fewMenus: menus("few"),
+      plainMenus: menus("menu"),
+      holdMenus: menus("hold"),
+      apiMenus: menus("api"),
+      copyMenus: menus("copy"),
+      sentenceMenus: menus("sentence"),
+      fixMenus: menus("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-context-menu-groups-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

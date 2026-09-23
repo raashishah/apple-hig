@@ -214,6 +214,8 @@ heuristics:
     match: keyboard shortcut inside a context menu
   - id: mn-tall
     match: context menu taller than the window
+  - id: mn-grp
+    match: more than about three groups in a context menu
   - id: picker-owns-the-screen
     match: Push a new screen solely to show a picker
   - id: stepper-no-neighbouring-value
