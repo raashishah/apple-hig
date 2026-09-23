@@ -20,6 +20,7 @@ AR experiences use approachable copy and keep the AR glyph and badge for ARKit. 
 - World detection, Adjust tracking, or plane to anchor in user-facing copy.
 - Altered AR glyph or AR badge, or used for a non-ARKit experience.
 - An AR badge with no clear space.
+- An AR glyph with no clear space.
 
 ## Apply in host
 

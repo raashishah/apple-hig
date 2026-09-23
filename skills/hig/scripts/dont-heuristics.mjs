@@ -6954,6 +6954,49 @@ function applyArBadge(text) {
   return text.replace(/\s*data-xr-badge(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasArGlyph(text) {
+  return /\bdata-ar-glyph\b/.test(text) || /\bARGlyph\s*\(/.test(text) || /alt=["']AR Glyph["']/i.test(text);
+}
+
+function tagHasGlyphZero(tag) {
+  const glyph = /alt=["']AR Glyph["']/i.test(tag) || /\bdata-ar-glyph\b/.test(tag);
+  if (!glyph) return false;
+  return /\b(?:clearSpace|glyphClearance)\s*[:=]\s*\{?\s*["']?0(?![\d.])/.test(tag);
+}
+
+function hasGlyphClearanceZero(text) {
+  if (!hasAr(text) || !hasArGlyph(text)) return false;
+  const re = /<[^>]+>/g;
+  let found;
+  while ((found = re.exec(text))) {
+    if (tagHasGlyphZero(found[0])) return true;
+  }
+  return /\bARGlyph\s*\([^)]*clearSpace\s*:\s*0(?![\d.])/.test(text);
+}
+
+function hasArGlyphCopy(text) {
+  return /occlude the glyph/i.test(text);
+}
+
+function scanArGlyph(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-xr-glyph(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an AR glyph with no clear space"));
+      continue;
+    }
+    if (!hasAr(f.text) || !hasArGlyph(f.text)) continue;
+    if (hasGlyphClearanceZero(f.text) || hasArGlyphCopy(f.text)) {
+      out.push(hit(f.path, "an AR glyph with no clear space"));
+    }
+  }
+  return out;
+}
+
+function applyArGlyph(text) {
+  return text.replace(/\s*data-xr-glyph(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasTapToPay(text) {
   return (
     /\bdata-tap-to-pay\b/.test(text) ||
@@ -12918,6 +12961,8 @@ function scanHeuristic(id, files) {
       return scanArGlyphMisused(files);
     case "ar-badge":
       return scanArBadge(files);
+    case "ar-glyph":
+      return scanArGlyph(files);
     case "ttp-apple-logo":
       return scanTtpAppleLogo(files);
     case "ttp-nonpayment-label":
@@ -13664,6 +13709,8 @@ function applyHeuristic(id, file) {
       return applyArGlyphMisused(file.text);
     case "ar-badge":
       return applyArBadge(file.text);
+    case "ar-glyph":
+      return applyArGlyph(file.text);
     case "ttp-apple-logo":
       return applyTtpAppleLogo(file.text);
     case "ttp-nonpayment-label":

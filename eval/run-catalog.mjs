@@ -29629,6 +29629,208 @@ struct BadgeSpace: View {
   results.push({ case: "catalog-apply-ar-badge-clear-space-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-pass-"));
+  const viewDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-view-"));
+  const badgeDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-badge-"));
+  const spacedDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-spaced-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-swift-"));
+  const jargonDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-jargon-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-sentence-"));
+  const looseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-loose-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-arg-fix-"));
+  const dirs = [passDir, viewDir, badgeDir, spacedDir, holdDir, swiftDir, jargonDir, copyDir, sentenceDir, looseDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(viewDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <button type="button">View</button>
+    </div>
+  );
+}
+`,
+    );
+    const origBadge = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <img alt="AR Badge" clearSpace={0} />
+      <button type="button">View</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(badgeDir, "HostWidgets.tsx"), origBadge);
+    fs.writeFileSync(
+      path.join(spacedDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <img alt="AR Glyph" clearSpace="10%" />
+      <button type="button">View</button>
+    </div>
+  );
+}
+`,
+    );
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <img alt="AR Glyph" clearSpace={0} />
+      <button type="button">View</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct GlyphSpace: View {
+  var body: some View {
+    ARView()
+    ARGlyph(clearSpace: 0)
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Canvas.swift"), origSwift);
+    const origJargon = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      Unable to find a plane. Adjust tracking.
+      <button type="button">View</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(jargonDir, "HostWidgets.tsx"), origJargon);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-ar>
+      <img alt="AR Glyph" clearSpace="10%" />
+      <p>Don't let other elements infringe on this space or occlude the glyph in any way.</p>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    fs.writeFileSync(
+      path.join(sentenceDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return <p>Don't let other elements infringe on this space or occlude the glyph in any way.</p>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(looseDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return <p data-xr-glyph>Glyph</p>;
+}
+`,
+    );
+    fs.writeFileSync(
+      path.join(fixDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-ar data-xr-glyph>
+      <img alt="AR Glyph" clearSpace="10%" />
+      <button type="button">View</button>
+    </div>
+  );
+}
+`,
+    );
+    const names = ["pass", "view", "badge", "spaced", "hold", "swift", "jargon", "copy", "sentence", "loose", "fix"];
+    const dirBy = {
+      pass: passDir,
+      view: viewDir,
+      badge: badgeDir,
+      spaced: spacedDir,
+      hold: holdDir,
+      swift: swiftDir,
+      jargon: jargonDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      loose: looseDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const badged = fs.readFileSync(path.join(badgeDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Canvas.swift"), "utf8");
+    const jargoned = fs.readFileSync(path.join(jargonDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const loose = fs.readFileSync(path.join(looseDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const ar = (name) => status[name].topics["augmented-reality"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["augmented-reality"]?.dontHeuristicIds || []).includes("ar-glyph"),
+      badgeHeuristic: (catalog.byId["augmented-reality"]?.dontHeuristicIds || []).includes("ar-badge"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passAr: ar("pass") === "skipped-no-affordance",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      viewAr: ar("view") === "already-compliant",
+      badgeUnchanged: badged === origBadge,
+      badgeAr: ar("badge") === "pending",
+      badgeKept: /alt="AR Badge"/.test(badged) && /clearSpace=\{0\}/.test(badged),
+      spacedAr: ar("spaced") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdAr: ar("hold") === "pending",
+      glyphKept: /alt="AR Glyph"/.test(held) && /clearSpace=\{0\}/.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftAr: ar("swift") === "pending",
+      swiftKept: /ARGlyph\(clearSpace: 0\)/.test(swiftKept),
+      jargonUnchanged: jargoned === origJargon,
+      jargonAr: ar("jargon") === "pending",
+      trackingKept: /Adjust tracking/.test(jargoned),
+      copyUnchanged: copied === origCopy,
+      copyAr: ar("copy") === "pending",
+      sentenceAr: ar("sentence") === "skipped-no-affordance",
+      looseAr: ar("loose") === "skipped-no-affordance",
+      looseMarkerRemains: /data-xr-glyph(?![\w-])/.test(loose),
+      fixAr: ar("fix") === "applied",
+      markerGone: !/data-xr-glyph(?![\w-])/.test(fixed),
+      viewKept: /alt="AR Glyph"/.test(fixed) && />\s*View\s*</.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passAr: ar("pass"),
+      viewAr: ar("view"),
+      badgeAr: ar("badge"),
+      spacedAr: ar("spaced"),
+      holdAr: ar("hold"),
+      swiftAr: ar("swift"),
+      jargonAr: ar("jargon"),
+      copyAr: ar("copy"),
+      sentenceAr: ar("sentence"),
+      looseAr: ar("loose"),
+      fixAr: ar("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-ar-glyph-clear-space-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

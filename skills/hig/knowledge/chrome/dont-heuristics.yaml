@@ -528,6 +528,8 @@ heuristics:
     match: non-ARKit
   - id: ar-badge
     match: no clear space
+  - id: ar-glyph
+    match: glyph with no clear space
   - id: ttp-apple-logo
     match: Apple logo
   - id: ttp-nonpayment-label
