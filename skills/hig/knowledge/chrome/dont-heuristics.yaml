@@ -210,6 +210,8 @@ heuristics:
     match: link that says click here
   - id: wr-gone
     match: crucial information in a temporary empty state
+  - id: wr-sym
+    match: error that says don't use numbers or symbols
   - id: hide-unavailable-menu-items
     match: Hide unavailable items instead of dimming them
   - id: nested-submenus-deep

@@ -11982,6 +11982,37 @@ function applyEmptyCrucial(text) {
   return text.replace(/\s*data-wr-gone(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasNumbersSymbolsError(text) {
+  const stripped = stripWritingComments(text).replace(
+    /better than ["“]?don['’]t use numbers or symbols\.?["”]?/gi,
+    "",
+  );
+  const nodes = />([^<]+)</g;
+  let found;
+  while ((found = nodes.exec(stripped))) {
+    if (/^\s*don['’]t use numbers or symbols\.?\s*$/i.test(found[1])) return true;
+  }
+  return /\bText\s*\(\s*"don['’]t use numbers or symbols\.?"\s*\)/i.test(stripped);
+}
+
+function scanNumbersSymbolsError(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wr-sym(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an error that says Don't use numbers or symbols"));
+      continue;
+    }
+    if (hasNumbersSymbolsError(f.text)) {
+      out.push(hit(f.path, "an error that says Don't use numbers or symbols"));
+    }
+  }
+  return out;
+}
+
+function applyNumbersSymbolsError(text) {
+  return text.replace(/\s*data-wr-sym(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -12207,6 +12238,8 @@ function scanHeuristic(id, files) {
       return scanClickHereLink(files);
     case "wr-gone":
       return scanEmptyCrucial(files);
+    case "wr-sym":
+      return scanNumbersSymbolsError(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -12931,6 +12964,8 @@ function applyHeuristic(id, file) {
       return applyClickHereLink(file.text);
     case "wr-gone":
       return applyEmptyCrucial(file.text);
+    case "wr-sym":
+      return applyNumbersSymbolsError(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":
