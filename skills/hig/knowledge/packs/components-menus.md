@@ -18,6 +18,17 @@
 - iOS/iPadOS layouts: **large** (list, default); **medium** (three labelled symbols on top) for a few frequent actions; **small** (four unlabeled symbols) only for a tight related set (Bold / Italic / Underline / Strikethrough).
 - Action sheets, not menus, for choices that follow an intentional action people already started.
 
+## Don't
+
+- Hide unavailable items instead of dimming them.
+- Nested submenus deeper than one level.
+- Mix icons and no-icons in the same menu group.
+- A submenu item that is unavailable when its nested items are unavailable.
+- A keyboard shortcut inside a context menu.
+- A context menu taller than the window.
+- More than about three groups in a context menu.
+- All of a view's actions in one pull-down button.
+
 ## Apply in host
 
 Do not invent a React menu kit. Map onto host menus.

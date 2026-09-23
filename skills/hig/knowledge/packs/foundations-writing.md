@@ -22,6 +22,11 @@ Interface words are part of the UI. Brand voice lives in **DESIGN.md**; this pac
 ## Don't
 
 - Cute or sarcastic error copy that hides the fix.
+- Visible copy that says we or we're.
+- A robotic error that says Invalid name.
+- A link that says Click here.
+- Crucial information in a temporary empty state.
+- An error that says Don't use numbers or symbols.
 - Title Case On Every Long Sentence in body help.
 - Rewriting system alerts (Sign in, Pay, permissions) — chrome around them only.
 

@@ -44,6 +44,12 @@ const results = [];
     skillText.includes("swarm") &&
     skillText.includes("Chrome grammar") &&
     designText.includes("load-chrome-grammar") &&
+    designText.includes("check-chrome.mjs") &&
+    designText.includes("apply-chrome") &&
+    skillText.includes("apply-chrome") &&
+    designText.includes("apply-catalog") &&
+    skillText.includes("apply-catalog") &&
+    designText.includes("plan-catalog") &&
     designText.includes("parallel");
   results.push({
     case: "orchestrator-wired",
@@ -66,6 +72,7 @@ const results = [];
   const yamlRoots = [
     path.join(skillRoot, "knowledge", "surfaces.yaml"),
     path.join(skillRoot, "knowledge", "registry.yaml"),
+    path.join(skillRoot, "knowledge", "catalog.yaml"),
     path.join(skillRoot, "knowledge", "chrome", "grammar.yaml"),
   ];
   const packDir = path.join(skillRoot, "knowledge", "packs");
@@ -122,7 +129,7 @@ const results = [];
     ok =
       required.length >= 12 &&
       stuffed.length === 0 &&
-      gated.some((s) => s.id === "healthkit" && s.gate === "capability:healthkit") &&
+      gated.some((s) => s.id === "game-center" && s.gate === "capability:gamecenter") &&
       !required.includes("healthkit") &&
       !required.includes("game-center") &&
       !required.includes("mac-chrome");
@@ -147,6 +154,10 @@ const results = [];
     platform: "phone",
     capabilities: ["healthkit"],
   });
+  const gc = selectSurfaces(surfaces, {
+    platform: "phone",
+    capabilities: ["gamecenter"],
+  });
   const desktop = selectSurfaces(surfaces, {
     platform: "desktop",
     capabilities: [],
@@ -156,10 +167,53 @@ const results = [];
     platform_secondary: ["desktop"],
     capabilities: [],
   });
+  const padPencil = selectSurfaces(surfaces, {
+    platform: "ipad",
+    capabilities: ["pencil"],
+  });
+  const gamesHost = selectSurfaces(surfaces, {
+    platform: "games",
+    capabilities: [],
+  });
+  const phoneGames = selectSurfaces(surfaces, {
+    platform: "phone",
+    capabilities: ["games"],
+  });
   const ok =
-    !webSkip.launched.some((s) => s.id === "healthkit") &&
+    webSkip.launched.some((s) => s.id === "healthkit") &&
+    webSkip.launched.some((s) => s.id === "sign-in-with-apple") &&
+    webSkip.launched.some((s) => s.id === "playing-audio") &&
+    webSkip.launched.some((s) => s.id === "panels") &&
+    webSkip.launched.some((s) => s.id === "path-controls") &&
+    webSkip.launched.some((s) => s.id === "outline-views") &&
+    webSkip.launched.some((s) => s.id === "imessage-apps-and-stickers") &&
+    webSkip.launched.some((s) => s.id === "action-button") &&
+    webSkip.launched.some((s) => s.id === "camera-control") &&
+    webSkip.launched.some((s) => s.id === "dock-menus") &&
+    !webSkip.launched.some((s) => s.id === "inputs-gestures") &&
+    !webSkip.launched.some((s) => s.id === "inputs-keyboards") &&
+    !webSkip.launched.some((s) => s.id === "inputs-pointing") &&
     hk.launched.some((s) => s.id === "healthkit") &&
+    hk.launched.some((s) => s.id === "inputs-gestures") &&
+    hk.launched.some((s) => s.id === "inputs-keyboards") &&
+    !hk.launched.some((s) => s.id === "inputs-pointing") &&
+    !webSkip.launched.some((s) => s.id === "game-center") &&
+    gc.launched.some((s) => s.id === "game-center") &&
     desktop.launched.some((s) => s.id === "mac-chrome") &&
+    !desktop.launched.some((s) => s.id === "inputs-gestures") &&
+    desktop.launched.some((s) => s.id === "inputs-keyboards") &&
+    desktop.launched.some((s) => s.id === "inputs-pointing") &&
+    !desktop.launched.some((s) => s.id === "inputs-pencil") &&
+    !webSkip.launched.some((s) => s.id === "inputs-pencil") &&
+    !hk.launched.some((s) => s.id === "inputs-pencil") &&
+    padPencil.launched.some((s) => s.id === "inputs-pencil") &&
+    !webSkip.launched.some((s) => s.id === "inputs-game-controls") &&
+    !desktop.launched.some((s) => s.id === "inputs-game-controls") &&
+    !hk.launched.some((s) => s.id === "inputs-game-controls") &&
+    !gc.launched.some((s) => s.id === "inputs-game-controls") &&
+    gamesHost.launched.some((s) => s.id === "inputs-game-controls") &&
+    phoneGames.launched.some((s) => s.id === "inputs-game-controls") &&
+    gc.launched.some((s) => s.id === "game-center") &&
     multi.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "mac-chrome") &&
     !webSkip.launched.some((s) => s.id === "game-center");
@@ -223,6 +277,17 @@ const results = [];
     (surfaces.byId["siri-app-shortcuts"]?.compose || []).includes("system-app-shortcuts.md") &&
     surfaces.byId["control-center"]?.gate === "capability:controlcenter" &&
     surfaces.byId["inputs-pencil"]?.gate === "ipad+capability:pencil" &&
+    surfaces.byId["inputs-game-controls"]?.gate === "games,capability:games" &&
+    surfaces.byId["game-center"]?.gate === "capability:gamecenter" &&
+    !phone.launched.some((s) => s.id === "inputs-game-controls") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["games"],
+    }).launched.some((s) => s.id === "inputs-game-controls") &&
+    selectSurfaces(surfaces, {
+      platform: "games",
+      capabilities: [],
+    }).launched.some((s) => s.id === "inputs-game-controls") &&
     !selectSurfaces(surfaces, {
       platform: "phone",
       capabilities: ["pencil"],
@@ -235,11 +300,95 @@ const results = [];
       platform: "phone",
       capabilities: ["wallet"],
     }).launched.some((s) => s.id === "apple-pay") &&
+    surfaces.byId.wallet?.gate === "capability:wallet" &&
+    surfaces.byId.wallet?.affordance === "walletpass" &&
+    !phone.launched.some((s) => s.id === "wallet") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["wallet"],
+    }).launched.some((s) => s.id === "wallet") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["applepay"],
+    }).launched.some((s) => s.id === "wallet") &&
+    surfaces.byId.shazamkit?.gate === "capability:shazam" &&
+    surfaces.byId.shazamkit?.affordance === "shazam" &&
+    !phone.launched.some((s) => s.id === "shazamkit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["shazam"],
+    }).launched.some((s) => s.id === "shazamkit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["shazam"],
+    }).launched.some((s) => s.id === "media-intelligence") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["coreml"],
+    }).launched.some((s) => s.id === "shazamkit") &&
+    surfaces.byId["photo-editing"]?.gate === "capability:photos" &&
+    surfaces.byId["photo-editing"]?.affordance === "photoedit" &&
+    surfaces.surfaces.findIndex((s) => s.id === "photo-editing") <
+      surfaces.surfaces.findIndex((s) => s.id === "media-intelligence") &&
+    !phone.launched.some((s) => s.id === "photo-editing") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["photos"],
+    }).launched.some((s) => s.id === "photo-editing") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["photos"],
+    }).launched.some((s) => s.id === "media-intelligence") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["shazam"],
+    }).launched.some((s) => s.id === "photo-editing") &&
+    surfaces.byId["app-clips"]?.gate === "capability:appclips" &&
+    surfaces.byId["app-clips"]?.affordance === "appclipcode" &&
+    !phone.launched.some((s) => s.id === "app-clips") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["appclips"],
+    }).launched.some((s) => s.id === "app-clips") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["appclips"],
+    }).launched.some((s) => s.id === "platform-tech") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["maccatalyst"],
+    }).launched.some((s) => s.id === "app-clips") &&
     selectSurfaces(surfaces, {
       platform: "phone",
       capabilities: ["controlcenter"],
     }).launched.some((s) => s.id === "control-center") &&
-    !phone.launched.some((s) => s.id === "control-center");
+    !phone.launched.some((s) => s.id === "control-center") &&
+    surfaces.byId.carekit?.gate === "capability:carekit" &&
+    surfaces.byId.carekit?.affordance === "carekit" &&
+    !phone.launched.some((s) => s.id === "carekit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["carekit"],
+    }).launched.some((s) => s.id === "carekit") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["researchkit"],
+    }).launched.some((s) => s.id === "carekit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["researchkit"],
+    }).launched.some((s) => s.id === "health-research") &&
+    surfaces.byId.researchkit?.gate === "capability:researchkit" &&
+    surfaces.byId.researchkit?.affordance === "researchkit" &&
+    !phone.launched.some((s) => s.id === "researchkit") &&
+    selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["researchkit"],
+    }).launched.some((s) => s.id === "researchkit") &&
+    !selectSurfaces(surfaces, {
+      platform: "phone",
+      capabilities: ["carekit"],
+    }).launched.some((s) => s.id === "researchkit");
   results.push({
     case: "bugbot-surface-leases",
     ok,
@@ -263,6 +412,7 @@ const results = [];
     surfaces.requiredIds.length === 12 &&
     !surfaces.requiredIds.includes("gs-iphone-duo") &&
     surfaces.byId["gs-iphone-duo"]?.gate === "duo,capability:duo" &&
+    surfaces.byId["gs-iphone-duo"]?.affordance === "duolayout" &&
     !phone.launched.some((s) => s.id === "gs-iphone-duo") &&
     byCap.launched.some((s) => s.id === "gs-iphone-duo") &&
     byCap.launched.some((s) => s.id === "gs-ios") &&
@@ -272,6 +422,53 @@ const results = [];
     case: "iphone-duo-gate",
     ok,
     requiredCount: surfaces.requiredIds.length,
+  });
+}
+
+{
+  const surfaces = loadSurfaces(skillRoot);
+  const ok =
+    surfaces.requiredIds.length === 12 &&
+    surfaces.byId.navigation?.affordance === "chrome" &&
+    surfaces.byId["lists-split"]?.affordance === "list" &&
+    surfaces.byId.sheets?.affordance === "overlay" &&
+    surfaces.byId.forms?.affordance === "form" &&
+    surfaces.byId.menus?.affordance === "menu" &&
+    surfaces.byId.search?.affordance === "search" &&
+    surfaces.byId.settings?.affordance === "settings" &&
+    surfaces.byId.undo?.affordance === "undo" &&
+    surfaces.byId.sliders?.affordance === "slider" &&
+    surfaces.byId["scroll-views"]?.affordance === "scroll" &&
+    surfaces.byId.popovers?.affordance === "popover" &&
+    surfaces.byId.collections?.affordance === "collection" &&
+    surfaces.byId["page-controls"]?.affordance === "pagecontrol" &&
+    surfaces.byId.labels?.affordance === "label" &&
+    surfaces.byId["text-views"]?.affordance === "textview" &&
+    surfaces.byId["image-views"]?.affordance === "imageview" &&
+    surfaces.byId.charts?.affordance === "chart" &&
+    surfaces.byId["disclosure-controls"]?.affordance === "disclosure" &&
+    surfaces.byId.boxes?.affordance === "box" &&
+    surfaces.byId["edit-menus"]?.affordance === "editmenu" &&
+    surfaces.byId["offering-help"]?.affordance === "help" &&
+    surfaces.byId["web-views"]?.affordance === "webview" &&
+    surfaces.byId["activity-views"]?.affordance === "activityview" &&
+    surfaces.byId.printing?.affordance === "print" &&
+    surfaces.byId["going-full-screen"]?.affordance === "fullscreen" &&
+    surfaces.byId["file-management"]?.affordance === "filebrowser" &&
+    surfaces.byId["focus-and-selection"]?.affordance === "focus" &&
+    surfaces.byId["managing-accounts"]?.affordance === "account" &&
+    surfaces.byId["tab-views"]?.affordance === "tabview" &&
+    surfaces.byId.multitasking?.affordance === "multitask" &&
+    surfaces.byId["ratings-and-reviews"]?.affordance === "reviewprompt" &&
+    surfaces.byId.windows?.affordance === "appwindow" &&
+    !surfaces.byId.layout?.affordance &&
+    !surfaces.byId.typography?.affordance &&
+    !surfaces.byId.writing?.affordance;
+  results.push({
+    case: "pattern-affordances-not-foundations",
+    ok,
+    requiredCount: surfaces.requiredIds.length,
+    lists: surfaces.byId["lists-split"]?.affordance,
   });
 }
 

@@ -32,6 +32,9 @@
 ## Chrome gates
 
 - `chrome.form.column-cohesion` (with patterns-forms)
+- `chrome.ive.nested-cards`
+
+Recipes: `knowledge/chrome/recipes.md`.
 
 ## Checklist
 

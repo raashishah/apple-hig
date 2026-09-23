@@ -55,6 +55,9 @@ Overlays: enter/exit opacity + translate with reduced-motion fallbacks. Chrome m
 ## Chrome gates
 
 - `chrome.bars.system-materials`
+- `chrome.materials.fashion-glass`
+
+Recipes: `knowledge/chrome/recipes.md`.
 
 ## Craft checklist
 

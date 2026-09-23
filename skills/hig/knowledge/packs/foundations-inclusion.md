@@ -24,6 +24,8 @@ Inclusive product language and imagery. Accessibility mechanics stay in `foundat
 - Clownish “diversity” stock that tokenizes.
 - Ability or body jokes in empty states.
 - Skin-tone or hair defaults that cannot be changed where a person is depicted as the user.
+- A specific gender referenced in an avatar, emoji, glyph, or game character.
+- An abbreviation with no definition.
 
 ## Apply in host
 

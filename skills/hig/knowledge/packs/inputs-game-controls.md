@@ -2,7 +2,7 @@
 
 **Apple:** [Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)  
 **Also:** [Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games), [Game Center](https://developer.apple.com/design/human-interface-guidelines/game-center), [Gestures](https://developer.apple.com/design/human-interface-guidelines/gestures), [Keyboards](https://developer.apple.com/design/human-interface-guidelines/keyboards), [Pointing devices](https://developer.apple.com/design/human-interface-guidelines/pointing-devices)  
-**Intended gate (not wired this PR):** games / GameKit / SpriteKit hosts (U7). Web-css and ordinary product apps skip.
+**Gate:** `games,capability:games` on surface `inputs-game-controls`. Unknown, phone, and Mac hosts skip unless the host is a game or has the games capability. Skip-unless affordance `gamecontrol`. Fake Game Center overlays stay on the Game Center pack. A static thumbstick is opt-to, so it stays unscanned.
 
 Prefer the platform’s default input. Do not reimplement Game Center, Sign in, or purchase chrome. Remotes and Eyes wait with TV/Vision.
 
@@ -32,9 +32,7 @@ Prefer the platform’s default input. Do not reimplement Game Center, Sign in, 
 
 ## Don't
 
-- Controller-only on iPhone without a touch path (unless badged required).
-- Fake Game Center overlays.
-- Static on-screen sticks that cover content when idle.
+- Abstract shapes or A, X, or R1 as artwork.
 
 ## Checklist
 

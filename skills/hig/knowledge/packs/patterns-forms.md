@@ -35,6 +35,8 @@ Load `knowledge/chrome/grammar.yaml`. Cite in review; implement to PASS:
 
 - `chrome.form.column-cohesion` — title, actions, and fields share one column width
 
+Recipes: `knowledge/chrome/recipes.md`.
+
 ## Checklist
 
 - [ ] Labels present

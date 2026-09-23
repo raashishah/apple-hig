@@ -2,11 +2,11 @@
 
 **Apple:** [Onboarding](https://developer.apple.com/design/human-interface-guidelines/onboarding)
 
-**Also:** [Offering help](https://developer.apple.com/design/human-interface-guidelines/offering-help) (live-link — contextual help, not a second pack).
+**Also:** Contextual tips live in `components-offering-help.md`. Do not treat this first-run pack as offering-help.
 
 Own surface: first-run, empty-state coaching, permission primers. Distinct files from Settings and from Launching.
 
-**Skip unless** the host has a first-run flow, feature tour, or empty-state coach marks.
+**Skip unless** the host has a first-run flow, feature tour, or empty-state coach marks. A tutorial presented again on a later launch is the violation. A first-launch tour stays allowed. Do not invent an onboarding flow. Do not remove the tour.
 
 ## Apple guidance (1:1)
 
@@ -16,7 +16,7 @@ Own surface: first-run, empty-state coaching, permission primers. Distinct files
 - Request sign-in, tracking, notifications, and other permissions **at the moment of need**, not as a stack before first value. Notification copy lives in `patterns-notifications.md`.
 - Do not replay the tour every launch. Show again only from Help / Settings.
 - Empty states can onboard: one action that creates the first object beats a tutorial.
-- Live-link offering-help for searchable Help / tips. Do not pack Watch workouts or ratings.
+- Contextual tips belong to offering-help, not this first-run pack. Do not pack Watch workouts or ratings.
 
 ## Apply in host
 
@@ -36,6 +36,7 @@ Own surface: first-run, empty-state coaching, permission primers. Distinct files
 - Require an account before any value if the app can run signed out.
 - Ask for every permission on page one.
 - Duplicate Help as six interstitial cards.
+- A tutorial presented again on a later launch.
 
 ## Checklist
 

@@ -26,7 +26,8 @@ If `reviewAdaptMutation=blocked` OR `register=brand` OR `brandMutationLocked=tru
 3. Diff surface vs pack checklists **and** chrome `failWhen` lines
 4. Apply smallest structural fixes (chrome hierarchy, list/detail ownership, chrome grammar PASSes)
 5. Preserve brand tokens and copy
-6. Re-check with `/hig review` on the same surface (report-only; expect `structure:chrome.*` clear)
+6. Run `node <skill>/scripts/check-chrome.mjs`. P0 hits mean not done.
+7. Re-check with `/hig review` on the same surface (report-only; expect `structure:chrome.*` clear)
 
 ## Rules
 

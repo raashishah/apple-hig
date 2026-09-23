@@ -1,40 +1,41 @@
 # tech-healthkit
 
-**Apple:** https://developer.apple.com/design/human-interface-guidelines/healthkit  
-**Gate:** `capability:healthkit` (HealthKit entitlement / `HealthKit` import / usage plist — **not** `requiredIds`)  
-**Compose with:** foundations-privacy (when packed)
+**Apple:** [HealthKit](https://developer.apple.com/design/human-interface-guidelines/healthkit)  
+**Surface id (later):** `healthkit`  
+**Compose with:** packed privacy when the same chrome already exists; do not treat packed HomeKit, packed Activity rings, packed workouts, packed privacy, or a bare HealthKit phrase as this pack  
+**Gate (later):** `always` when the host has HealthKit chrome (`HKHealthStore`, `HKQuantityTypeIdentifier`, `data-healthkit`); skip otherwise
 
-Permission copy and data-use chrome. Do not reprint Health data-type catalogs. Watch Health UI is out of this wave.
+HealthKit does not replicate the system Health permission screen, does not manage health data sharing in-app, and does not say HealthKit to people. Do not invent HealthKit. Do not complete Health permission. Do not map this pack onto packed HomeKit or packed Activity rings.
 
-## Human-only
+## Apple guidance (1:1)
 
-Never complete Health access sheets, biometrics, or Medical ID. Style chrome **around** the system permission UI. Do not ask the host user to grant Health on the agent’s behalf.
-
-## Apple guidance (invariants)
-
-- HealthKit is the central repository for health and fitness data on iOS, iPadOS, and watchOS.
-- Ask for **only the types you use**, **when you need them** — not a launch-time grab of every quantity.
-- Purpose strings (`NSHealthShareUsageDescription`, `NSHealthUpdateUsageDescription`, and per-type copy where required) say **why** in plain language. Do not hide the reason in marketing fluff.
-- Do not reinvent the Health app as a second dashboard of every sample.
-- Health data is sensitive: no Health values in widgets, screenshots, logs, or shared images without an explicit product reason and permission.
-- Read vs write are different grants. Do not imply write access when you only read.
-
-## Do
-
-- Trigger the system authorization UI from a contextual moment (first glucose chart, first workout save).
-- After denial, the host still works; settings deep-link is optional, never a blocking alert loop.
-- Label charts and units the person already uses in Health where you display samples.
+- Avoid adding custom screens that replicate the standard permission screen's behavior or content. People expect the system-provided Health permission screen.
+- Manage health data sharing solely through the system's privacy settings. Don't confuse people by building additional screens in your app that affect the flow of health data.
+- Don't use the term HealthKit. HealthKit is a developer-facing term. If you need to explain how your app works with health data, say it works with the Apple Health app.
+- Activity-ring Don'ts stay on packed Activity rings. Permission timing for camera, mic, and location stays on packed privacy. CareKit and ResearchKit stay on the live-link cluster. Workout sessions stay on packed workouts.
+- Host typeface stays. This pack does not rewrite fonts or inject a kit.
 
 ## Don't
 
-- Fire this pack on web-css or brand-veto fixtures.
-- Pack CareKit / ResearchKit UI here — those are live-link clusters.
-- Complete the Health permission sheet as an apply step.
+- Custom screens that replicate the Health permission screen.
+- In-app screens that manage health data sharing.
+- The term HealthKit in user-facing copy.
 
 ## Apply in host
 
-| Host | How |
+Map onto existing HealthKit chrome (`HKHealthStore`, `HKQuantityTypeIdentifier`, `data-healthkit`). Do not invent HealthKit, a permission replica, or a sharing screen. Do not complete Health permission, biometrics, or Medical ID. Do not inject a kit.
+
+| Host | Prefer |
 |---|---|
-| SwiftUI | `HealthKit` / `HKHealthStore` authorization; system sheet unmodified |
-| UIKit | Same store APIs; purpose strings in Info.plist |
-| Web / CSS | **Skip** — no HealthKit |
+| SwiftUI | Existing `HKHealthStore` chrome when it already exists, not a custom Health replica |
+| UIKit | `HKHealthStore` / `HKQuantityTypeIdentifier` when they already exist |
+| AppKit | Existing HealthKit chrome when it already exists |
+| Web | Existing `data-healthkit`, not packed HomeKit, packed Activity rings, or a generic HealthKit label |
+
+## Checklist
+
+- [ ] A real HealthKit widget exists before this pack applies
+- [ ] The host does not replicate the Health permission screen
+- [ ] The host does not manage health data sharing in-app
+- [ ] Copy does not say HealthKit to people
+- [ ] Packed HomeKit, packed Activity rings, packed workouts, and packed privacy stay themselves

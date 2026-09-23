@@ -1,4 +1,4 @@
-# Proof notes (v0.4.0)
+# Proof notes (v0.4.1)
 
 What `/hig` actually changed on real apps — and what is still missing.
 
@@ -51,6 +51,8 @@ Propose these as next `chrome.*` FAIL IDs if you hit them:
 | `chrome.list-status.lifecycle` | Loading/fault panes still offer Add or dead detail |
 
 Also deferred: reusable CSS kit extraction after more gold passes.
+
+v0.4.1 adds `check-chrome.mjs`, recipes, and FAIL IDs (`fashion-glass`, `card-grid-home`, `nested-cards`). Those four split/list lifecycle IDs above are still not encoded.
 
 ## How to send feedback
 

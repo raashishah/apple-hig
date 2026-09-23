@@ -149,7 +149,19 @@ const results = [];
   const ok =
     web.stack?.kind === "web" &&
     !(web.capabilities || []).includes("healthkit") &&
-    !launchedIds.includes("healthkit") &&
+    launchedIds.includes("healthkit") &&
+    launchedIds.includes("sign-in-with-apple") &&
+    launchedIds.includes("playing-audio") &&
+    launchedIds.includes("panels") &&
+    launchedIds.includes("path-controls") &&
+    launchedIds.includes("outline-views") &&
+    launchedIds.includes("imessage-apps-and-stickers") &&
+    launchedIds.includes("action-button") &&
+    launchedIds.includes("camera-control") &&
+    launchedIds.includes("dock-menus") &&
+    !launchedIds.includes("inputs-gestures") &&
+    !launchedIds.includes("inputs-keyboards") &&
+    !launchedIds.includes("inputs-pointing") &&
     !launchedIds.includes("game-center") &&
     !launchedIds.includes("mac-chrome") &&
     requiredOk;
@@ -189,10 +201,23 @@ const results = [];
   const launchedIds = selected.launched.map((s) => s.id);
   const ok =
     !(j.capabilities || []).includes("healthkit") &&
-    !launchedIds.includes("healthkit") &&
-    surfaces.requiredIds.length >= 12;
+    launchedIds.includes("healthkit") &&
+    launchedIds.includes("sign-in-with-apple") &&
+    launchedIds.includes("playing-audio") &&
+    launchedIds.includes("panels") &&
+    launchedIds.includes("path-controls") &&
+    launchedIds.includes("outline-views") &&
+    launchedIds.includes("imessage-apps-and-stickers") &&
+    launchedIds.includes("action-button") &&
+    launchedIds.includes("camera-control") &&
+    launchedIds.includes("dock-menus") &&
+    launchedIds.includes("inputs-gestures") &&
+    launchedIds.includes("inputs-keyboards") &&
+    !launchedIds.includes("inputs-pointing") &&
+    !launchedIds.includes("game-center") &&
+    surfaces.requiredIds.length === 12;
   results.push({
-    case: "tech-absent-skips-healthkit",
+    case: "tech-absent-healthkit-always",
     ok,
     capabilities: j.capabilities,
   });
@@ -212,7 +237,8 @@ const results = [];
   const ok =
     j.platform === "desktop" &&
     (j.stack?.kind === "swiftui" || j.stack?.family === "native-apple") &&
-    selected.launched.some((s) => s.id === "mac-chrome");
+    selected.launched.some((s) => s.id === "mac-chrome") &&
+    selected.launched.some((s) => s.id === "inputs-pointing");
   results.push({
     case: "swiftui-macos-package-is-desktop",
     ok,
@@ -344,9 +370,15 @@ const results = [];
     phone.platform === "phone" &&
     (phone.capabilities || []).includes("pencil") &&
     !phoneIds.includes("inputs-pencil") &&
+    phoneIds.includes("inputs-gestures") &&
+    phoneIds.includes("inputs-keyboards") &&
+    !phoneIds.includes("inputs-pointing") &&
     pad.platform === "ipad" &&
     (pad.capabilities || []).includes("pencil") &&
-    padIds.includes("inputs-pencil");
+    padIds.includes("inputs-pencil") &&
+    padIds.includes("inputs-gestures") &&
+    padIds.includes("inputs-keyboards") &&
+    padIds.includes("inputs-pointing");
   results.push({
     case: "pencil-and-gate-ipad-only",
     ok,
@@ -367,6 +399,9 @@ const results = [];
     !(phone.capabilities || []).includes("duo") &&
     !phoneIds.includes("gs-iphone-duo") &&
     phoneIds.includes("gs-ios") &&
+    phoneIds.includes("inputs-gestures") &&
+    phoneIds.includes("inputs-keyboards") &&
+    !phoneIds.includes("inputs-pointing") &&
     surfaces.requiredIds.length === 12;
   results.push({
     case: "phone-only-skips-iphone-duo",
@@ -420,6 +455,24 @@ const results = [];
     ok,
     capabilities: regions.capabilities,
     launchedDuo: ids.includes("gs-iphone-duo"),
+  });
+}
+
+{
+  const sparse = run("fixtures/sparse");
+  const brand = run("fixtures/brand-veto");
+  const blob = JSON.stringify(sparse);
+  const ok =
+    sparse.appleTypeDefault == null &&
+    brand.appleTypeDefault == null &&
+    !/type_default=/.test(sparse.HIG_PREFLIGHT) &&
+    !/type_default=/.test(brand.HIG_PREFLIGHT) &&
+    !/SF Pro/.test(blob) &&
+    !/-apple-system/.test(blob);
+  results.push({
+    case: "host-fonts-stay",
+    ok,
+    preflight: sparse.HIG_PREFLIGHT,
   });
 }
 

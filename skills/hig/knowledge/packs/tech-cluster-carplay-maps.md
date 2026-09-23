@@ -5,8 +5,8 @@
 
 ## Live Apple pages
 
-- [CarPlay](https://developer.apple.com/design/human-interface-guidelines/carplay)
-- [Maps](https://developer.apple.com/design/human-interface-guidelines/maps)
+- [CarPlay](https://developer.apple.com/design/human-interface-guidelines/carplay) (dedicated `carplay` surface attaches by appleUrl)
+- [Maps](https://developer.apple.com/design/human-interface-guidelines/maps) (dedicated `maps` surface attaches by appleUrl)
 
 ## Apply stance
 

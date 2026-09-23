@@ -556,6 +556,10 @@ function detectCapabilitiesFromTree(cwd) {
     blobs.push(readHead(path.join(cwd, rel), 12000));
   }
   const blob = blobs.join("\n");
+  const webBlob = files
+    .filter((rel) => /\.(tsx|jsx|vue|html|js|mjs)$/i.test(rel))
+    .map((rel) => readHead(path.join(cwd, rel), 12000))
+    .join("\n");
   if (
     /\bimport\s+HealthKit\b/.test(blob) ||
     /\bHKHealthStore\b/.test(blob) ||
@@ -568,7 +572,10 @@ function detectCapabilitiesFromTree(cwd) {
   if (
     /\bimport\s+GameKit\b/.test(blob) ||
     /\bGKLocalPlayer\b/.test(blob) ||
-    /com\.apple\.developer\.game-center/.test(blob)
+    /\bGKAccessPoint\b/.test(blob) ||
+    /com\.apple\.developer\.game-center/.test(blob) ||
+    /\bdata-game-center\b/.test(webBlob) ||
+    /\bGKAccessPoint\b/.test(webBlob)
   ) {
     capabilities.add("gamecenter");
   }
@@ -610,6 +617,10 @@ function detectCapabilitiesFromTree(cwd) {
     /\bPKPaymentButton\b/.test(blob) ||
     /\bPayWithApplePayButton\b/.test(blob) ||
     /\bApplePayButton\b/.test(blob) ||
+    /\bdata-apple-pay\b/.test(blob) ||
+    /\bdata-apple-pay\b/.test(webBlob) ||
+    /\bPKPaymentButton\b/.test(webBlob) ||
+    /\bPayWithApplePayButton\b/.test(webBlob) ||
     /com\.apple\.developer\.in-app-payments/.test(blob);
   if (walletSignals) capabilities.add("wallet");
   if (applePaySignals) capabilities.add("applepay");
@@ -641,6 +652,14 @@ function detectCapabilitiesFromTree(cwd) {
   }
   if (/\bimport\s+ARKit\b/.test(blob)) capabilities.add("arkit");
   if (/\bimport\s+CoreML\b/.test(blob)) capabilities.add("coreml");
+  if (/\bimport\s+ShazamKit\b/.test(blob)) capabilities.add("shazam");
+  if (
+    /com\.apple\.developer\.associated-appclip-app-identifiers/.test(blob) ||
+    /com\.apple\.developer\.parent-application-identifiers/.test(blob) ||
+    /appclips:/.test(blob)
+  ) {
+    capabilities.add("appclips");
+  }
   return { capabilities, blob };
 }
 

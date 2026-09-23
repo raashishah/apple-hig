@@ -36,6 +36,7 @@ Own surface: drag sources, drop delegates, reorder. Do not exclusive-lease a lis
 - Hidden drag with no alternative.
 - Drop that navigates away without a preview.
 - Fighting system multi-window / split-view drops on iPad.
+- A drag image that is constantly and radically changing.
 
 ## Checklist
 

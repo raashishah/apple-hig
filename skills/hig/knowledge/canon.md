@@ -52,11 +52,11 @@ Never copy another patient app’s brand (no Pink Depot rose, no personal-site f
 2. **Apple docs, not patient apps.** Cite Apple HIG URLs. Chrome FAIL IDs live in `knowledge/chrome/grammar.yaml`.
 3. **Materials.** Standard system bars, sheets, and controls. No custom opaque fills that fight glass. Respect Reduce Transparency / Increase Contrast. Do not teach `UIDesignRequiresCompatibility` as a design.
 4. **List columns are browsers.** Compact toolbar, dense rows. Detail owns the large title and primary page chrome.
-5. **Chrome grammar.** Solved FAILs have stable IDs. Review cites `structure:<id>`. Soft prose is not a substitute.
+5. **Chrome grammar.** Solved FAILs have stable IDs. Review cites `structure:<id>`. Soft prose is not a substitute. `scripts/check-chrome.mjs` is the mechanical P0 gate.
 6. **Kit lock.** Use the host’s components and tokens. Do not add a parallel CSS/React system.
 7. **Brand veto.** `register: brand` or `brand_mutation_veto: spacing_and_touch_targets_locked` → review/adapt do not change spacing or touch-target metrics. Structure FAILs still report.
 8. **Marketing ≠ app chrome.** Never force tab bars or split views onto `register: brand` landings.
 
 ## Done test
 
-The UI feels Apple-native when an outside reviewer can say: hierarchy is obvious, chrome is quiet, controls are familiar, motion is restrained, and nothing extra remains. Until then, `/hig` keeps swarming.
+The UI feels Apple-native when an outside reviewer can say: hierarchy is obvious, chrome is quiet, controls are familiar, motion is restrained, and nothing extra remains — **and** `check-chrome.mjs` reports no P0. Until then, `/hig` keeps swarming.

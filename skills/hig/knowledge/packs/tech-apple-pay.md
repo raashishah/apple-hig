@@ -1,41 +1,41 @@
 # tech-apple-pay
 
-**Apple:** https://developer.apple.com/design/human-interface-guidelines/apple-pay  
-**Gate:** `capability:applepay` (Pay-specific: `PKPaymentAuthorization`, `PKPaymentRequest`, `PKPaymentButton`, `com.apple.developer.in-app-payments` — **not** a bare `import PassKit`). Wallet/pass hosts use `capability:wallet`. **not** `requiredIds`  
-**Also live-link (do not pack artwork):** [Wallet](https://developer.apple.com/design/human-interface-guidelines/wallet), [Tap to Pay on iPhone](https://developer.apple.com/design/human-interface-guidelines/tap-to-pay-on-iphone), [In-app purchase](https://developer.apple.com/design/human-interface-guidelines/in-app-purchase)
+**Apple:** [Apple Pay](https://developer.apple.com/design/human-interface-guidelines/apple-pay)  
+**Surface id (later):** `apple-pay`  
+**Compose with:** packed managing-accounts when the same chrome already exists; do not treat packed Wallet, packed Tap to Pay, packed NFC, packed In-App Purchase, or a bare Apple Pay phrase as this pack  
+**Gate (later):** `capability:applepay` when the host has Apple Pay chrome (`PKPaymentButton`, `PayWithApplePayButton`, `data-apple-pay`); skip otherwise. Do not overlay `always`. A PassKit wallet host is not Apple Pay.
 
-Official button assets and payment-sheet chrome. Do **not** complete Pay or biometrics.
+Apple Pay does not use the Apple Pay mark as a payment button, does not make Apple Pay plural or possessive, and does not replace the word Apple with the Apple logo. Do not invent Apple Pay. Do not complete the payment sheet. Do not map this pack onto packed Wallet.
 
-## Human-only
+## Apple guidance (1:1)
 
-Never finish Apple Pay payment sheets, card selection, billing address, Face ID / Touch ID confirmation, or merchant capture. Style chrome **around** the system sheet. Do not automate payment. Do not ask the host user to pay.
-
-## Apple guidance (invariants)
-
-- Apple Pay is a secure way to pay for physical goods and services, donations, and subscriptions in apps and in browsers.
-- Use **official** Apple Pay button / mark (`PKPaymentButton`, `Pay with Apple Pay`). Do not draw a custom Apple Pay button or mark.
-- Present the **system** payment sheet. Do not restyle it, overlay it, or add extra steps that delay the sheet.
-- Order lines and totals on the sheet must match what the person is buying.
-- Apple Pay is a **payment method**, not an identity provider (that is Sign in with Apple).
-- Digital goods that App Store rules send through In-App Purchase stay on IAP — live-link that page; do not fake Apple Pay for those SKUs.
-
-## Do
-
-- Official black / white / white-outline button per contrast on the surrounding surface.
-- One Apple Pay action that presents the sheet; host chrome stays quiet behind it.
-- Web: Apple Pay JS / Payment Request with official button; still human-only to complete.
+- Use the Apple Pay mark only to communicate that Apple Pay is accepted. Never use the mark as a payment button or position it as a button.
+- Use Apple Pay exactly as shown in the Apple trademark list. Never make it plural or possessive.
+- Never use the Apple logo to represent the name Apple in text.
+- Wallet pass chrome stays on packed Wallet. Tap to Pay, NFC, and In-App Purchase stay themselves. Account-required-before-use stays on packed managing-accounts.
+- Host typeface stays. This pack does not rewrite fonts or inject a kit.
 
 ## Don't
 
-- Custom “Pay” pills that look like Apple Pay without the official asset.
-- Complete or screenshot-walk the payment sheet as an apply step.
-- Dump Wallet pass designer pixels into this pack.
+- The Apple Pay mark used as a payment button.
+- Apple Pay made plural or possessive.
+- The Apple logo used in place of the word Apple.
 
 ## Apply in host
 
-| Host | How |
+Map onto existing Apple Pay chrome (`PKPaymentButton`, `PayWithApplePayButton`, `data-apple-pay`). Do not invent a payment sheet, a mark, or a logo. Do not complete Apple Pay or biometrics. Do not inject a kit.
+
+| Host | Prefer |
 |---|---|
-| SwiftUI | `PayWithApplePayButton` / PassKit; unmodified `PKPaymentAuthorization` UI |
-| UIKit | `PKPaymentButton` + `PKPaymentAuthorizationViewController` |
-| Web | Official Apple Pay button + Payment Request; never a fake mark |
-| CSS / brand fixtures | **Skip** |
+| SwiftUI | Existing `PayWithApplePayButton` when it already exists, not a mark drawn as a button |
+| UIKit | `PKPaymentButton` when it already exists |
+| AppKit | Existing Apple Pay chrome when it already exists |
+| Web | Existing `data-apple-pay`, not packed Wallet or a generic Pay label |
+
+## Checklist
+
+- [ ] A real Apple Pay widget exists before this pack applies
+- [ ] The Apple Pay mark is not used as a payment button
+- [ ] Copy does not make Apple Pay plural or possessive
+- [ ] The Apple logo does not stand in for the word Apple
+- [ ] Packed Wallet, packed Tap to Pay, packed NFC, and packed In-App Purchase stay themselves

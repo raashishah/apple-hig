@@ -12,7 +12,7 @@ Default `/hig` path. Whole-app Apple HIG from existing requirements, then a **pa
 - `load-context.mjs` → `mutation` is not `unsupported`
 - If unsupported: print `stopLine` and stop
 - Read `knowledge/canon.md`
-- Run `node <skill>/scripts/load-surfaces.mjs` and `node <skill>/scripts/load-chrome-grammar.mjs`
+- Run `node <skill>/scripts/load-surfaces.mjs`, `node <skill>/scripts/load-chrome-grammar.mjs`, and `node <skill>/scripts/load-catalog.mjs`
 
 ## Steps
 
@@ -24,9 +24,10 @@ From context JSON + repo skim (do not invent other products’ brands):
 - Existing brand snapshot (`brandSnapshot`)
 - `stack.kind` / `stack.family` (swiftui, uikit, web, react, …)
 - `platform` (`phone` / `ipad` / `desktop` / `games` / `unknown`) and `capabilities` (tokens such as `healthkit`)
+- `node <skill>/scripts/plan-catalog.mjs --cwd <host>` after preflight (wave-0 vs catalog remaining)
 - Infer `register`: `product` for tools/scoreboards/shells; `brand` for marketing/portfolio/landing
 
-Ask **zero** interview questions when enough signal exists. If brand tokens are missing, pick calm defaults from existing assets or a neutral system stack and record them in `DESIGN.md`.
+Ask **zero** interview questions when enough signal exists. If brand hue is missing, keep a quiet system accent. Do not rewrite fonts.
 
 If `stack.family` is `web` and kind is React/Next, load optional sibling `hig-react` for DOM/ARIA mapping only.
 
@@ -38,7 +39,8 @@ Write/refresh (Apple-designer voice for **this** product):
 2. `.hig/app-design.md` using `references/project/app-design-template.md`
 3. `.hig/screens.yaml` using `references/project/screens-yaml-template.yaml`
 4. `.hig/progress.yaml` — screens + swarm round status
-5. `.hig/swarm/` directory
+5. `.hig/catalog-status.yaml` from `plan-catalog.mjs --write`
+6. `.hig/swarm/` directory
 
 On `register: brand`, include:
 
@@ -51,14 +53,14 @@ unless the user explicitly asked to restyle spacing.
 ### 2.5 Chrome grammar (non-optional for product chrome)
 
 1. Run `node <skill>/scripts/load-chrome-grammar.mjs` and read `knowledge/chrome/grammar.yaml`.
-2. Read `knowledge/chrome/review-rubric.md` archetype → gates table.
-3. For each screen, bind applicable rule IDs (list-browser, form-page, app-shell). Implement so those rules would **PASS**. Soft pack prose is not enough.
+2. Read `knowledge/chrome/review-rubric.md` archetype → gates table and `knowledge/chrome/recipes.md`.
+3. For each screen, bind applicable rule IDs (list-browser, form-page, app-shell). Implement so those rules would **PASS**. Soft pack prose is not enough. Run `apply-chrome.mjs`, then remaining recipes, then `check-chrome.mjs`.
 
 ### 3. Swarm (same run, parallel)
 
 Do **not** implement serially as a single agent editing all of `src/` at once. Fan out.
 
-**Round cap:** 3. Stop early on gold PASS.
+**Chrome retries:** at most 3 rounds. That cap is not catalog done.
 
 #### 3a. Audit (parallel)
 
@@ -87,7 +89,21 @@ Follow `references/agents/synthesizer.md`. Write `.hig/swarm/plan.yaml` with **e
 
 Launch apply Tasks (`references/agents/apply-worker.md`) only for surfaces with files. They edit **leased paths only**, in the host language (SwiftUI/UIKit/CSS/existing components). No React kit injection.
 
-Parent agent applies any leftover files that could not be leased.
+**Wave 0 apply leases = `requiredIds` only.** Optional `gate: always` surfaces may audit; do not apply them until `check-chrome.mjs` reports `pass: true` for required chrome.
+
+Parent agent applies any leftover files that could not be leased. Then run `node <skill>/scripts/check-chrome.mjs`. If P0 remains, run `node <skill>/scripts/apply-chrome.mjs --cwd <host> --write` and re-check. Remaining hits: next chrome round re-applies only failed surfaces using `recipes.md`.
+
+#### 3c-2. Catalog waves (after chrome P0)
+
+When `check-chrome.mjs` `pass` is true, run:
+
+```bash
+node <skill>/scripts/apply-catalog.mjs --cwd <host> --write
+```
+
+That accounts packed topics whose `chromeIds` are clean **and whose pack has no Don't bullets** (including pack **Chrome gates**), pack **Don't** code spans, and prose Don'ts whose every bullet has a mechanical scanner (required type/color/motion/a11y, plus search, writing, privacy, branding, icons, images, app-icons, inclusion, optional-widget Don'ts for settings, undo, loading, feedback, onboarding, drag, notifications, and launching when that widget exists, chrome-backed layout, materials, lists, forms, and navigation Don'ts, host-widget Don'ts for menus, pickers, progress, controls, sliders, scroll-views, popovers, collections, page-controls, labels, text-views, image-views, charts, disclosure-controls, boxes, edit-menus, offering-help, web-views, activity-views, and printing, and going-full-screen, and file-management, and focus-and-selection, and managing-accounts, and tab-views, and multitasking, and ratings-and-reviews, and windows, and playing-video, and playing-haptics, and airplay, and gyro-and-accelerometer, and home-screen-quick-actions, and live-viewing-apps, and snippets, and generative-ai, and always-on, and shareplay, and nearby-interactions, and activity-rings, and nfc, and augmented-reality, and tap-to-pay-on-iphone, and id-verifier, and apple-in-app-purchase, and maps, and homekit, and workouts, and live-photos, and icloud, and siri, and app-shortcuts, and healthkit, and carplay, and sign-in-with-apple, and apple-pay, and playing-audio, and game-center, and panels, and path-controls, and outline-views, and imessage-apps-and-stickers, and action-button, and camera-control, and dock-menus, and gestures, and keyboards, and pointing-devices, and apple-pencil, and game-controls, and iphone-duo, and carekit, and system-chrome Don'ts for widgets, Live Activities, status bars, and Control Center when that capability exists, and RTL Don'ts for right-to-left, and nested-modal Don'ts for sheets/alerts/action-sheets/modality). Composed `also:` Apple articles (dark-mode, SF Symbols, context/pull-down/pop-up menus, notifications glanceability, charting-data) ride the parent pack Don't scanners — no second swarm lease. Packs with Don't bullets account through Don't scanners, not clean chromeIds. Do not rewrite host brand voice as success. Apply remaining pending `waveTopicIds` (optional prose-only Don'ts on widgets the host already has) with the same leased apply workers. Map each catalog topic onto the host’s existing widgets. Do not inject a kit or a missing control. Optional menu / picker / progress / search / notification / loading / feedback / onboarding / drag / settings / undo / slider / scroll / popover / collection / pagecontrol / label / textview / imageview / chart / disclosure / box / editmenu / help / webview / activityview / print / fullscreen / filebrowser / focus / account / tabview / multitask / reviewprompt / appwindow / videoplayer / haptic / airplay / gyro / quickaction / liveviewing / snippet / genai / alwayson / shareplay / nearby / activityring / nfc / ar / taptopay / idverifier / iap / map / homekit / workout / livephoto / icloud / siri / appshortcut / healthkit / carplay / siwa / applepay / audioplayer / gcaccess / panel / pathcontrol / outline / stickerpack / actionbutton / cameracontrol / dockmenu rows are `skipped-no-affordance` when that widget is absent. A Search nav link is not a search field. `<select>` is a picker, not a menu. A data-entry form is not Settings. Cancel is not Undo. `type=range` is a slider, not a picker. Document/body overflow is not a scroll view. A sheet `dialog` is not a popover. A `<ul>` inventory is a list, not a collection. A progress bar is not a page control. Numbered pagination is not a page control. A form `<label>` and `aria-label` are not a static label widget. An `<input>` is not a text view. Every `<img>` is not an image view. A table of numbers is not a chart. A menu or `aria-expanded` toolbar is not a disclosure control. A card, grouped list, or form fieldset is not a box. A command `role="menu"` or the Mac menu bar is not an edit menu. Onboarding and a `title=` attribute are not offering-help. The host document is not a web view. A Share nav link is not an activity view. A share-sheet Print row is not a Print action. `100vh` and a video's native controls are not full-screen. `<input type="file">` is not a file browser. `:focus` CSS, `tabindex`, and `autofocus` alone are not a focus system. A data-entry form, Settings, a password field, and Sign in with Apple are not an account screen. A bottom tab bar is not a tab view. A video element is not a multitasking session. A star glyph or onboarding is not an App Store ratings prompt. The host document is not a window. `100vh` is not a video player. Picture in Picture chrome is a multitasking session, not this pack. A button tap is not a haptic. A video element or a Share control is not AirPlay. A volume slider is not playing audio. A video element is not playing audio. A Game Center phrase is not the access point. import GameKit is not the access point. A sheet is not a panel. A regular window is not a panel. A file browser is not a path control. The status bar is not a path control. A plain list is not an outline view. An image is not a sticker pack. An App Shortcut is not an Action button. A slider is not a Camera Control. A menu is not a Dock menu. A button or a tap phrase is not a gesture. An input is not a keyboard. A link cursor is not a pointing device. An import PencilKit is not a pencil canvas. An import SpriteKit is not a game control. An ArrangementView is not a Duo layout. An import CareKit is not a care plan. An import ResearchKit is not a study. An import PassKit is not a pass. An App Clip entitlement is not an App Clip Code. An import ShazamKit is not a recognition session. An import PhotosUI is not a photo editing session. A swipe or CSS motion is not a gyroscope. A context menu or Share control is not a Home Screen quick action. Every `<video>` is not a live-viewing app. A card or packed App Shortcuts is not a snippet. A textarea is not generative AI. Dimmed CSS is not Always On. A Share control is not SharePlay. NFC, geolocation, or a Share control is not Nearby Interaction. A progress bar or CSS circle is not Activity rings. Nearby Interaction, Wallet, Tap to Pay, and packed Apple Pay are not NFC. Every image or CSS 3D is not augmented reality. NFC and packed Apple Pay are not Tap to Pay. NFC, Tap to Pay, and packed Apple Pay are not ID Verifier. Packed Apple Pay, Tap to Pay, and ID Verifier are not In-App Purchase. Packed CarPlay is not a map. Packed iCloud is not HomeKit. Packed Activity rings are not a workout. Every still photo or packed playing-video is not a Live Photo. Packed file-management is not iCloud. Packed App Shortcuts is not Siri. Packed Siri is not App Shortcuts. Packed HomeKit, packed Activity rings, packed workouts, and packed privacy are not HealthKit. Packed maps are not CarPlay. Topics in the plan with `skipped-no-pack` / `skipped-gate` / `n/a-register` / `skipped-no-affordance` / `applied` / `already-compliant` are accounted — do not invent UI for them. Human-only packs (Apple Pay capture, Sign in consent, biometrics) style chrome around system sheets only.
+
+If `done` is false, persist `.hig/catalog-status.yaml`, mark applied topics, and run `plan-catalog.mjs` again. Do not print catalog done after only 12 surfaces.
 
 #### 3d. Gold QA
 
@@ -96,7 +112,7 @@ Follow `references/verbs/review.md` (report). Use `references/agents/gold-qa-rev
 - Web: **768** and **375**
 - Native: compact and regular width
 
-If P0 `structure:chrome.*` remains and mutation is open, start the next round (re-audit failed surfaces only).
+If P0 `structure:chrome.*` remains (review **or** `check-chrome.mjs`) and mutation is open, start the next **chrome** round (re-audit failed surfaces only). If chrome is clean and catalog `remaining` > 0, continue catalog waves.
 
 ### 4. Evidence
 
@@ -112,6 +128,7 @@ If P0 `structure:chrome.*` remains and mutation is open, start the next round (r
 - Do not force app chrome onto brand landings.
 - Do not copy Warehouse / personal-site tokens into this project.
 - Do not add a parallel component library.
+- Do not emit `HIG_CHROME` PASS while `check-chrome.mjs` reports P0 fails.
 
 ## Done shape
 
@@ -119,6 +136,7 @@ If P0 `structure:chrome.*` remains and mutation is open, start the next round (r
 HIG_DESIGN: register=<product|brand> screens=<n> stack=<kind>
 HIG_SWARM: round=<n> surfaces=<n> applied=<n>
 HIG_CHROME: gates=<n> passed=<n>
+HIG_CATALOG: applicable=<n> remaining=<n> phase=<chrome|catalog>
 HIG_BRAND: preserved|updated-per-design
 HIG_EVIDENCE: wide=<path|pending> compact=<path|pending>
 HIG_IVE: simpler=yes|no native=yes|no

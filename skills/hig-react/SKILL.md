@@ -29,7 +29,8 @@ This is not a component library. Do not add shadcn, a CSS kit, or copied widgets
 
 ## Rules
 
-- Follow parent `/hig` canon and chrome grammar IDs.
+- Follow parent `/hig` canon, chrome grammar IDs, and `knowledge/chrome/recipes.md`.
+- After apply, parent runs `check-chrome.mjs`.
 - Prefer semantic HTML over `div` soup.
 - Bind existing CSS variables. Never introduce `--hig-*` tokens that duplicate brand.
 - Glass only on overlays, with solid fallback.
