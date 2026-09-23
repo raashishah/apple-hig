@@ -17513,7 +17513,7 @@ struct OneTorch: ControlWidget {
 `;
     fs.writeFileSync(path.join(uikitDir, "HostWidgets.tsx"), origUikit);
     const origRole = `export function HostWidgets() {
-  let alert = UIAlertController(title: "Discard?", message: nil, preferredStyle: .alert)
+  let alert = UIAlertController(title: "Discard the draft", message: nil, preferredStyle: .alert)
   alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
   return alert
 }
@@ -21705,7 +21705,7 @@ ${dots}
     const marked = `export function HostWidgets() {
   return (
     <dialog role="alertdialog" data-al-lines>
-      <h2>Save this draft?</h2>
+      <h2>Save this draft</h2>
       <button type="button">Save</button>
     </dialog>
   );
@@ -21725,7 +21725,7 @@ ${dots}
     const origTwo = `export function HostWidgets() {
   return (
     <dialog role="alertdialog">
-      <h2>Save this<br />draft?</h2>
+      <h2>Save this<br />draft</h2>
       <button type="button">Save</button>
     </dialog>
   );
@@ -21735,7 +21735,7 @@ ${dots}
     const origMessage = `export function HostWidgets() {
   return (
     <dialog role="alertdialog">
-      <h2>Save this draft?</h2>
+      <h2>Save this draft</h2>
       <p>Line one<br />line two<br />line three</p>
       <button type="button">Save</button>
     </dialog>
@@ -21777,7 +21777,7 @@ ${dots}
 `;
     fs.writeFileSync(path.join(swiftDir, "HostWidgets.tsx"), origSwift);
     const origSwiftTwo = `export function HostWidgets() {
-  return UIAlertController(title: "Save this\\ndraft?", message: "Keep it?", preferredStyle: .alert);
+  return UIAlertController(title: "Save this\\ndraft", message: "Keep it?", preferredStyle: .alert);
 }
 `;
     fs.writeFileSync(path.join(swiftTwoDir, "HostWidgets.tsx"), origSwiftTwo);
@@ -21818,7 +21818,7 @@ ${dots}
       remaining: reports.pass.plan.coverage.remaining > 0,
       fixAlerts: alerts("fix") === "applied",
       markerGone: !/data-al-lines(?![\w-])/.test(fixed),
-      titleKept: /Save this draft\?/.test(fixed),
+      titleKept: /<h2>Save this draft<\/h2>/.test(fixed),
       holdUnchanged: held === origHold,
       holdAlerts: alerts("hold") === "pending",
       holdLines: /draft before/.test(held),
@@ -26385,19 +26385,19 @@ ${dots}
     </dialog>`);
     fs.writeFileSync(
       path.join(titledDir, "HostWidgets.tsx"),
-      alert(`<h2>Save this draft?</h2>
+      alert(`<h2>Save this draft</h2>
       <button type="button">Save</button>`),
     );
     fs.writeFileSync(
       path.join(pairDir, "HostWidgets.tsx"),
-      alert(`<h2>Save this draft?</h2>
+      alert(`<h2>Save this draft</h2>
       <p>Keep the draft?</p>
       <button type="button">Save</button>
       <button type="button">Cancel</button>`),
     );
     fs.writeFileSync(
       path.join(outsideDir, "HostWidgets.tsx"),
-      alert(`<h2>Save this draft?</h2>
+      alert(`<h2>Save this draft</h2>
       <p>Tap outside the alert to dismiss.</p>
       <button type="button">Save</button>`),
     );
@@ -26429,7 +26429,7 @@ ${dots}
 `;
     fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
     const marked = host(`<dialog role="alertdialog" aria-label="Save" data-al-hint>
-      <h2>Save this draft?</h2>
+      <h2>Save this draft</h2>
       <button type="button">Save</button>
     </dialog>`);
     fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
