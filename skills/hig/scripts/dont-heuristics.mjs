@@ -10011,6 +10011,34 @@ function applyAcShot(text) {
   return text.replace(/\s*data-ac-shot(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcAdsCopy(text) {
+  return /don['’]?t display ads in your app clip/i.test(text);
+}
+
+function hasAppClipAdvertisement(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /role=["']advertisement["']/i.test(text) || /\badsbygoogle\b/i.test(text);
+}
+
+function scanAcAds(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-ads(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an advertisement in an App Clip"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcAdsCopy(f.text) || hasAppClipAdvertisement(f.text)) {
+      out.push(hit(f.path, "an advertisement in an App Clip"));
+    }
+  }
+  return out;
+}
+
+function applyAcAds(text) {
+  return text.replace(/\s*data-ac-ads(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -12771,6 +12799,8 @@ function scanHeuristic(id, files) {
       return scanAcGap(files);
     case "ac-shot":
       return scanAcShot(files);
+    case "ac-ads":
+      return scanAcAds(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -13499,6 +13529,8 @@ function applyHeuristic(id, file) {
       return applyAcGap(file.text);
     case "ac-shot":
       return applyAcShot(file.text);
+    case "ac-ads":
+      return applyAcAds(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

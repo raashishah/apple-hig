@@ -14805,7 +14805,7 @@ struct OneTorch: ControlWidget {
       shadowClip: shadowStatus.topics["app-clips"]?.state === "pending",
       shadowKept: /drop-shadow/.test(shadowed),
       adsUnchanged: ads === origAds,
-      adsClip: adsStatus.topics["app-clips"]?.state === "already-compliant",
+      adsClip: adsStatus.topics["app-clips"]?.state === "pending",
       adsKept: /Don't display ads/.test(ads),
       bareClip: bareStatus.topics["app-clips"]?.state === "skipped-gate",
       bareMarkersRemain: /data-ac-modified/.test(bared),
@@ -14973,7 +14973,7 @@ struct OneTorch: ControlWidget {
       rotateClip: rotateStatus.topics["app-clips"]?.state === "pending",
       rotateKept: /rotate\s*\(/.test(rotated),
       adsUnchanged: ads === origAds,
-      adsClip: adsStatus.topics["app-clips"]?.state === "already-compliant",
+      adsClip: adsStatus.topics["app-clips"]?.state === "pending",
       adsKept: /Don't display ads/.test(ads),
       bareClip: bareStatus.topics["app-clips"]?.state === "skipped-gate",
       bareMarkersRemain:
@@ -15141,7 +15141,7 @@ struct OneTorch: ControlWidget {
       holdStillPhrase: /aspect ratio/.test(held) && /\bdata-app-clip-code\b/.test(held),
       holdNotInvented: !/AppClipCodeGenerator/.test(held),
       adsUnchanged: ads === origAds,
-      adsClip: adsStatus.topics["app-clips"]?.state === "already-compliant",
+      adsClip: adsStatus.topics["app-clips"]?.state === "pending",
       adsKept: /Don't display ads/.test(ads),
       bareClip: bareStatus.topics["app-clips"]?.state === "skipped-gate",
       bareMarkersRemain: /data-ac-aspect/.test(bared),
@@ -15289,7 +15289,7 @@ struct OneTorch: ControlWidget {
       holdClip: holdStatus.topics["app-clips"]?.state === "pending",
       holdStillPhrase: /add a symbol to App Clip Codes/.test(held),
       adsUnchanged: ads === origAds,
-      adsClip: adsStatus.topics["app-clips"]?.state === "already-compliant",
+      adsClip: adsStatus.topics["app-clips"]?.state === "pending",
       adsKept: /Don't display ads/.test(ads),
       bareClip: bareStatus.topics["app-clips"]?.state === "skipped-gate",
       bareMarkersRemain: /data-ac-symbol/.test(bared),
@@ -23463,7 +23463,7 @@ ${dots}
       bothUnchanged: both === origBoth,
       bothClip: clip("both") === "already-compliant",
       adsUnchanged: ads === origAds,
-      adsClip: clip("ads") === "already-compliant",
+      adsClip: clip("ads") === "pending",
       sentenceClip: clip("sentence") === "skipped-no-affordance",
       bareClip: clip("bare") === "skipped-gate",
       bareMarkerRemains: /data-ac-solo(?![\w-])/.test(bared),
@@ -23623,7 +23623,7 @@ ${dots}
       fetchKept: /models\.zip/.test(fetched),
       apiClip: clip("api") === "already-compliant",
       adsUnchanged: ads === origAds,
-      adsClip: clip("ads") === "already-compliant",
+      adsClip: clip("ads") === "pending",
       sentenceClip: clip("sentence") === "skipped-no-affordance",
       bareClip: clip("bare") === "skipped-gate",
       bareMarkerRemains: /data-ac-fetch(?![\w-])/.test(bared),
@@ -24024,7 +24024,7 @@ ${dots}
       splashKept: /className="splash"/.test(held),
       waitClip: clip("wait") === "already-compliant",
       adsUnchanged: ads === origAds,
-      adsClip: clip("ads") === "already-compliant",
+      adsClip: clip("ads") === "pending",
       sentenceClip: clip("sentence") === "skipped-no-affordance",
       bareClip: clip("bare") === "skipped-gate",
       bareMarkerRemains: /data-ac-splash(?![\w-])/.test(bared),
@@ -24465,7 +24465,7 @@ ${dots}
       markerGone: !/data-ac-small(?![\w-])/.test(fixed),
       codeKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
       adsUnchanged: ads === origAds,
-      adsClip: clip("ads") === "already-compliant",
+      adsClip: clip("ads") === "pending",
       sentenceClip: clip("sentence") === "skipped-no-affordance",
       bareClip: clip("bare") === "skipped-gate",
       bareMarkerRemains: /data-ac-small(?![\w-])/.test(bared),
@@ -24652,7 +24652,7 @@ ${dots}
       markerGone: !/data-ac-gap(?![\w-])/.test(fixed),
       codeKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
       adsUnchanged: ads === origAds,
-      adsClip: clip("ads") === "already-compliant",
+      adsClip: clip("ads") === "pending",
       sentenceClip: clip("sentence") === "skipped-no-affordance",
       bareClip: clip("bare") === "skipped-gate",
       bareMarkerRemains: /data-ac-gap(?![\w-])/.test(bared),
@@ -24816,7 +24816,7 @@ ${dots}
       markerGone: !/data-ac-shot(?![\w-])/.test(fixed),
       codeKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
       adsUnchanged: ads === origAds,
-      adsClip: clip("ads") === "already-compliant",
+      adsClip: clip("ads") === "pending",
       sentenceClip: clip("sentence") === "skipped-no-affordance",
       bareClip: clip("bare") === "skipped-gate",
       bareMarkerRemains: /data-ac-shot(?![\w-])/.test(bared),
@@ -28036,6 +28036,181 @@ ${dots}
     for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
   }
   results.push({ case: "catalog-apply-wallet-duplicate-donts", ok, ...detail });
+}
+
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-pass-"));
+  const cleanDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-clean-"));
+  const marketDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-market-"));
+  const shotDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-shot-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-hold-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-sentence-"));
+  const looseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-loose-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-aca-bare-"));
+  const dirs = [passDir, cleanDir, marketDir, shotDir, holdDir, copyDir, sentenceDir, looseDir, fixDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [cleanDir, marketDir, shotDir, holdDir, copyDir, sentenceDir, looseDir, fixDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const codeOnly = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cleanDir, "HostWidgets.tsx"), codeOnly);
+    const origMarket = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't use App Clips solely for marketing purposes.</p>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(marketDir, "HostWidgets.tsx"), origMarket);
+    const origShot = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <div className="screenshot">Home</div>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(shotDir, "HostWidgets.tsx"), origShot);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <aside role="advertisement">Sale</aside>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Don't display ads in your App Clip.</p>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Don't display ads in your App Clip.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origLoose = `export function HostWidgets() {
+  return <aside data-ac-ads role="advertisement">Sale</aside>;
+}
+`;
+    fs.writeFileSync(path.join(looseDir, "HostWidgets.tsx"), origLoose);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-ads>
+      <button type="button">Code</button>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "clean", "market", "shot", "hold", "copy", "sentence", "loose", "fix", "bare"];
+    const dirBy = {
+      pass: passDir,
+      clean: cleanDir,
+      market: marketDir,
+      shot: shotDir,
+      hold: holdDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      loose: looseDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const marketed = fs.readFileSync(path.join(marketDir, "HostWidgets.tsx"), "utf8");
+    const shot = fs.readFileSync(path.join(shotDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const loose = fs.readFileSync(path.join(looseDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const clip = (name) => status[name].topics["app-clips"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-ads"),
+      shotHeuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-shot"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passClip: clip("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      cleanClip: clip("clean") === "already-compliant",
+      marketUnchanged: marketed === origMarket,
+      marketClip: clip("market") === "already-compliant",
+      shotUnchanged: shot === origShot,
+      shotClip: clip("shot") === "pending",
+      shotKept: /className="screenshot"/.test(shot),
+      holdUnchanged: held === origHold,
+      holdClip: clip("hold") === "pending",
+      adKept: /role="advertisement"/.test(held) && />\s*Sale\s*</.test(held),
+      copyUnchanged: copied === origCopy,
+      copyClip: clip("copy") === "pending",
+      sentenceClip: clip("sentence") === "skipped-no-affordance",
+      looseClip: clip("loose") === "skipped-no-affordance",
+      looseMarkerRemains: /data-ac-ads(?![\w-])/.test(loose),
+      fixClip: clip("fix") === "applied",
+      markerGone: !/data-ac-ads(?![\w-])/.test(fixed),
+      codeKept: /\bdata-app-clip-code\b/.test(fixed) && />\s*Code\s*</.test(fixed),
+      bareClip: clip("bare") === "skipped-gate",
+      bareMarkerRemains: /data-ac-ads(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: clip("pass"),
+      cleanClip: clip("clean"),
+      marketClip: clip("market"),
+      shotClip: clip("shot"),
+      holdClip: clip("hold"),
+      copyClip: clip("copy"),
+      sentenceClip: clip("sentence"),
+      looseClip: clip("loose"),
+      fixClip: clip("fix"),
+      bareClip: clip("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clip-ad-donts", ok, ...detail });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -720,3 +720,5 @@ heuristics:
     match: App Clip Code without clear space
   - id: ac-shot
     match: screenshot of the app interface on an App Clip Code
+  - id: ac-ads
+    match: advertisement in an app clip
