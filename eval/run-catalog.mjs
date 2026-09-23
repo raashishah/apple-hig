@@ -31340,6 +31340,232 @@ struct Notes: View {
   results.push({ case: "catalog-apply-toolbar-overflow-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-pass-"));
+  const matteDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-matte-"));
+  const cardDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-card-"));
+  const siwaDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-siwa-"));
+  const foldDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-fold-"));
+  const shadowDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-shadow-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-hold-"));
+  const swiftDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-swift-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-copy-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-sentence-"));
+  const looseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-loose-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-fix-"));
+  const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-acgloss-bare-"));
+  const dirs = [passDir, matteDir, cardDir, siwaDir, foldDir, shadowDir, holdDir, swiftDir, copyDir, sentenceDir, looseDir, fixDir, bareDir];
+  const entitlement = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>com.apple.developer.associated-appclip-app-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.example.clip</string></array>
+</dict></plist>
+`;
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    for (const dir of [matteDir, cardDir, siwaDir, foldDir, shadowDir, holdDir, swiftDir, copyDir, sentenceDir, looseDir, fixDir]) {
+      fs.writeFileSync(path.join(dir, "App.entitlements"), entitlement);
+    }
+    const origMatte = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code finish="matte">
+      <span>App Clip</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(matteDir, "HostWidgets.tsx"), origMatte);
+    const origCard = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code material="card">
+      <span>App Clip</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(cardDir, "HostWidgets.tsx"), origCard);
+    fs.writeFileSync(
+      path.join(siwaDir, "HostWidgets.tsx"),
+      `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <button type="button">Sign in with Apple</button>
+    </div>
+  );
+}
+`,
+    );
+    const origFold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code material="paper">
+      <span>App Clip</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(foldDir, "HostWidgets.tsx"), origFold);
+    const origShadow = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code style="filter: drop-shadow(0 0 2px #000)">
+      <span>App Clip</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(shadowDir, "HostWidgets.tsx"), origShadow);
+    const origHold = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code finish="gloss">
+      <span>App Clip</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origSwift = `import SwiftUI
+
+struct ClipCode: View {
+  var body: some View {
+    Text("App Clip")
+      .accessibilityIdentifier("data-app-clip-code")
+      .finish("holographic")
+  }
+}
+`;
+    fs.writeFileSync(path.join(swiftDir, "Canvas.swift"), origSwift);
+    const origCopy = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code>
+      <p>Avoid shine, gloss, reflective or holographic overlays, as well as thin laminate finishes or materials.</p>
+      <span>App Clip</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const origSentence = `export function HostWidgets() {
+  return <p>Avoid shine, gloss, reflective or holographic overlays, as well as thin laminate finishes or materials.</p>;
+}
+`;
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const marked = `export function HostWidgets() {
+  return (
+    <div data-app-clip-code data-ac-gloss>
+      <span>App Clip</span>
+    </div>
+  );
+}
+`;
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const loose = `export function HostWidgets() {
+  return <span data-ac-gloss>App Clip</span>;
+}
+`;
+    fs.writeFileSync(path.join(looseDir, "HostWidgets.tsx"), loose);
+    fs.writeFileSync(path.join(bareDir, "HostWidgets.tsx"), loose);
+    const names = ["pass", "matte", "card", "siwa", "fold", "shadow", "hold", "swift", "copy", "sentence", "loose", "fix", "bare"];
+    const dirBy = {
+      pass: passDir,
+      matte: matteDir,
+      card: cardDir,
+      siwa: siwaDir,
+      fold: foldDir,
+      shadow: shadowDir,
+      hold: holdDir,
+      swift: swiftDir,
+      copy: copyDir,
+      sentence: sentenceDir,
+      loose: looseDir,
+      fix: fixDir,
+      bare: bareDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const matted = fs.readFileSync(path.join(matteDir, "HostWidgets.tsx"), "utf8");
+    const carded = fs.readFileSync(path.join(cardDir, "HostWidgets.tsx"), "utf8");
+    const folded = fs.readFileSync(path.join(foldDir, "HostWidgets.tsx"), "utf8");
+    const shadowed = fs.readFileSync(path.join(shadowDir, "HostWidgets.tsx"), "utf8");
+    const copied = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const swiftKept = fs.readFileSync(path.join(swiftDir, "Canvas.swift"), "utf8");
+    const loosed = fs.readFileSync(path.join(looseDir, "HostWidgets.tsx"), "utf8");
+    const bared = fs.readFileSync(path.join(bareDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const clip = (name) => status[name].topics["app-clips"]?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-gloss"),
+      foldHeuristic: (catalog.byId["app-clips"]?.dontHeuristicIds || []).includes("ac-fold"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passClip: clip("pass") === "skipped-gate",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      matteUnchanged: matted === origMatte,
+      matteClip: clip("matte") === "already-compliant",
+      cardUnchanged: carded === origCard,
+      cardClip: clip("card") === "already-compliant",
+      siwaClip: clip("siwa") === "already-compliant",
+      foldUnchanged: folded === origFold,
+      foldClip: clip("fold") === "pending",
+      shadowUnchanged: shadowed === origShadow,
+      shadowClip: clip("shadow") === "pending",
+      holdUnchanged: held === origHold,
+      holdClip: clip("hold") === "pending",
+      finishKept: /finish="gloss"/.test(held),
+      swiftUnchanged: swiftKept === origSwift,
+      swiftClip: clip("swift") === "pending",
+      swiftKept: /\.finish\("holographic"\)/.test(swiftKept),
+      copyUnchanged: copied === origCopy,
+      copyClip: clip("copy") === "pending",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceClip: clip("sentence") === "skipped-no-affordance",
+      looseClip: clip("loose") === "skipped-no-affordance",
+      looseMarkerRemains: /data-ac-gloss(?![\w-])/.test(loosed),
+      fixClip: clip("fix") === "applied",
+      markerGone: !/data-ac-gloss(?![\w-])/.test(fixed),
+      codeKept: />\s*App Clip\s*</.test(fixed) && /\bdata-app-clip-code\b/.test(fixed),
+      entitlementKept: fs.readFileSync(path.join(fixDir, "App.entitlements"), "utf8").includes(
+        "com.apple.developer.associated-appclip-app-identifiers",
+      ),
+      bareClip: clip("bare") === "skipped-gate",
+      bareMarkerRemains: /data-ac-gloss(?![\w-])/.test(bared),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passClip: clip("pass"),
+      matteClip: clip("matte"),
+      cardClip: clip("card"),
+      siwaClip: clip("siwa"),
+      foldClip: clip("fold"),
+      shadowClip: clip("shadow"),
+      holdClip: clip("hold"),
+      swiftClip: clip("swift"),
+      copyClip: clip("copy"),
+      sentenceClip: clip("sentence"),
+      looseClip: clip("loose"),
+      fixClip: clip("fix"),
+      bareClip: clip("bare"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-app-clip-gloss-finish-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

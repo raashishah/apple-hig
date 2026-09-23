@@ -10509,6 +10509,34 @@ function applyAcCase(text) {
   return text.replace(/\s*data-ac-case(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcGlossCopy(text) {
+  return /shine, gloss, reflective or holographic/i.test(text);
+}
+
+function hasGlossFinish(text) {
+  if (!hasAppClipCode(text)) return false;
+  return /\b(?:finish|overlay|laminate)\s*[:=(]\s*["'](?:gloss|shine|holographic|laminate|reflective)["']/i.test(text);
+}
+
+function scanAcGloss(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-gloss(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an App Clip Code with a gloss finish"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcGlossCopy(f.text) || hasGlossFinish(f.text)) {
+      out.push(hit(f.path, "an App Clip Code with a gloss finish"));
+    }
+  }
+  return out;
+}
+
+function applyAcGloss(text) {
+  return text.replace(/\s*data-ac-gloss(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -13448,6 +13476,8 @@ function scanHeuristic(id, files) {
       return scanAcTm(files);
     case "ac-case":
       return scanAcCase(files);
+    case "ac-gloss":
+      return scanAcGloss(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -14212,6 +14242,8 @@ function applyHeuristic(id, file) {
       return applyAcTm(file.text);
     case "ac-case":
       return applyAcCase(file.text);
+    case "ac-gloss":
+      return applyAcGloss(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

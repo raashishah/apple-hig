@@ -756,3 +756,5 @@ heuristics:
     match: trademark as translatable
   - id: ac-case
     match: labeled in sentence case
+  - id: ac-gloss
+    match: gloss, shine, holographic
