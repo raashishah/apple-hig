@@ -27656,6 +27656,145 @@ ${dots}
   results.push({ case: "catalog-apply-overlarge-row-donts", ok, ...detail });
 }
 
+{
+  let ok = false;
+  let detail = {};
+  const passDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-pass-"));
+  const itemsDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-items-"));
+  const jokeDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-joke-"));
+  const sentenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-sentence-"));
+  const fieldDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-field-"));
+  const commentDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-comment-"));
+  const holdDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-hold-"));
+  const apiDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-api-"));
+  const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-copy-"));
+  const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-apply-wrg-fix-"));
+  const dirs = [passDir, itemsDir, jokeDir, sentenceDir, fieldDir, commentDir, holdDir, apiDir, copyDir, fixDir];
+  try {
+    const src = path.join(pluginRoot, "eval", "fixtures", "chrome-pass");
+    for (const dir of dirs) fs.cpSync(src, dir, { recursive: true });
+    const host = (inner) => `export function HostWidgets() {
+  return (
+    ${inner}
+  );
+}
+`;
+    fs.writeFileSync(
+      path.join(itemsDir, "HostWidgets.tsx"),
+      host(`<div data-empty className="empty-state"><p>No items yet</p></div>`),
+    );
+    fs.writeFileSync(
+      path.join(jokeDir, "HostWidgets.tsx"),
+      host(`<div data-empty className="empty-state"><p>This list is lame until you add items.</p></div>`),
+    );
+    const origSentence = host(
+      `<p>Remember that empty states are usually temporary, so don't show crucial information that could then disappear.</p>`,
+    );
+    fs.writeFileSync(path.join(sentenceDir, "HostWidgets.tsx"), origSentence);
+    const origField = host(
+      `<label>Password <input type="password" name="password" /></label><p>Choose a password with at least 8 characters.</p>`,
+    );
+    fs.writeFileSync(path.join(fieldDir, "HostWidgets.tsx"), origField);
+    const origComment = host(`<div data-empty className="empty-state">
+      {/* recovery key */}
+      <p>No items yet</p>
+    </div>`);
+    fs.writeFileSync(path.join(commentDir, "HostWidgets.tsx"), origComment);
+    const origHold = host(
+      `<div data-empty className="empty-state"><p>Your recovery key is ABCD</p></div>`,
+    );
+    fs.writeFileSync(path.join(holdDir, "HostWidgets.tsx"), origHold);
+    const origApi = `export function HostWidgets() {
+  ContentUnavailableView("Save your recovery key")
+}
+`;
+    fs.writeFileSync(path.join(apiDir, "HostWidgets.tsx"), origApi);
+    const origCopy = host(`<div data-empty className="empty-state"><p>No items yet</p></div>
+    <p>Remember that empty states are usually temporary, so don't show crucial information that could then disappear.</p>`);
+    fs.writeFileSync(path.join(copyDir, "HostWidgets.tsx"), origCopy);
+    const marked = host(
+      `<div data-empty data-wr-gone className="empty-state"><p>No items yet</p></div>`,
+    );
+    fs.writeFileSync(path.join(fixDir, "HostWidgets.tsx"), marked);
+    const names = ["pass", "items", "joke", "sentence", "field", "comment", "hold", "api", "copy", "fix"];
+    const dirBy = {
+      pass: passDir,
+      items: itemsDir,
+      joke: jokeDir,
+      sentence: sentenceDir,
+      field: fieldDir,
+      comment: commentDir,
+      hold: holdDir,
+      api: apiDir,
+      copy: copyDir,
+      fix: fixDir,
+    };
+    const run = (cwd) => applyCatalog({ cwd, skillRoot, register: "product", write: true });
+    const reports = Object.fromEntries(names.map((name) => [name, run(dirBy[name])]));
+    const readStatus = (dir) =>
+      parseCatalogStatus(fs.readFileSync(path.join(dir, ".hig", "catalog-status.yaml"), "utf8"));
+    const status = Object.fromEntries(names.map((name) => [name, readStatus(dirBy[name])]));
+    const fixed = fs.readFileSync(path.join(fixDir, "HostWidgets.tsx"), "utf8");
+    const held = fs.readFileSync(path.join(holdDir, "HostWidgets.tsx"), "utf8");
+    const api = fs.readFileSync(path.join(apiDir, "HostWidgets.tsx"), "utf8");
+    const sentence = fs.readFileSync(path.join(sentenceDir, "HostWidgets.tsx"), "utf8");
+    const field = fs.readFileSync(path.join(fieldDir, "HostWidgets.tsx"), "utf8");
+    const copy = fs.readFileSync(path.join(copyDir, "HostWidgets.tsx"), "utf8");
+    const hostText = dirs.flatMap((dir) => walkSource(dir)).map((f) => f.text).join("\n");
+    const catalog = loadCatalog(skillRoot);
+    const writing = (name) => status[name].topics.writing?.state;
+    const checks = {
+      requiredIds: loadSurfaces(skillRoot).requiredIds.length === 12,
+      heuristic: (catalog.byId.writing?.dontHeuristicIds || []).includes("wr-gone"),
+      here: (catalog.byId.writing?.dontHeuristicIds || []).includes("wr-here"),
+      passChrome: names.every((name) => reports[name].chrome.pass === true),
+      passWriting: writing("pass") === "already-compliant",
+      passPrinciples: status.pass.topics["design-principles"]?.state === "pending",
+      remaining: reports.pass.plan.coverage.remaining > 0,
+      itemsWriting: writing("items") === "already-compliant",
+      jokeWriting: writing("joke") === "already-compliant",
+      sentenceUnchanged: sentence === origSentence,
+      sentenceWriting: writing("sentence") === "already-compliant",
+      fieldUnchanged: field === origField,
+      fieldWriting: writing("field") === "already-compliant",
+      commentWriting: writing("comment") === "already-compliant",
+      holdUnchanged: held === origHold,
+      holdWriting: writing("hold") === "pending",
+      holdText: /Your recovery key is ABCD/.test(held),
+      apiUnchanged: api === origApi,
+      apiWriting: writing("api") === "pending",
+      apiText: /ContentUnavailableView\("Save your recovery key"\)/.test(api),
+      copyUnchanged: copy === origCopy,
+      copyWriting: writing("copy") === "pending",
+      fixWriting: writing("fix") === "applied",
+      markerGone: !/data-wr-gone(?![\w-])/.test(fixed),
+      itemsKept: /No items yet/.test(fixed),
+      emptyKept: /data-empty/.test(fixed),
+      noKit: !/SF Pro|-apple-system|shadcn/i.test(hostText),
+    };
+    ok = Object.values(checks).every(Boolean);
+    detail = {
+      passWriting: writing("pass"),
+      itemsWriting: writing("items"),
+      jokeWriting: writing("joke"),
+      sentenceWriting: writing("sentence"),
+      fieldWriting: writing("field"),
+      commentWriting: writing("comment"),
+      holdWriting: writing("hold"),
+      apiWriting: writing("api"),
+      copyWriting: writing("copy"),
+      fixWriting: writing("fix"),
+      remaining: reports.pass.plan.coverage.remaining,
+      checks,
+    };
+  } catch (err) {
+    detail = { error: String(err.message || err) };
+  } finally {
+    for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  results.push({ case: "catalog-apply-empty-crucial-donts", ok, ...detail });
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

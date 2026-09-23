@@ -11902,6 +11902,86 @@ function applyClickHereLink(text) {
   return text.replace(/\s*data-wr-here(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function matchingParen(text, openIndex) {
+  let depth = 0;
+  for (let i = openIndex; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "(") depth += 1;
+    else if (ch === ")") {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function contentUnavailableRegions(text) {
+  const out = [];
+  const re = /\bContentUnavailableView\b/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const start = m.index;
+    const paren = text.indexOf("(", start);
+    let end = start + m[0].length;
+    if (paren >= 0 && paren - start < 40) {
+      const closeParen = matchingParen(text, paren);
+      end = closeParen > paren ? closeParen + 1 : end;
+      const braceAt = text.slice(end, end + 40).search(/\{/);
+      if (braceAt >= 0) {
+        const open = end + braceAt;
+        const close = matchingBrace(text, open);
+        if (close > open) end = close + 1;
+      }
+    }
+    out.push(text.slice(start, end));
+    if (end > re.lastIndex) re.lastIndex = end;
+  }
+  return out;
+}
+
+function crucialEmptyRegions(text) {
+  return [...emptyStateRegions(text), ...contentUnavailableRegions(text)];
+}
+
+function regionShowsCrucialSecret(region) {
+  const stripped = stripWritingComments(region);
+  return (
+    /\b(?:password|passcode|recovery key)\b/i.test(stripped) ||
+    /\btype\s*=\s*["']password["']/i.test(stripped) ||
+    /\bSecureField\s*\(/.test(stripped)
+  );
+}
+
+function hasEmptyStateWidget(text) {
+  return crucialEmptyRegions(text).length > 0;
+}
+
+function hasCrucialEmptyCopy(text) {
+  return /crucial information that could then disappear/i.test(text);
+}
+
+function scanEmptyCrucial(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-wr-gone(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "crucial information in a temporary empty state"));
+      continue;
+    }
+    if (crucialEmptyRegions(f.text).some(regionShowsCrucialSecret)) {
+      out.push(hit(f.path, "crucial information in a temporary empty state"));
+      continue;
+    }
+    if (hasCrucialEmptyCopy(f.text) && hasEmptyStateWidget(f.text)) {
+      out.push(hit(f.path, "crucial information in a temporary empty state"));
+    }
+  }
+  return out;
+}
+
+function applyEmptyCrucial(text) {
+  return text.replace(/\s*data-wr-gone(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanMultiplePrimaries(files) {
   const out = [];
   for (const f of files) {
@@ -12125,6 +12205,8 @@ function scanHeuristic(id, files) {
       return scanRoboticInvalidName(files);
     case "wr-here":
       return scanClickHereLink(files);
+    case "wr-gone":
+      return scanEmptyCrucial(files);
     case "hide-unavailable-menu-items":
       return scanHiddenMenuItems(files);
     case "nested-submenus-deep":
@@ -12847,6 +12929,8 @@ function applyHeuristic(id, file) {
       return applyRoboticInvalidName(file.text);
     case "wr-here":
       return applyClickHereLink(file.text);
+    case "wr-gone":
+      return applyEmptyCrucial(file.text);
     case "hide-unavailable-menu-items":
       return applyHiddenMenuItems(file.text);
     case "nested-submenus-deep":

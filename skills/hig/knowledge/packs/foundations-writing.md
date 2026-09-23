@@ -25,6 +25,7 @@ Interface words are part of the UI. Brand voice lives in **DESIGN.md**; this pac
 - Visible copy that says we or we're.
 - A robotic error that says Invalid name.
 - A link that says Click here.
+- Crucial information in a temporary empty state.
 - Title Case On Every Long Sentence in body help.
 - Rewriting system alerts (Sign in, Pay, permissions) — chrome around them only.
 
