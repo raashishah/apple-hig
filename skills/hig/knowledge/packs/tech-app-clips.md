@@ -30,3 +30,4 @@ People scan a generated App Clip Code. The code stays the one Apple generated.
 - An App Clip Code that requires a wide scan angle.
 - An App Clip Code on paper, plastic, or fabric.
 - An App Clip Code that marks an Apple trademark as translatable.
+- An App Clip Code labeled in sentence case.

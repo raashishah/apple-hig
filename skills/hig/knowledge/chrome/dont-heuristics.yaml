@@ -750,3 +750,5 @@ heuristics:
     match: paper, plastic, or fabric
   - id: ac-tm
     match: trademark as translatable
+  - id: ac-case
+    match: labeled in sentence case

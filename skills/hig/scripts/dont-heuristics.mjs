@@ -10447,6 +10447,40 @@ function applyAcTm(text) {
   return text.replace(/\s*data-ac-tm(?:="[^"]*")?(?![\w-])/g, "");
 }
 
+function hasAcCaseCopy(text) {
+  return /use title case when using the terms/i.test(text);
+}
+
+function hasSentenceCaseLabel(text) {
+  if (!hasAppClipCode(text)) return false;
+  const re = />([^<]*)</g;
+  let found;
+  while ((found = re.exec(text))) {
+    const visible = found[1].replace(/\s+/g, " ").trim();
+    if (/^(?:app clip|app clips|app clip code|app clip codes)$/.test(visible)) return true;
+  }
+  return /\b(?:Text|Button|Label)\s*\(\s*"(?:app clip|app clips|app clip code|app clip codes)"\s*\)/.test(text);
+}
+
+function scanAcCase(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-ac-case(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "an App Clip Code labeled in sentence case"));
+      continue;
+    }
+    if (!hasAppClipCode(f.text)) continue;
+    if (hasAcCaseCopy(f.text) || hasSentenceCaseLabel(f.text)) {
+      out.push(hit(f.path, "an App Clip Code labeled in sentence case"));
+    }
+  }
+  return out;
+}
+
+function applyAcCase(text) {
+  return text.replace(/\s*data-ac-case(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function hasDestructivePrimaryCopy(text) {
   return (
     /don['’]?t assign the primary role to a button that performs a destructive action/i.test(text) ||
@@ -13330,6 +13364,8 @@ function scanHeuristic(id, files) {
       return scanAcFold(files);
     case "ac-tm":
       return scanAcTm(files);
+    case "ac-case":
+      return scanAcCase(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -14088,6 +14124,8 @@ function applyHeuristic(id, file) {
       return applyAcFold(file.text);
     case "ac-tm":
       return applyAcTm(file.text);
+    case "ac-case":
+      return applyAcCase(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;
