@@ -12,7 +12,7 @@ What `/hig` actually changed on real apps — and what is still missing.
 
 | Gap | What it means |
 | --- | --- |
-| **Design principles** | Pack Don'ts on `design-principles` have no scanners (taste / authoring). They stay pending until promoted deliberately. |
+| **Design principles** | Both Don'ts have scanners (`dp-platform`, `dp-taste`). A clean host accounts the topic. A claim that this pack covers Watch, TV, or Vision, or house taste (`768/375-only gold` QA), stays pending. Watch, TV, and Vision are still not apply surfaces. |
 | **No scanner yet** | Any Don't bullet without a matching rule in `knowledge/chrome/dont-heuristics.yaml` stays pending. CHANGELOG lists what *is* covered; new Apple pages need new scanners, not prompt luck. |
 | **Skip-unless affordance** | Menus, pickers, NFC, AR, workouts, etc. skip when the host has no matching widget/capability (`skipped-no-affordance`). |
 | **Human-only / invent UI** | StoreKit sheets, Sign in with Apple consent, Face ID, guest paths, nested `<dialog>` stacks, Unicode `←` back chevrons, and similar eval cases stay **pending** without inventing routes, copy, or native APIs. |
