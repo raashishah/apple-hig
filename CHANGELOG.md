@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.4.1 — 2026-09-21
+## 0.4.1 — 2026-09-28
 
-Mechanical chrome FAIL gate + recipes so `/hig` is model-proof.
+Mechanical chrome FAIL gate + catalog apply harness so `/hig` is model-proof. Shipped scope: chrome gate + catalog infra; remaining pack Don'ts documented as known gaps in `docs/PROOF.md` (not a claim of full HIG automation).
 
 - `scripts/check-chrome.mjs` scans host UI source; P0 hits block `HIG_CHROME` PASS
 - Recipes: `knowledge/chrome/recipes.md`
