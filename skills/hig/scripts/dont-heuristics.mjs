@@ -12950,6 +12950,45 @@ function scanMultiplePrimaries(files) {
   return out;
 }
 
+function scanDpPlatform(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-dp-platform(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "a claim that this pack covers watch, tv, or vision"));
+      continue;
+    }
+    if (
+      /covers Watch, TV, or Vision/i.test(f.text) ||
+      /design-principles covers watch/i.test(f.text)
+    ) {
+      out.push(hit(f.path, "a claim that this pack covers watch, tv, or vision"));
+    }
+  }
+  return out;
+}
+
+function applyDpPlatform(text) {
+  return text.replace(/\s*data-dp-platform(?:="[^"]*")?(?![\w-])/g, "");
+}
+
+function scanDpTaste(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-dp-taste(?![\w-])/.test(f.text)) {
+      out.push(hit(f.path, "house taste treated as these principles"));
+      continue;
+    }
+    if (/house taste/i.test(f.text) || /768\/375-only gold/i.test(f.text)) {
+      out.push(hit(f.path, "house taste treated as these principles"));
+    }
+  }
+  return out;
+}
+
+function applyDpTaste(text) {
+  return text.replace(/\s*data-dp-taste(?:="[^"]*")?(?![\w-])/g, "");
+}
+
 function scanHeuristic(id, files) {
   switch (id) {
     case "hero-type-in-lists":
@@ -13718,6 +13757,10 @@ function scanHeuristic(id, files) {
       return scanAcCase(files);
     case "ac-gloss":
       return scanAcGloss(files);
+    case "dp-platform":
+      return scanDpPlatform(files);
+    case "dp-taste":
+      return scanDpTaste(files);
     default: {
       const _exhaustive = id;
       void _exhaustive;
@@ -14494,6 +14537,10 @@ function applyHeuristic(id, file) {
       return applyAcCase(file.text);
     case "ac-gloss":
       return applyAcGloss(file.text);
+    case "dp-platform":
+      return applyDpPlatform(file.text);
+    case "dp-taste":
+      return applyDpTaste(file.text);
     default: {
       const _exhaustive = id;
       void _exhaustive;

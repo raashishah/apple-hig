@@ -768,3 +768,7 @@ heuristics:
     match: labeled in sentence case
   - id: ac-gloss
     match: gloss, shine, holographic
+  - id: dp-platform
+    match: coverage of Watch, TV, or Vision
+  - id: dp-taste
+    match: house taste
