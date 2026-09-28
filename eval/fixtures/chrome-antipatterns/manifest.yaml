@@ -17,3 +17,12 @@ surfaces:
   - id: opaque-bar-fill
     file: surfaces/opaque-bar-fill.tsx
     violates: [chrome.bars.system-materials]
+  - id: fashion-glass-nav
+    file: surfaces/fashion-glass-nav.tsx
+    violates: [chrome.materials.fashion-glass]
+  - id: card-grid-home
+    file: surfaces/card-grid-home.tsx
+    violates: [chrome.layout.card-grid-home]
+  - id: nested-cards
+    file: surfaces/nested-cards.tsx
+    violates: [chrome.ive.nested-cards]

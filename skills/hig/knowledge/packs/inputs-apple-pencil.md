@@ -2,7 +2,7 @@
 
 **Apple:** [Apple Pencil and Scribble](https://developer.apple.com/design/human-interface-guidelines/apple-pencil-and-scribble)  
 **Also:** [Gestures](https://developer.apple.com/design/human-interface-guidelines/gestures), [Undo and redo](https://developer.apple.com/design/human-interface-guidelines/undo-and-redo)  
-**Intended gate (not wired this PR):** iPad / Pencil-capable hosts. **Not** `platform_primary: desktop` CSS admin. Not iPhone-only, Mac-only, or web-css.
+**Gate:** `ipad+capability:pencil` on surface `inputs-pencil`. Phone, Mac, unknown, and iPad-without-Pencil hosts skip. Skip-unless affordance `pencil`. Pointer instructional text and decorative pointer effects stay on the pointing pack.
 
 Apple lists this page as iPadOS-only. Do not ship a Digital Crown or Eyes pack here.
 
@@ -33,9 +33,16 @@ Apple lists this page as iPadOS-only. Do not ship a Digital Crown or Eyes pack h
 
 ## Don't
 
-- Hover-to-commit.
-- Autocomplete or field-jump while writing.
-- Barrel roll as a Back gesture or menu.
+- Hover that initiates an action.
+- Double-tap that modifies content.
+- Distraction while people write.
+- A squeeze that could result in data loss.
+- Continuously modifying the preview as Apple Pencil moves closer or farther.
+- Controls in locations that may be obscured by either hand.
+- A custom double-tap that is on by default.
+- A special mode before a Pencil mark.
+- A Pencil mark that affects content on other parts of the screen.
+- Autocomplete text while writing with Pencil.
 
 ## Checklist
 

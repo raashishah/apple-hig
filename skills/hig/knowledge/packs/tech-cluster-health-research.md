@@ -11,8 +11,4 @@
 
 ## Apply stance
 
-Use CareKit / ResearchKit system tasks and consent chrome. Do not complete informed-consent or Health permissions. Web-css **skip**.
-
-## Don't
-
-- Duplicate HealthKit permission rules here.
+Use CareKit / ResearchKit system tasks and consent chrome. CareKit advertising lives on `tech-carekit.md`. ResearchKit's critical-data Don't lives on `tech-researchkit.md`. Do not complete informed-consent or Health permissions. Web-css **skip**.

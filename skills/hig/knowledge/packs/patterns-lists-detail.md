@@ -24,6 +24,11 @@
 
 - Card grids posing as the master list.
 - Putting the only primary CTA only in the list toolbar when detail is the work surface.
+- A section index on a list that also shows disclosure indicators.
+- An image in a list with a corner mask.
+- An over-large table row made of a long paragraph.
+- A column heading that ends with punctuation.
+- A split view with a divider thicker than a hairline.
 
 ## Interaction states
 
@@ -36,6 +41,10 @@ Load `knowledge/chrome/grammar.yaml`. Cite these IDs in review; implement to PAS
 - `chrome.view-mode.icons`
 - `chrome.list-browser.toolbar-budget`
 - `chrome.list-browser.filter-density`
+- `chrome.layout.card-grid-home`
+- `chrome.ive.nested-cards`
+
+Recipes: `knowledge/chrome/recipes.md`.
 
 ## Checklist
 

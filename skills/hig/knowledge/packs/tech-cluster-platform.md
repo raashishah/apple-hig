@@ -14,7 +14,7 @@ Watch Always On details stay out of wave except this live link.
 
 ## Apply stance
 
-Catalyst uses Mac menu bar and pointer targets, not iPhone tab-bar-only canon. App Clips stay small and instant. iMessage extensions use system composer chrome. Web-css **skip**.
+Catalyst uses Mac menu bar and pointer targets, not iPhone tab-bar-only canon. App Clip Code Don'ts live on `tech-app-clips.md`. iMessage extensions use system composer chrome. Web-css **skip**.
 
 ## Don't
 

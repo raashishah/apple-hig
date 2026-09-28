@@ -1,42 +1,41 @@
 # tech-sign-in-with-apple
 
-**Apple:** https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple  
-**Gate:** `capability:signinwithapple` (entitlement / Sign in with Apple capability — **not** `requiredIds`)  
-**Compose with:** patterns-forms, foundations-privacy (when packed)
+**Apple:** [Sign in with Apple](https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple)  
+**Surface id (later):** `sign-in-with-apple`  
+**Compose with:** packed managing-accounts when the same chrome already exists; do not treat a password field, packed Apple Pay, or a bare Sign in with Apple phrase as this pack  
+**Gate (later):** `always` when the host has Sign in with Apple chrome (`SignInWithAppleButton`, `ASAuthorizationAppleIDButton`, `data-siwa`); skip otherwise
 
-Legal/UX invariants only. Do not reprint button artwork. Do **not** complete Sign in or biometrics.
+Sign in with Apple does not ask for a password, does not ask for a personal email when a private relay address is used, and does not draw a custom Apple logo. Do not invent Sign in with Apple. Do not complete the system sign-in sheet. Do not map this pack onto packed managing-accounts or packed Apple Pay.
 
-## Human-only
+## Apple guidance (1:1)
 
-Never finish Sign in with Apple consent, Hide My Email, two-factor, Face ID / Touch ID / Optic ID, or passkey sheets. Style chrome **around** system UI. Do not automate those flows. Do not ask the host user to complete them.
-
-## Apple guidance (invariants)
-
-- Sign in with Apple is a fast, private way to sign into apps and websites.
-- If the product offers third-party sign-in, **Sign in with Apple is an equivalent option** — same screen, same visual weight, not buried in “more”.
-- Use **official** Sign in with Apple button assets / `SignInWithAppleButton`. Do not invent a lookalike or use the Apple logo as decoration.
-- Do not collect extra personal data beyond what the product needs after Apple returns identity.
-- Respect Hide My Email / private relay. Do not force a “real” email as a second gate.
-- Re-auth uses **system** biometrics or device passcode. Do not fake Face ID chrome.
-- Existing accounts can link; do not trap people in a duplicate identity.
-
-## Do
-
-- Place the official button with other sign-in methods, equal prominence.
-- Keep cancel available on the host screen that presents the system sheet.
-- Web: official Apple JS button, not a custom “Continue with Apple” sketch.
+- Don't ask people to supply a password. A key benefit of Sign in with Apple is that people don't have to create and memorize additional passwords.
+- Avoid asking for a personal email address when people supply a private relay address. Respect that choice.
+- Use only the logo artwork downloaded from Apple Design Resources; never create a custom Apple logo.
+- Account-required-before-use, buried deletion, and the term passcode stay on packed managing-accounts. Payment marks stay on packed Apple Pay.
+- Host typeface stays. This pack does not rewrite fonts or inject a kit.
 
 ## Don't
 
-- Hide Sign in with Apple behind a third-party-only menu when Guideline 4.8 applies.
-- Restyle or screenshot-complete the system authorization sheet.
-- Route voice / shortcut work to `tech-siri-app-shortcuts.md`. This pack is authentication only.
+- A password asked for alongside Sign in with Apple.
+- A personal email asked for when a private relay address is used.
+- A custom Apple logo on the Sign in with Apple button.
 
 ## Apply in host
 
-| Host | How |
+Map onto existing Sign in with Apple chrome (`SignInWithAppleButton`, `ASAuthorizationAppleIDButton`, `data-siwa`). Do not invent a button, a password field, or a logo. Do not complete Sign in, Hide My Email, or biometrics. Do not inject a kit.
+
+| Host | Prefer |
 |---|---|
-| SwiftUI | `SignInWithAppleButton`; AuthenticationServices; present system UI unmodified |
-| UIKit | `ASAuthorizationAppleIDButton` + `ASAuthorizationController` |
-| Web | Apple JS SDK button on the same sign-in surface as other providers |
-| CSS / brand fixtures | **Skip** unless the host actually ships Sign in with Apple |
+| SwiftUI | Existing `SignInWithAppleButton` when it already exists, not a custom Apple logo |
+| UIKit | `ASAuthorizationAppleIDButton` when it already exists |
+| AppKit | Existing Sign in with Apple chrome when it already exists |
+| Web | Existing `data-siwa`, not packed managing-accounts or a generic Sign in label |
+
+## Checklist
+
+- [ ] A real Sign in with Apple widget exists before this pack applies
+- [ ] The host does not ask for a password alongside Sign in with Apple
+- [ ] The host does not ask for a personal email when a private relay address is used
+- [ ] The button does not use a custom Apple logo
+- [ ] Packed managing-accounts and packed Apple Pay stay themselves

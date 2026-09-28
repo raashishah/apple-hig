@@ -33,6 +33,14 @@
 - Custom opaque fills or tints on nav / tool / tab bars that fight system materials.
 - Teaching `UIDesignRequiresCompatibility` as a design.
 - Turning a marketing landing into an iOS tab shell.
+- A disabled or hidden tab bar button.
+- A marketing word on a tab bar badge.
+- A third level of hierarchy in a sidebar.
+- A critical action at the bottom of a sidebar.
+- A window titled with the app name.
+- A toolbar item with no visible text and no accessible name.
+- A pull-down menu in a toolbar.
+- An overflow menu added in a toolbar.
 
 ## Interaction states
 
@@ -44,6 +52,8 @@ Load `knowledge/chrome/grammar.yaml`. Product register only for sidebar:
 
 - `chrome.sidebar.collapsible` — md+ sidebar has collapse/expand; not fixed expanded-only
 - `chrome.bars.system-materials` — no custom opaque bar fill
+
+Recipes: `knowledge/chrome/recipes.md`.
 
 ## Checklist
 

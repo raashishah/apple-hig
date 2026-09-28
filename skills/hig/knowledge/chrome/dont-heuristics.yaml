@@ -1,0 +1,770 @@
+# Mechanical Don't scanners for catalog apply.
+# Match is normalized against pack Don't bullets. Not a topic-id list.
+# Account a topic only when every Don't on it matches a scanner here.
+heuristics:
+  - id: hero-type-in-lists
+    match: Marketing hero type inside dense inventory lists
+  - id: all-caps-long-labels
+    match: All-caps long labels
+  - id: too-many-font-families
+    match: Mixing 5+ unrelated font families
+  - id: rainbow-nav-accents
+    match: Rainbow accents across nav
+  - id: muted-only-labels
+    match: Low-contrast muted text as the only label style
+  - id: glass-tints-on-chrome
+    match: Glass tints replacing solid semantic fills on primary chrome
+  - id: hard-black-white-chrome
+    match: Hard-coded #000 / #fff chrome that ignores Dark Mode
+  - id: color-only-error-or-selected
+    match: Color-only error or selected states
+  - id: bounce-on-appear
+    match: Ornamental bounce on menus that merely appeared
+  - id: locked-out-during-motion
+    match: Locked-out UI during transitions
+  - id: motion-without-reduce
+    match: Parallax or large zooms when Reduce Motion is on
+  - id: placeholder-only-label
+    match: Placeholder-as-only-label
+  - id: tiny-critical-type
+    match: Tiny decorative type for critical data
+  - id: color-only-error
+    match: Color-only error states
+  - id: hide-only-path-behind-search
+    match: Hide the only path to content behind search
+  - id: spinner-per-keystroke
+    match: Block the UI with a spinner on every keystroke
+  - id: search-as-settings-dump
+    match: Use search as the settings or command dump
+  - id: sarcastic-error-hides-fix
+    match: Cute or sarcastic error copy that hides the fix
+  - id: title-case-long-help
+    match: Title Case On Every Long Sentence in body help
+  - id: rewrite-system-alerts
+    match: Rewriting system alerts
+  - id: dark-pattern-allow-only
+    match: Dark-pattern Allow as the only readable control
+  - id: preemptive-permission-on-marketing
+    match: Pre-emptive camera/mic/location prompts on a marketing screen
+  - id: pv-att
+    match: custom tracking screen with an incentive or an Allow button
+  - id: pv-leave
+    match: Close or Cancel button on a custom tracking screen
+  - id: pv-plain
+    match: password written to a plain-text file
+  - id: pv-who
+    match: greeting that names the signed-in person
+  - id: rewrite-or-automate-system-ui
+    match: Rewriting or automating system permission
+  - id: opaque-brand-bar-fills
+    match: Painting opaque brand fills onto navigation
+  - id: watermarks-on-content
+    match: Watermarks on content
+  - id: brand-outlined-sf-rewrite
+    match: Rewriting SF Symbols into a custom outlined set
+  - id: sf-symbol-name-tables
+    match: Pixel tables of SF Symbol names
+  - id: outlined-doodles-in-toolbar
+    match: Custom outlined doodles next to system symbols
+  - id: decorative-icon-duplicates-label
+    match: Decorative icons that duplicate a visible text label
+  - id: screenshot-empty-state
+    match: Screenshot dumps as empty-state
+  - id: bitmap-sf-symbols
+    match: Lossy scaling of SF Symbols exported as bitmaps
+  - id: copied-scale-factor-tables
+    match: Copying Apple's scale-factor tables
+  - id: icon-composer-templates-as-law
+    match: Copying Icon Composer templates or variant recipes
+  - id: busy-photo-app-icon
+    match: Photos of people or busy gradients that collapse
+  - id: app-icon-alpha-mask-tricks
+    match: Alpha tricks that fight the system mask
+  - id: tokenizing-diversity-stock
+    match: Clownish diversity stock that tokenizes
+  - id: ability-body-jokes-empty
+    match: Ability or body jokes in empty states
+  - id: locked-skin-tone-defaults
+    match: Skin-tone or hair defaults that cannot be changed
+  - id: in-avatar
+    match: specific gender referenced in an avatar
+  - id: in-term
+    match: abbreviation with no definition
+  - id: settings-required-for-first-run
+    match: Require Settings to complete first-run
+  - id: nested-prefs-no-grouping
+    match: Nest every preference under undiscoverable chevrons
+  - id: retheme-system-settings
+    match: Re-theme system Settings chrome
+  - id: confirm-every-delete-with-undo
+    match: Confirm every delete when Undo is one tap
+  - id: silent-nav-data-loss
+    match: Silent data loss on navigation with no undo
+  - id: spinner-loop-no-way-out
+    match: Loop an indeterminate spinner with no way out
+  - id: fake-percent-progress
+    match: Animate fake percent
+  - id: loading-modal-hides-nav
+    match: Hide the nav behind a loading modal
+  - id: modal-success-after-save
+    match: Modal "Success" alerts after a save
+  - id: error-toast-disappears
+    match: Error-only-as-toast that disappears
+  - id: confetti-on-crud
+    match: Celebratory confetti on ordinary CRUD
+  - id: account-wall-before-value
+    match: Require an account before any value
+  - id: every-permission-on-page-one
+    match: Ask for every permission on page one
+  - id: help-as-six-interstitials
+    match: Duplicate Help as six interstitial cards
+  - id: ob-again
+    match: tutorial presented again on a later launch
+  - id: first-launch-notification-wall
+    match: First-launch "Enable notifications" wall
+  - id: marketing-as-time-sensitive
+    match: Marketing as time-sensitive
+  - id: custom-lock-screen-ui
+    match: Custom lock-screen UI that fights the system
+  - id: nt-badge
+    match: numeric information that isn't related to notifications
+  - id: nt-label
+    match: app name in a notification button label
+  - id: nt-open
+    match: action that merely opens your app
+  - id: nt-content
+    match: app name or icon inside the notification content
+  - id: nt-dup
+    match: multiple notifications for the same thing
+  - id: nt-mimic
+    match: custom component that mimics a notification badge
+  - id: hidden-drag-no-alternative
+    match: Hidden drag with no alternative
+  - id: drop-navigates-without-preview
+    match: Drop that navigates away without a preview
+  - id: fight-split-view-drops
+    match: Fighting system multi-window / split-view drops
+  - id: dg-morph
+    match: drag image that is constantly and radically changing
+  - id: animated-splash-after-launch
+    match: Animated splash after the system launch screen
+  - id: video-sound-on-launch
+    match: Video / sound on launch
+  - id: launch-compatibility-brand-bars
+    match: UIDesignRequiresCompatibility or custom opaque
+  - id: dashboard-card-grid-home
+    match: Dashboard card grids as the default app home
+  - id: list-pane-min-width-steals-detail
+    match: List pane min-widths that steal detail space
+  - id: relative-bottom-nav-scrolls-away
+    match: position: relative bottom nav that scrolls away
+  - id: opaque-nav-bar-fills
+    match: Custom opaque fills
+  - id: teach-compatibility-look
+    match: Teaching UIDesignRequiresCompatibility
+  - id: stacked-translucent-layers
+    match: Stacking multiple translucent layers until text fails contrast
+  - id: card-grids-as-master-list
+    match: Card grids posing as the master list
+  - id: cta-only-in-list-toolbar
+    match: only primary CTA only in the list toolbar
+  - id: ix-both
+    match: section index on a list that also shows disclosure indicators
+  - id: ls-mask
+    match: image in a list with a corner mask
+  - id: ls-tall
+    match: over-large table row made of a long paragraph
+  - id: hd-punct
+    match: column heading that ends with punctuation
+  - id: dv-thick
+    match: split view with a divider thicker than a hairline
+  - id: equal-weight-submits
+    match: Multiple equal-weight submits fighting each other
+  - id: marketing-landing-tab-shell
+    match: Turning a marketing landing into an iOS tab shell
+  - id: tb-off
+    match: disabled or hidden tab bar button
+  - id: tb-sale
+    match: marketing word on a tab bar badge
+  - id: sb-depth
+    match: third level of hierarchy in a sidebar
+  - id: sb-end
+    match: critical action at the bottom of a sidebar
+  - id: wn-app
+    match: window titled with the app name
+  - id: tb-name
+    match: toolbar item with no visible text and no accessible name
+  - id: tb-pull
+    match: pull-down menu in a toolbar
+  - id: tb-over
+    match: overflow menu added
+  - id: pd-all
+    match: view's actions in one pull-down button
+  - id: al-lines
+    match: alert title that wraps to more than two lines
+  - id: al-punct
+    match: ends with punctuation
+  - id: al-scroll
+    match: alert that scrolls
+  - id: ash-scroll
+    match: action sheet that scrolls
+  - id: al-hint
+    match: alert message that explains a button
+  - id: wr-we
+    match: visible copy that says we
+  - id: wr-name
+    match: robotic error that says invalid name
+  - id: wr-here
+    match: link that says click here
+  - id: wr-gone
+    match: crucial information in a temporary empty state
+  - id: wr-sym
+    match: error that says don't use numbers or symbols
+  - id: hide-unavailable-menu-items
+    match: Hide unavailable items instead of dimming them
+  - id: nested-submenus-deep
+    match: Nested submenus deeper than one level
+  - id: mix-menu-icons
+    match: Mix icons and no-icons in the same menu group
+  - id: mn-sub
+    match: submenu item that is unavailable
+  - id: mn-key
+    match: keyboard shortcut inside a context menu
+  - id: mn-tall
+    match: context menu taller than the window
+  - id: mn-grp
+    match: more than about three groups in a context menu
+  - id: picker-owns-the-screen
+    match: Push a new screen solely to show a picker
+  - id: stepper-no-neighbouring-value
+    match: A stepper with no visible neighbouring value
+  - id: overweight-wheel-short-list
+    match: Overweight wheels for a short list
+  - id: morph-circular-bar
+    match: Morph a circular indicator into a bar mid-task
+  - id: pg-label
+    match: label on a spinning progress indicator
+  - id: pg-vague
+    match: determinate progress indicator labeled loading or authenticating
+  - id: jump-progress-ninety
+    match: Jump progress to 90% then stall
+  - id: pull-down-to-refresh-title
+    match: Title pull-to-refresh "pull down to refresh"
+  - id: ok-instead-of-verb
+    match: OK when a verb
+  - id: toggle-navigates-or-submits
+    match: Toggles that navigate or submit
+  - id: multiple-primaries-one-region
+    match: Multiple primary actions in one region
+  - id: destructive-as-primary
+    match: primary role on a button that performs a destructive action
+  - id: tg-radios
+    match: more than about five radio buttons
+  - id: sg-mix
+    match: segmented control that mixes text and images
+  - id: sg-count
+    match: eight or more segments
+  - id: sg-role
+    match: segmented control that both selects and acts
+  - id: tg-sel
+    match: label that explains a button that changes the selection
+  - id: tg-color
+    match: relies solely on different colors to communicate state
+  - id: bt-square
+    match: label that introduces a square button
+  - id: bt-border
+    match: image button with a system border
+  - id: bt-white
+    match: white background fill and black text
+  - id: fake-in-app-widget
+    match: Mirror a fake Home Screen widget inside the app
+  - id: stretch-small-widget-large
+    match: Stretch a small widget layout to fill a large size
+  - id: app-icon-as-widget
+    match: Replicate the app icon as a widget
+  - id: point-at-dynamic-island
+    match: Decorate the in-app UI to point at the Dynamic Island
+  - id: live-activity-full-app-icon
+    match: Put the full app icon on a Live Activity
+  - id: live-activity-ads
+    match: Run ads in a Live Activity
+  - id: status-bar-always-hidden
+    match: Permanently hide the status bar
+  - id: fake-status-clock
+    match: Cover the status bar with a competing fake clock
+  - id: opaque-status-strip
+    match: Paint a custom opaque strip that fights status-bar materials
+  - id: settings-row-as-control-center
+    match: Style a settings row as Control Center
+  - id: control-toggle-one-symbol
+    match: A Control Center toggle with only one symbol for on and off
+  - id: locked-control-unredacted
+    match: Show personal title/value on a locked-device control
+  - id: scalex-whole-window
+    match: scaleX(-1) on the whole window
+  - id: physical-margin-padding
+    match: Hard-coded margin-left / padding-right
+  - id: back-chevron-always-left
+    match: back chevron always points left
+  - id: dir-auto-on-locale-root
+    match: dir=auto on html or the locale root
+  - id: nested-modal-stacks
+    match: Nested modal stacks
+  - id: al-error
+    match: alert title that is only Error or an error number
+  - id: al-cancel
+    match: Cancel button that is the default button in an alert
+  - id: al-yes-no
+    match: Yes or No button in an alert
+  - id: al-caution
+    match: caution symbol on a Save or Empty Trash alert
+  - id: sh-trio
+    match: Cancel, Done, and Back together in a sheet
+  - id: sh-done
+    match: Relying solely on the Done button to exit a sheet
+  - id: slider-as-volume
+    match: slider to adjust audio volume
+  - id: nested-same-axis-scroll
+    match: scroll view inside another scroll view
+  - id: sv-indicator
+    match: scrolling indicator on a scroll view that also shows a page control
+  - id: sv-look
+    match: look to scroll on a list
+  - id: cascade-popover
+    match: cascade or hierarchy of popovers
+  - id: popover-as-warning
+    match: popover to show a warning
+  - id: popover-on-compact
+    match: displaying popovers in compact
+  - id: custom-collection-layout
+    match: custom collection layouts that confuse
+  - id: text-collection-as-table
+    match: collection of text
+  - id: overlapping-collection-items
+    match: collection items that overlap
+  - id: page-control-as-hierarchy
+    match: hierarchical or nonsequential
+  - id: too-many-page-dots
+    match: more than about 10
+  - id: too-many-page-indicator-images
+    match: more than two different
+  - id: colored-page-indicators
+    match: colored page-control indicator
+  - id: pgc-scrub
+    match: scrubber on a page control that uses the minimal
+  - id: pgc-anim
+    match: animated page transition while a page control is scrubbing
+  - id: editable-label
+    match: text people need to edit
+  - id: long-label-as-text-view
+    match: large amount of text
+  - id: unselectable-useful-label
+    match: useful label text people can t copy
+  - id: short-text-as-field
+    match: small amount of text
+  - id: unselectable-useful-text-view
+    match: useful text-view text people can t copy
+  - id: image-view-as-button
+    match: button behaviors to an image view
+  - id: image-view-as-icon
+    match: image view for an interface icon
+  - id: text-overlay-on-image-view
+    match: overlaying text on an image view
+  - id: color-only-chart-series
+    match: solely on color
+  - id: chart-critical-behind-interaction
+    match: behind interaction
+  - id: chart-as-table
+    match: should be a table or list
+  - id: overcrowded-chart
+    match: too much data
+  - id: extra-disclosure-button
+    match: more than one disclosure button
+  - id: unlabeled-disclosure-triangle
+    match: without a descriptive label
+  - id: advanced-details-unhidden
+    match: hiding them until they re relevant
+  - id: nested-boxes
+    match: nested boxes
+  - id: oversized-box
+    match: approaches its containing view
+  - id: custom-edit-menu
+    match: custom menu that presents the same commands
+  - id: inapplicable-edit-commands
+    match: nothing is selected
+  - id: redundant-edit-controls
+    match: same functions as edit menu
+  - id: wrong-platform-help
+    match: click on iphone
+  - id: standard-component-help
+    match: standard components
+  - id: promotional-tip
+    match: promotional content
+  - id: hp-word
+    match: word popover in help documentation
+  - id: missing-web-view-back-forward
+    match: forward and back
+  - id: safari-replica-web-view
+    match: replicates safari
+  - id: duplicate-activity-actions
+    match: duplicate versions of common actions
+  - id: alternative-activity-reveal
+    match: instead of share
+  - id: print-when-nothing-printable
+    match: nothing is printable
+  - id: duplicate-page-orientation
+    match: page-orientation
+  - id: programmatic-fullscreen-resize
+    match: programmatically resized
+  - id: auto-exit-fullscreen
+    match: ends automatically
+  - id: custom-window-mode-menu
+    match: custom menu of window modes
+  - id: custom-file-toolbar
+    match: custom top toolbar
+  - id: extensions-shown-by-default
+    match: extensions shown by default
+  - id: explicit-save-required
+    match: explicit action to save
+  - id: steal-focus
+    match: without people's interaction
+  - id: custom-focus-effect
+    match: custom focus effects
+  - id: force-account-before-use
+    match: delaying sign-in
+  - id: buried-account-deletion
+    match: privacy policy or terms
+  - id: passcode-for-account-auth
+    match: passcode used for account
+  - id: popup-tabs-switch
+    match: pop-up button used to switch
+  - id: more-than-six-tabs
+    match: more than six tabs
+  - id: cross-pane-controls
+    match: affect content in another pane
+  - id: continue-when-switched-away
+    match: switch away
+  - id: notify-routine-task
+    match: routine or secondary
+  - id: ignore-primary-audio-interrupt
+    match: primary audio interruption
+  - id: rating-on-first-launch
+    match: first launch or during onboarding
+  - id: rating-interrupts-task
+    match: interrupts people while
+  - id: pester-rating-requests
+    match: pester
+  - id: open-window-as-default
+    match: as default behavior
+  - id: custom-window-frame
+    match: custom window frames
+  - id: call-window-scene
+    match: called a scene
+  - id: critical-window-bottom-bar
+    match: window bottom bar
+  - id: wn-opaque
+    match: opaque custom title bars
+  - id: wn-canon
+    match: iPhone tab-bar-only exclusive canon
+  - id: custom-video-player
+    match: diverges from the system player
+  - id: letterbox-video-padding
+    match: letterbox or pillarbox
+  - id: ask-resume-playback
+    match: resume playback
+  - id: video-loading-splash
+    match: loading or splash screen before video
+  - id: haptic-wrong-meaning
+    match: mean something else
+  - id: overused-haptics
+    match: Overused haptics
+  - id: haptic-not-optional
+    match: no way to turn them off
+  - id: stop-airplay-on-background
+    match: backgrounds or the device locks
+  - id: interrupt-other-playback
+    match: Interrupting another app's playback
+  - id: auto-mirror-airplay
+    match: Automatic mirroring
+  - id: stream-background-loop
+    match: background loops or in-app-only
+  - id: motion-without-benefit
+    match: no tangible benefit
+  - id: motion-direct-ui
+    match: directly manipulate the interface
+  - id: quick-action-app-name
+    match: App name or extra copy
+  - id: quick-action-emoji
+    match: emoji used in place
+  - id: live-unmarked-vod
+    match: not distinguished from video-on-demand
+  - id: live-audio-after-leave
+    match: leaving the live tab
+  - id: snippet-dialogue-text
+    match: Spoken dialogue text
+  - id: snippet-too-tall
+    match: taller than 400
+  - id: ai-as-human
+    match: presented as human-authored
+  - id: genai-no-revert
+    match: no way to dismiss, revert, or retry
+  - id: ga-harm
+    match: automating a destructive action inside a generative feature
+  - id: always-on-sensitive
+    match: Sensitive information
+  - id: always-on-stop-motion
+    match: stops instantly
+  - id: shareplay-adjective
+    match: paired with an adjective
+  - id: shareplay-inflected
+    match: SharePlayed
+  - id: nearby-only-way
+    match: only way to perform a task
+  - id: nearby-portrait-instruction
+    match: hold the device in portrait
+  - id: activity-rings-other-data
+    match: other types of data
+  - id: activity-rings-multi-person
+    match: more than one person
+  - id: activity-rings-recolor
+    match: Recolored
+  - id: activity-rings-decoration
+    match: decoration or branding
+  - id: nfc-contact
+    match: tap or touch
+  - id: nfc-jargon
+    match: NFC tag
+  - id: ar-jargon
+    match: world detection
+  - id: ar-glyph-misused
+    match: non-ARKit
+  - id: ar-badge
+    match: no clear space
+  - id: ar-glyph
+    match: glyph with no clear space
+  - id: ttp-apple-logo
+    match: Apple logo
+  - id: ttp-nonpayment-label
+    match: Look Up
+  - id: idv-apple-logo
+    match: ID Verifier button
+  - id: idv-comm-symbol
+    match: NFC or QR
+  - id: iap-confirm-sheet
+    match: confirmation sheet
+  - id: iap-refund-buried
+    match: Refund-request button
+  - id: iap-refund-policy
+    match: refund policies
+  - id: map-cover-legal
+    match: Maps legal link
+  - id: map-replica-apple
+    match: replicates Apple Maps
+  - id: hk-company-name
+    match: Company names
+  - id: hk-overwrite-db
+    match: HomeKit database
+  - id: hk-dup-settings
+    match: Duplicate home settings
+  - id: hk-cover-camera
+    match: Camera images blocked
+  - id: wk-distract
+    match: Distracting chrome
+  - id: wk-brief-session
+    match: Extremely brief
+  - id: lp-disassemble
+    match: frames or audio
+  - id: lp-playback-button
+    match: Video playback button
+  - id: lp-unsupported-replica
+    match: unsupported environment
+  - id: ic-ask-docs
+    match: which documents to keep
+  - id: ic-unavailable-alert
+    match: iCloud is unavailable
+  - id: ic-app-resources
+    match: App resources
+  - id: si-advertise
+    match: Advertisements or IAP
+  - id: si-impersonate
+    match: Impersonated Siri
+  - id: si-pronoun
+    match: she, he, or her
+  - id: as-reskin
+    match: Shortcuts editor
+  - id: as-lowercase
+    match: written in lowercase
+  - id: as-title-item
+    match: written in title case
+  - id: hlt-replica
+    match: replicate the Health permission
+  - id: hlt-sharing
+    match: health data sharing
+  - id: hlt-term
+    match: the term HealthKit
+  - id: cp-iphone-lock
+    match: iPhone requires input
+  - id: cp-iphone-error
+    match: Errors reported on iPhone
+  - id: cp-iphone-interact
+    match: iPhone interactions required
+  - id: sia-password
+    match: password asked for
+  - id: sia-email
+    match: personal email asked
+  - id: sia-logo
+    match: custom Apple logo
+  - id: ap-mark-button
+    match: Apple Pay mark used as a payment button
+  - id: ap-plural
+    match: made plural or possessive
+  - id: ap-logo-word
+    match: Apple logo used in place
+  - id: au-output-volume
+    match: system output volume
+  - id: au-repurpose
+    match: repurposed for a non-playback
+  - id: au-headphones
+    match: headphones disconnect
+  - id: gc-gameplay
+    match: during active gameplay
+  - id: gc-artwork
+    match: artwork resized or restyled
+  - id: gc-terms
+    match: say GameKit, game center
+  - id: gc-reskin
+    match: Re-skin Game Center or In-App Purchase chrome
+  - id: pn-window-menu
+    match: Window menu documents list
+  - id: pn-minimize
+    match: minimize button on a panel
+  - id: pn-hud-obscure
+    match: obscures the content it adjusts
+  - id: pc-toolbar
+    match: placed in a toolbar or status bar
+  - id: ov-colon
+    match: trailing colon
+  - id: ov-headings
+    match: no column headings
+  - id: st-mixed-sizes
+    match: mixed sizes within a single sticker pack
+  - id: ab-long-label
+    match: longer than three words
+  - id: ab-settings-repeat
+    match: repeats the Settings guidance
+  - id: cc-duplicate
+    match: Duplicating controls in the UI and the Camera Control overlay
+  - id: dk-elsewhere
+    match: not available in other places
+  - id: gs-unique-tap
+    match: tap-to-delete with no button
+  - id: gs-edge-swipe
+    match: edge swipes that fight system Home
+  - id: gs-gesture-only
+    match: Gesture-only navigation with no toolbar Back
+  - id: kb-repurpose
+    match: Command-Z or Command-Q
+  - id: kb-modifier
+    match: modifier added to an existing shortcut
+  - id: kb-help
+    match: Help content displayed within the keyboard
+  - id: kb-dup-keys
+    match: Duplicated Emoji/Globe or Dictation keys
+  - id: pt-instruct
+    match: instructional text displayed with a pointer
+  - id: pt-decorative
+    match: purely decorative pointer effect
+  - id: pt-track
+    match: systemwide trackpad gesture
+  - id: pe-hover
+    match: Hover that initiates an action
+  - id: pe-double-tap
+    match: Double-tap that modifies content
+  - id: pe-distract
+    match: Distraction while people write
+  - id: pe-squeeze
+    match: squeeze that could result in data loss
+  - id: pe-preview
+    match: continuously modifying the preview as Apple Pencil moves closer or farther
+  - id: pe-hand
+    match: controls in locations that may be obscured by either hand
+  - id: pe-on
+    match: double tap that is on by default
+  - id: pe-mode
+    match: special mode before a pencil mark
+  - id: pe-far
+    match: affects content on other parts of the screen
+  - id: pe-suggest
+    match: autocomplete text
+  - id: gm-letter
+    match: Abstract shapes or A, X, or R1 as artwork
+  - id: id-reinvent
+    match: Reinvent the app when it resizes
+  - id: id-fixed
+    match: Fixed widths and display-specific dependencies
+  - id: id-fold
+    match: Extreme layout changes as people fold
+  - id: ck-ad
+    match: Advertising in a care plan
+  - id: ck-logo
+    match: corporate logo or purely decorative symbol used as the care symbol
+  - id: rk-critical
+    match: data that isn't critical to the study
+  - id: wl-marketing
+    match: change message used for marketing
+  - id: wl-decline
+    match: decline a Wallet suggestion
+  - id: wl-shadow
+    match: inner drop shadows on logo artwork
+  - id: wl-strip
+    match: text embedded in the strip image
+  - id: wl-dup
+    match: duplicate notifications on a wallet pass
+  - id: wl-pad
+    match: added padding
+  - id: sz-mic
+    match: microphone that stays on after the recognition sample
+  - id: px-cancel
+    match: discards edits without a confirm
+  - id: px-toolbar
+    match: custom top toolbar in a photo-editing session
+  - id: ac-modified
+    match: homemade or modified App Clip Code
+  - id: ac-overlay
+    match: text, logos, or images over an App Clip Code
+  - id: ac-motion
+    match: animated or dimmed App Clip Code
+  - id: ac-rotate
+    match: rotated App Clip Code
+  - id: ac-aspect
+    match: generated App Clip Code with a changed aspect ratio
+  - id: ac-symbol
+    match: symbol added to an App Clip Code
+  - id: ac-solo
+    match: App Clip logo used on its own
+  - id: ac-fetch
+    match: download of additional data with an App Clip Code
+  - id: ac-splash
+    match: splash screen that makes people wait on launch
+  - id: ac-small
+    match: App Clip Code that is too small
+  - id: ac-gap
+    match: App Clip Code without clear space
+  - id: ac-shot
+    match: screenshot of the app interface on an App Clip Code
+  - id: ac-ads
+    match: advertisement in an app clip
+  - id: ac-promo
+    match: purely promotional notification
+  - id: ac-again
+    match: log in again
+  - id: ac-wide
+    match: wide scan angle
+  - id: ac-fold
+    match: paper, plastic, or fabric
+  - id: ac-tm
+    match: trademark as translatable
+  - id: ac-case
+    match: labeled in sentence case
+  - id: ac-gloss
+    match: gloss, shine, holographic

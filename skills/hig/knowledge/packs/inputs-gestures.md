@@ -3,7 +3,7 @@
 **Apple:** [Gestures](https://developer.apple.com/design/human-interface-guidelines/gestures)  
 **Also:** [Apple Pencil and Scribble](https://developer.apple.com/design/human-interface-guidelines/apple-pencil-and-scribble), [Pointing devices](https://developer.apple.com/design/human-interface-guidelines/pointing-devices), [Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)  
 **Canonical slug:** `/gestures` (legacy `/touchscreen-gestures` 301s here — do not cite the old path)  
-**Intended gate (not wired this PR):** touch / phone / iPad / UIKit / SwiftUI / mobile web. Skip on `platform_primary: desktop` unless the host is also a touch web app.
+**Gate:** `phone,ipad` on surface `inputs-gestures`. Unknown and desktop hosts skip. Skip-unless affordance `gesture`.
 
 Do not add Digital Crown, Eyes, or remotes packs. Those hardware pages are later.
 

@@ -21,6 +21,12 @@
 
 Not on watchOS, tvOS, or visionOS.
 
+## Don't
+
+- Style a settings row as Control Center.
+- A Control Center toggle with only one symbol for on and off.
+- Show personal title/value on a locked-device control.
+
 ## Apply in host
 
 | Host | Prefer |

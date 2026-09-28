@@ -56,3 +56,30 @@ rules:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/materials
     failWhen: "Nav, toolbar, tab bar, or split-view chrome uses a custom opaque fill or tint that fights system materials / Liquid Glass."
     passWhen: "Chrome uses standard system bars, sheets, and controls; glass is the functional layer and content is the content layer; no custom opaque bar backgrounds. Reduce Transparency and Increase Contrast are respected."
+
+  - id: chrome.materials.fashion-glass
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [foundations-materials, patterns-sheets]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/materials
+    failWhen: "Glass or blur is painted on nav, tab bars, or content cards as decoration instead of a functional overlay (sheet, alert, picker)."
+    passWhen: "Blur/glass is only on overlays with a solid fallback; nav and content stay system/solid."
+
+  - id: chrome.layout.card-grid-home
+    severity: P0
+    mutationClass: structure
+    registers: [product]
+    packs: [foundations-layout, patterns-lists-detail]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/layout
+    failWhen: "Product home/root is a dashboard of marketing cards rather than a list, split, or tab workspace."
+    passWhen: "Product home is a workspace (list/browser, split view, or tabs). Cards are not the root IA."
+
+  - id: chrome.ive.nested-cards
+    severity: P1
+    mutationClass: structure
+    registers: [product, any]
+    packs: [foundations-spacing, patterns-lists-detail]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/layout
+    failWhen: "List or form is wrapped in extra card panels (boxes-in-boxes) instead of system grouped content."
+    passWhen: "Lists and forms use grouped system content and hairline separators, not nested cards."

@@ -38,6 +38,9 @@ Layout itself is structural; focus order should follow visual order.
 
 - `chrome.form.column-cohesion` (with patterns-forms)
 - `chrome.sidebar.collapsible` (product shell, with patterns-navigation)
+- `chrome.layout.card-grid-home`
+
+Recipes: `knowledge/chrome/recipes.md`.
 
 ## Craft checklist
 

@@ -19,6 +19,12 @@
 - End immediately when the task ends. Lock Screen / Mac menu bar / Watch may linger up to four hours; custom dismissal often 15–30 minutes for a short summary.
 - Do not decorate the in-app UI to point at the Dynamic Island. Logo mark without a container; never the full app icon.
 
+## Don't
+
+- Decorate the in-app UI to point at the Dynamic Island.
+- Put the full app icon on a Live Activity.
+- Run ads in a Live Activity.
+
 Live-link pixel specs and presentation templates.
 
 ## Apply in host

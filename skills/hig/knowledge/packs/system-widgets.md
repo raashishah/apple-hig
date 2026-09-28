@@ -16,6 +16,12 @@
 - Meaning without colour alone (tinted / clear / vibrant / Watch inversion). Support light and dark. Accented mode: primary vs accent groups. Vibrant/Lock Screen: opaque light greys, not translucent white.
 - Gallery: realistic preview, grouped sizes, **one** description starting with a verb. Placeholder: static chrome + grey shapes, not empty.
 
+## Don't
+
+- Mirror a fake Home Screen widget inside the app.
+- Stretch a small widget layout to fill a large size.
+- Replicate the app icon as a widget.
+
 Live-link size tables, rendering-mode matrices, and Icon Composer / appearance catalogs — they churn yearly.
 
 ## Apply in host

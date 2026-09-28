@@ -24,6 +24,23 @@
 
 - Custom opaque fills on page chrome, or decorative glass on content cards.
 - Nested modal stacks without a strong reason.
+- An alert title that is only Error or an error number.
+- A Cancel button that is the default button in an alert.
+- A Yes or No button in an alert.
+- A caution symbol on a Save or Empty Trash alert.
+- Cancel, Done, and Back together in a sheet.
+- Relying solely on the Done button to exit a sheet.
+- An alert title that wraps to more than two lines.
+- A short alert title that ends with punctuation.
+- An alert that scrolls.
+- An action sheet that scrolls.
+- An alert message that explains a button.
+
+## Chrome gates
+
+- `chrome.materials.fashion-glass`
+
+Recipes: `knowledge/chrome/recipes.md`.
 
 ## Interaction states
 

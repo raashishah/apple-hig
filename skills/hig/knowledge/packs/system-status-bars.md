@@ -11,6 +11,12 @@
 - Prefer a **scroll edge effect** (blur behind the status bar) over painting a custom opaque strip that fights system materials.
 - May hide temporarily for full-screen media. Must not stay hidden: people need time and connectivity without leaving the app. Restore with a simple gesture (Photos: tap).
 
+## Don't
+
+- Permanently hide the status bar.
+- Cover the status bar with a competing fake clock.
+- Paint a custom opaque strip that fights status-bar materials.
+
 ## Apply in host
 
 | Host | Prefer |

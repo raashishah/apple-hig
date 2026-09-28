@@ -103,6 +103,8 @@ const results = [];
     "patterns-navigation.md",
     "foundations-layout.md",
     "foundations-materials.md",
+    "foundations-spacing.md",
+    "patterns-sheets.md",
   ];
   const packHits = {};
   for (const pack of packs) {
@@ -127,8 +129,10 @@ const results = [];
     extraManifest.length === 0 &&
     Object.values(packHits).every(Boolean) &&
     skillText.includes("Chrome grammar") &&
+    skillText.includes("check-chrome.mjs") &&
     reviewText.includes("structure:chrome") &&
-    designText.includes("load-chrome-grammar");
+    designText.includes("load-chrome-grammar") &&
+    designText.includes("check-chrome.mjs");
 
   results.push({
     case: "chrome-antipattern-coverage",
@@ -140,7 +144,7 @@ const results = [];
     missingManifest,
     extraManifest,
     packHits,
-    skillWired: skillText.includes("Chrome grammar"),
+    skillWired: skillText.includes("Chrome grammar") && skillText.includes("check-chrome.mjs"),
     reviewWired: reviewText.includes("structure:chrome"),
     designWired: designText.includes("load-chrome-grammar"),
   });
@@ -178,6 +182,20 @@ const results = [];
     case: "no-opaque-bar-fill-required",
     ok: requiresOpaqueBarFill.length === 0 && Boolean(grammar.byId["chrome.bars.system-materials"]),
     requiresOpaqueBarFill: requiresOpaqueBarFill.map((r) => r.id),
+  });
+}
+
+{
+  const grammar = loadChromeGrammar(skillRoot);
+  const FRAME_OR_FONT =
+    /\b(SwiftUI|UIKit|React|Flutter|Vue|Angular|Svelte|SF Pro|San Francisco|-apple-system)\b/i;
+  const hits = grammar.rules.filter((r) =>
+    FRAME_OR_FONT.test(`${r.failWhen} ${r.passWhen}`),
+  );
+  results.push({
+    case: "grammar-rules-are-design-not-framework",
+    ok: hits.length === 0,
+    hits: hits.map((r) => r.id),
   });
 }
 
