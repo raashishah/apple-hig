@@ -663,12 +663,11 @@ function affordanceMissing(need, present) {
   }
 }
 
-export function scanAffordances(files) {
-  const list = files || [];
-  const blob = list.map((f) => String(f.text || "")).join("\n");
-  const paths = list.map((f) => String(f.path || "")).join("\n");
-  const found = [];
-  if (
+const AFFORDANCE_RECORDS = [
+  {
+    id: "list",
+    test(blob, paths) {
+      return (
     /<(ul|ol|table)\b/i.test(blob) ||
     /role=["']list["']/i.test(blob) ||
     /data-list-pane/.test(blob) ||
@@ -676,349 +675,460 @@ export function scanAffordances(files) {
     /\bLazy(Column|VGrid|HGrid)\b/.test(blob) ||
     /\b(ListView|RecyclerView)\b/.test(blob) ||
     /card-grid|dashboard-cards/.test(blob) ||
-    /data-home[\s\S]{0,500}\bcard\b/i.test(blob)
-  ) {
-    found.push("list");
-  }
-  if (
+    /data-home[\s\S]{0,500}\bcard\b/i.test(blob));
+    },
+  },
+  {
+    id: "form",
+    test(blob, paths) {
+      return (
     /<form\b/i.test(blob) ||
     /data-form-page/.test(blob) ||
     /<input\b/i.test(blob) ||
-    /\b(TextField|SecureField|TextEditor)\s*\(/.test(blob)
-  ) {
-    found.push("form");
-  }
-  if (
+    /\b(TextField|SecureField|TextEditor)\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "overlay",
+    test(blob, paths) {
+      return (
     /<(dialog)\b/i.test(blob) ||
     /role=["'](dialog|alertdialog)["']/i.test(blob) ||
     /\.sheet\s*\(/.test(blob) ||
     /\bconfirmationDialog\s*\(/.test(blob) ||
     /\bUIAlertController\b/.test(blob) ||
-    /\.alert\s*\([\s\S]{0,600}?\)\s*\{[\s\S]{0,600}?\bButton\s*\(/.test(blob)
-  ) {
-    found.push("overlay");
-  }
-  if (
+    /\.alert\s*\([\s\S]{0,600}?\)\s*\{[\s\S]{0,600}?\bButton\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "chrome",
+    test(blob, paths) {
+      return (
     /<(nav|header)\b/i.test(blob) ||
     /data-nav|data-sidebar/.test(blob) ||
     /\b(NavigationSplitView|NavigationStack|NavigationView|TabView)\b/.test(blob) ||
-    /\b(UINavigationBar|UITabBar|UIToolbar)\b/.test(blob)
-  ) {
-    found.push("chrome");
-  }
-  if (
+    /\b(UINavigationBar|UITabBar|UIToolbar)\b/.test(blob));
+    },
+  },
+  {
+    id: "menu",
+    not: ["Native `<select>` is a picker, not a menu."],
+    test(blob, paths) {
+      return (
     /role=["']menu["']/i.test(blob) ||
     /role=["']menuitem/i.test(blob) ||
     /<menu\b/i.test(blob) ||
     /\bMenu\s*\(/.test(blob) ||
     /\bcontextMenu\s*\(/.test(blob) ||
     /aria-haspopup=["']menu["']/i.test(blob) ||
-    /\b(UIMenu|NSMenu|NSPullDownButton|UIContextMenuInteraction)\b/.test(blob)
-  ) {
-    found.push("menu");
-  }
-  if (
+    /\b(UIMenu|NSMenu|NSPullDownButton|UIContextMenuInteraction)\b/.test(blob));
+    },
+  },
+  {
+    id: "picker",
+    not: ["`type=range` is a slider, not a picker."],
+    test(blob, paths) {
+      return (
     /<select\b/i.test(blob) ||
     /type=["'](date|time|datetime-local|month|week|color)["']/i.test(blob) ||
     /\b(Picker|DatePicker|Stepper)\s*\(/.test(blob) ||
     /\b(UIPickerView|UIDatePicker|UIStepper|NSDatePicker|NSStepper)\b/.test(blob) ||
-    /data-ios-wheel|data-stepper|data-picker-screen|wheel-picker/.test(blob)
-  ) {
-    found.push("picker");
-  }
-  if (
+    /data-ios-wheel|data-stepper|data-picker-screen|wheel-picker/.test(blob));
+    },
+  },
+  {
+    id: "progress",
+    test(blob, paths) {
+      return (
     /<progress\b/i.test(blob) ||
     /role=["']progressbar["']/i.test(blob) ||
     /\bProgressView\s*\(/.test(blob) ||
-    /\b(UIProgressView|UIActivityIndicatorView|NSProgressIndicator)\b/.test(blob)
-  ) {
-    found.push("progress");
-  }
-  if (
+    /\b(UIProgressView|UIActivityIndicatorView|NSProgressIndicator)\b/.test(blob));
+    },
+  },
+  {
+    id: "search",
+    not: ["A nav link labeled Search is not a search field."],
+    test(blob, paths) {
+      return (
     /type=["']search["']/i.test(blob) ||
     /role=["']search["']/i.test(blob) ||
     /\.searchable\b/.test(blob) ||
-    /\b(UISearchBar|UISearchController|NSSearchField)\b/.test(blob)
-  ) {
-    found.push("search");
-  }
-  if (
+    /\b(UISearchBar|UISearchController|NSSearchField)\b/.test(blob));
+    },
+  },
+  {
+    id: "notification",
+    test(blob, paths) {
+      return (
     /Notification\.requestPermission/.test(blob) ||
     /Notification\.permission/.test(blob) ||
     /new\s+Notification\s*\(/.test(blob) ||
     /\bUNUserNotificationCenter\b/.test(blob) ||
-    /\bUNNotificationRequest\b/.test(blob)
-  ) {
-    found.push("notification");
-  }
-  if (
+    /\bUNNotificationRequest\b/.test(blob));
+    },
+  },
+  {
+    id: "loading",
+    test(blob, paths) {
+      return (
     /aria-busy=/.test(blob) ||
     /redacted\s*\(/.test(blob) ||
     /\.refreshable\b/.test(blob) ||
     /\bUIRefreshControl\b/.test(blob) ||
     /data-skeleton/.test(blob) ||
-    /\bskeleton\b/i.test(blob)
-  ) {
-    found.push("loading");
-  }
-  if (
+    /\bskeleton\b/i.test(blob));
+    },
+  },
+  {
+    id: "feedback",
+    test(blob, paths) {
+      return (
     /role=["']status["']/i.test(blob) ||
     /data-toast/.test(blob) ||
     /\.sensoryFeedback\b/.test(blob) ||
     /\bUINotificationFeedbackGenerator\b/.test(blob) ||
-    /\bconfetti\b/i.test(blob)
-  ) {
-    found.push("feedback");
-  }
-  if (
+    /\bconfetti\b/i.test(blob));
+    },
+  },
+  {
+    id: "onboarding",
+    test(blob, paths) {
+      return (
     /data-onboarding/.test(blob) ||
     /\bOnboarding(View|Screen|Flow)?\b/.test(blob) ||
     /\b(coach-?mark|feature-?tour|first-?run)\b/i.test(blob) ||
-    /\bisOnboarding\b/.test(blob)
-  ) {
-    found.push("onboarding");
-  }
-  if (
+    /\bisOnboarding\b/.test(blob));
+    },
+  },
+  {
+    id: "drag",
+    test(blob, paths) {
+      return (
     /\bdraggable\b/i.test(blob) ||
     /\bdropDestination\b/.test(blob) ||
     /\bon(Drop|Drag)\s*\(/.test(blob) ||
     /\b(UIDragInteraction|UIDropInteraction|NSDragging)/.test(blob) ||
     /aria-grabbed/.test(blob) ||
-    /data-drop/.test(blob)
-  ) {
-    found.push("drag");
-  }
-  if (
+    /data-drop/.test(blob));
+    },
+  },
+  {
+    id: "settings",
+    not: ["A data-entry form is not Settings."],
+    test(blob, paths) {
+      return (
     /data-settings/.test(blob) ||
     /\bSettingsLink\b/.test(blob) ||
     /\bSettings\s*[{(]/.test(blob) ||
     /(?:href|to)=["'][^"']*\/(settings|preferences)\b/i.test(blob) ||
     /<(h1|h2)[^>]*>\s*(Settings|Preferences)\s*</i.test(blob) ||
     /(^|\n|\/)(settings|preferences)([./]|$)/im.test(paths) ||
-    /Settings(View|Screen|Page|Form)?\.(tsx|jsx|swift|vue|html)\b/i.test(paths)
-  ) {
-    found.push("settings");
-  }
-  if (
+    /Settings(View|Screen|Page|Form)?\.(tsx|jsx|swift|vue|html)\b/i.test(paths));
+    },
+  },
+  {
+    id: "undo",
+    not: ["Cancel is not Undo."],
+    test(blob, paths) {
+      return (
     /\b(UndoManager|undoManager|NSUndoManager)\b/.test(blob) ||
     /\bregisterUndo\b/.test(blob) ||
     /\bcanUndo\b/.test(blob) ||
     /data-undo/.test(blob) ||
     /aria-label=["']Undo\b/i.test(blob) ||
     />\s*(Undo|Redo)\s*</.test(blob) ||
-    /(^|\n|\/)undo([./]|$)/im.test(paths)
-  ) {
-    found.push("undo");
-  }
-  if (
+    /(^|\n|\/)undo([./]|$)/im.test(paths));
+    },
+  },
+  {
+    id: "slider",
+    test(blob, paths) {
+      return (
     /type=["']range["']/i.test(blob) ||
     /role=["']slider["']/i.test(blob) ||
     /\bSlider\s*\(/.test(blob) ||
     /\b(UISlider|NSSlider)\b/.test(blob) ||
-    /data-(volume-)?slider/.test(blob)
-  ) {
-    found.push("slider");
-  }
-  if (hasScrollWidget(blob)) {
-    found.push("scroll");
-  }
-  if (
+    /data-(volume-)?slider/.test(blob));
+    },
+  },
+  {
+    id: "scroll",
+    not: ["Document/body overflow is not a scroll view."],
+    test(blob, paths) {
+      return (hasScrollWidget(blob));
+    },
+  },
+  {
+    id: "popover",
+    not: ["A sheet `dialog` is not a popover."],
+    test(blob, paths) {
+      return (
     /<[A-Za-z][\w]*\b[^>]*\spopover(?:\s|=|\/|>)/i.test(blob) ||
     /popover=["']/i.test(blob) ||
     /popovertarget=/i.test(blob) ||
     /data-popover/.test(blob) ||
     /\.popover\s*\(/.test(blob) ||
-    /\b(UIPopoverPresentationController|NSPopover)\b/.test(blob)
-  ) {
-    found.push("popover");
-  }
-  if (
+    /\b(UIPopoverPresentationController|NSPopover)\b/.test(blob));
+    },
+  },
+  {
+    id: "collection",
+    not: ["A `<ul>` inventory is a list, not a collection."],
+    test(blob, paths) {
+      return (
     /data-collection/.test(blob) ||
     /\b(UICollectionView|NSCollectionView)\b/.test(blob) ||
     /\bLazy(VGrid|HGrid)\b/.test(blob) ||
-    /\bCollectionView\s*[\({]/.test(blob)
-  ) {
-    found.push("collection");
-  }
-  if (
+    /\bCollectionView\s*[\({]/.test(blob));
+    },
+  },
+  {
+    id: "pagecontrol",
+    not: ["A progress bar is not a page control.","Numbered pagination is not a page control."],
+    test(blob, paths) {
+      return (
     /data-page-control/.test(blob) ||
     /data-carousel-dots/.test(blob) ||
     /\bUIPageControl\b/.test(blob) ||
     /\bPageControl\s*[\({]/.test(blob) ||
     /PageTabViewStyle/.test(blob) ||
-    /\.tabViewStyle\(\s*\.page/.test(blob)
-  ) {
-    found.push("pagecontrol");
-  }
-  if (
+    /\.tabViewStyle\(\s*\.page/.test(blob));
+    },
+  },
+  {
+    id: "label",
+    not: ["A form `<label>` and `aria-label` are not a static label widget."],
+    test(blob, paths) {
+      return (
     /\bdata-label\b/.test(blob) ||
     /\bUILabel\b/.test(blob) ||
-    /\bLabel\s*\(/.test(blob)
-  ) {
-    found.push("label");
-  }
-  if (
+    /\bLabel\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "textview",
+    not: ["An `<input>` is not a text view."],
+    test(blob, paths) {
+      return (
     /\bdata-text-view\b/.test(blob) ||
     /\bUITextView\b/.test(blob) ||
     /\bNSTextView\b/.test(blob) ||
     /\bTextEditor\s*\(/.test(blob) ||
-    /<textarea\b/i.test(blob)
-  ) {
-    found.push("textview");
-  }
-  if (
+    /<textarea\b/i.test(blob));
+    },
+  },
+  {
+    id: "imageview",
+    not: ["Every `<img>` is not an image view."],
+    test(blob, paths) {
+      return (
     /\bdata-image-view\b/.test(blob) ||
     /\bUIImageView\b/.test(blob) ||
     /\bNSImageView\b/.test(blob) ||
-    /\bAsyncImage\s*\(/.test(blob)
-  ) {
-    found.push("imageview");
-  }
-  if (
+    /\bAsyncImage\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "chart",
+    not: ["A table of numbers is not a chart."],
+    test(blob, paths) {
+      return (
     /\bdata-chart\b/.test(blob) ||
     /\bChart\s*\(/.test(blob) ||
-    /\b(BarMark|LineMark|PointMark|AreaMark|RectMark|RuleMark)\b/.test(blob)
-  ) {
-    found.push("chart");
-  }
-  if (
+    /\b(BarMark|LineMark|PointMark|AreaMark|RectMark|RuleMark)\b/.test(blob));
+    },
+  },
+  {
+    id: "disclosure",
+    not: ["A menu or `aria-expanded` toolbar is not a disclosure control."],
+    test(blob, paths) {
+      return (
     /\bdata-disclosure\b/.test(blob) ||
     /<details\b/i.test(blob) ||
     /\bDisclosureGroup\s*\(/.test(blob) ||
-    /BezelStyle\.(disclosure|pushDisclosure)/.test(blob)
-  ) {
-    found.push("disclosure");
-  }
-  if (
+    /BezelStyle\.(disclosure|pushDisclosure)/.test(blob));
+    },
+  },
+  {
+    id: "box",
+    not: ["A card, grouped list, or form fieldset is not a box."],
+    test(blob, paths) {
+      return (
     /\bdata-box\b/.test(blob) ||
     /\bNSBox\b/.test(blob) ||
-    /\bGroupBox\s*[\({]/.test(blob)
-  ) {
-    found.push("box");
-  }
-  if (
+    /\bGroupBox\s*[\({]/.test(blob));
+    },
+  },
+  {
+    id: "editmenu",
+    not: ["A command `role=\"menu\"` or the Mac menu bar is not an edit menu."],
+    test(blob, paths) {
+      return (
     /\bdata-edit-menu\b/.test(blob) ||
     /\bUIMenuController\b/.test(blob) ||
     /\bUIEditMenuInteraction\b/.test(blob) ||
-    /\.editMenu\s*\(/.test(blob)
-  ) {
-    found.push("editmenu");
-  }
-  if (
+    /\.editMenu\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "help",
+    not: ["Onboarding and a `title=` attribute are not offering-help."],
+    test(blob, paths) {
+      return (
     /\bdata-help\b/.test(blob) ||
     /\bdata-tip\b/.test(blob) ||
     /\bdata-tooltip\b/.test(blob) ||
     /role=["']tooltip["']/i.test(blob) ||
     /\bTipView\s*\(/.test(blob) ||
     /\bpopoverTip\s*\(/.test(blob) ||
-    /\.help\s*\(/.test(blob)
-  ) {
-    found.push("help");
-  }
-  if (
+    /\.help\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "webview",
+    not: ["The host document is not a web view."],
+    test(blob, paths) {
+      return (
     /\bdata-web-view\b/.test(blob) ||
     /<iframe\b/i.test(blob) ||
     /\bWKWebView\b/.test(blob) ||
-    /\bWebView\s*\(/.test(blob)
-  ) {
-    found.push("webview");
-  }
-  if (
+    /\bWebView\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "activityview",
+    not: ["A Share nav link is not an activity view."],
+    test(blob, paths) {
+      return (
     /\bdata-activity-view\b/.test(blob) ||
     /\bdata-share-sheet\b/.test(blob) ||
     /\bUIActivityViewController\b/.test(blob) ||
     /\bShareLink\s*\(/.test(blob) ||
-    /\.shareSheet\s*\(/.test(blob)
-  ) {
-    found.push("activityview");
-  }
-  if (
+    /\.shareSheet\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "print",
+    not: ["A share-sheet Print row is not a Print action."],
+    test(blob, paths) {
+      return (
     /\bdata-print\b/.test(blob) ||
     /\bwindow\.print\s*\(/.test(blob) ||
     /\bUIPrintInteractionController\b/.test(blob) ||
-    /\bNSPrintOperation\b/.test(blob)
-  ) {
-    found.push("print");
-  }
-  if (
+    /\bNSPrintOperation\b/.test(blob));
+    },
+  },
+  {
+    id: "fullscreen",
+    not: ["`100vh` and a video's native controls are not full-screen."],
+    test(blob, paths) {
+      return (
     /\bdata-fullscreen\b/.test(blob) ||
     /\brequestFullscreen\s*\(/.test(blob) ||
     /\bwebkitRequestFullscreen\s*\(/.test(blob) ||
     /\btoggleFullScreen\s*\(/.test(blob) ||
-    /\bfullScreenCover\s*\(/.test(blob)
-  ) {
-    found.push("fullscreen");
-  }
-  if (
+    /\bfullScreenCover\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "filebrowser",
+    not: ["`<input type=\"file\">` is not a file browser."],
+    test(blob, paths) {
+      return (
     /\bdata-file-browser\b/.test(blob) ||
     /\bdata-document-browser\b/.test(blob) ||
     /\bUIDocumentBrowserViewController\b/.test(blob) ||
     /\bUIDocumentPickerViewController\b/.test(blob) ||
     /\bDocumentGroup\s*\(/.test(blob) ||
     /\bNSOpenPanel\b/.test(blob) ||
-    /\bNSSavePanel\b/.test(blob)
-  ) {
-    found.push("filebrowser");
-  }
-  if (
+    /\bNSSavePanel\b/.test(blob));
+    },
+  },
+  {
+    id: "focus",
+    not: ["`:focus` CSS, `tabindex`, and `autofocus` alone are not a focus system."],
+    test(blob, paths) {
+      return (
     /\bdata-focus-system\b/.test(blob) ||
     /\bdata-focus-ring\b/.test(blob) ||
     /\bUIFocusHaloEffect\b/.test(blob) ||
     /\bfocusGroupIdentifier\b/.test(blob) ||
     /\bNSFocusRingType\b/.test(blob) ||
-    /\bpreferredFocusEnvironments\b/.test(blob)
-  ) {
-    found.push("focus");
-  }
-  if (
+    /\bpreferredFocusEnvironments\b/.test(blob));
+    },
+  },
+  {
+    id: "account",
+    not: ["A data-entry form, Settings, a password field, and Sign in with Apple are not an account screen."],
+    test(blob, paths) {
+      return (
     /\bdata-account\b/.test(blob) ||
     /\bdata-sign-in\b/.test(blob) ||
-    /\bdata-signin\b/.test(blob)
-  ) {
-    found.push("account");
-  }
-  if (
+    /\bdata-signin\b/.test(blob));
+    },
+  },
+  {
+    id: "tabview",
+    not: ["A bottom tab bar is not a tab view."],
+    test(blob, paths) {
+      return (
     /\bdata-tab-view\b/.test(blob) ||
     /\bNSTabView\b/.test(blob) ||
-    ( /role=["']tablist["']/i.test(blob) && /role=["']tabpanel["']/i.test(blob) )
-  ) {
-    found.push("tabview");
-  }
-  if (
+    ( /role=["']tablist["']/i.test(blob) && /role=["']tabpanel["']/i.test(blob) ));
+    },
+  },
+  {
+    id: "multitask",
+    not: ["A video element is not a multitasking session."],
+    test(blob, paths) {
+      return (
     /\bdata-multitask\b/.test(blob) ||
     /\brequestPictureInPicture\s*\(/.test(blob) ||
     /\bAVPictureInPictureController\b/.test(blob) ||
-    /\bpictureInPictureEnabled\b/.test(blob)
-  ) {
-    found.push("multitask");
-  }
-  if (
+    /\bpictureInPictureEnabled\b/.test(blob));
+    },
+  },
+  {
+    id: "reviewprompt",
+    not: ["A star glyph or onboarding is not an App Store ratings prompt."],
+    test(blob, paths) {
+      return (
     /\bdata-rating-prompt\b/.test(blob) ||
     /\bRequestReviewAction\b/.test(blob) ||
     /\bSKStoreReviewController\b/.test(blob) ||
-    /\brequestReview\s*\(/.test(blob)
-  ) {
-    found.push("reviewprompt");
-  }
-  if (
+    /\brequestReview\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "appwindow",
+    not: ["The host document is not a window."],
+    test(blob, paths) {
+      return (
     /\bdata-window\b/.test(blob) ||
     /\bdata-app-window\b/.test(blob) ||
     /\bNSWindow\b/.test(blob) ||
     /\bNSWindowController\b/.test(blob) ||
-    /\bopenWindow\s*\(/.test(blob)
-  ) {
-    found.push("appwindow");
-  }
-  if (
+    /\bopenWindow\s*\(/.test(blob));
+    },
+  },
+  {
+    id: "videoplayer",
+    not: ["`100vh` is not a video player.","Picture in Picture chrome is a multitasking session, not this pack."],
+    test(blob, paths) {
+      return (
     /\bdata-video-player\b/.test(blob) ||
     /\bAVPlayerViewController\b/.test(blob) ||
     /\bAVPlayer\b/.test(blob) ||
     /\bVideoPlayer\s*\(/.test(blob) ||
-    /<video\b/i.test(blob)
-  ) {
-    found.push("videoplayer");
-  }
-  if (
+    /<video\b/i.test(blob));
+    },
+  },
+  {
+    id: "haptic",
+    not: ["A button tap is not a haptic."],
+    test(blob, paths) {
+      return (
     /\bdata-haptic\b/.test(blob) ||
     /\bUIFeedbackGenerator\b/.test(blob) ||
     /\bUIImpactFeedbackGenerator\b/.test(blob) ||
@@ -1026,21 +1136,27 @@ export function scanAffordances(files) {
     /\bUISelectionFeedbackGenerator\b/.test(blob) ||
     /\bCHHapticEngine\b/.test(blob) ||
     /\bnavigator\.vibrate\s*\(/.test(blob) ||
-    /\bsensoryFeedback\b/.test(blob)
-  ) {
-    found.push("haptic");
-  }
-  if (
+    /\bsensoryFeedback\b/.test(blob));
+    },
+  },
+  {
+    id: "airplay",
+    not: ["A video element or a Share control is not AirPlay."],
+    test(blob, paths) {
+      return (
     /\bdata-airplay\b/.test(blob) ||
     /\bAVRoutePickerView\b/.test(blob) ||
     /\bAirPlayButton\b/.test(blob) ||
     /\ballowsAirPlayVideo\b/.test(blob) ||
     /\bisAirPlayVideoActive\b/.test(blob) ||
-    /\ballowsExternalPlayback\b/.test(blob)
-  ) {
-    found.push("airplay");
-  }
-  if (
+    /\ballowsExternalPlayback\b/.test(blob));
+    },
+  },
+  {
+    id: "gyro",
+    not: ["A swipe or CSS motion is not a gyroscope."],
+    test(blob, paths) {
+      return (
     /\bdata-gyro\b/.test(blob) ||
     /\bdata-accelerometer\b/.test(blob) ||
     /\bDeviceMotionEvent\b/.test(blob) ||
@@ -1048,290 +1164,449 @@ export function scanAffordances(files) {
     /\bCMMotionManager\b/.test(blob) ||
     /\bstartDeviceMotionUpdates\b/.test(blob) ||
     /\bstartAccelerometerUpdates\b/.test(blob) ||
-    /\bstartGyroUpdates\b/.test(blob)
-  ) {
-    found.push("gyro");
-  }
-  if (
+    /\bstartGyroUpdates\b/.test(blob));
+    },
+  },
+  {
+    id: "quickaction",
+    not: ["A context menu or Share control is not a Home Screen quick action."],
+    test(blob, paths) {
+      return (
     /\bdata-quick-action\b/.test(blob) ||
     /\bUIApplicationShortcutItem\b/.test(blob) ||
     /\bUIMutableApplicationShortcutItem\b/.test(blob) ||
-    /\bUIApplicationShortcutItems\b/.test(blob)
-  ) {
-    found.push("quickaction");
-  }
-  if (/\bdata-live-viewing\b/.test(blob)) {
-    found.push("liveviewing");
-  }
-  if (
+    /\bUIApplicationShortcutItems\b/.test(blob));
+    },
+  },
+  {
+    id: "liveviewing",
+    not: ["Every `<video>` is not a live-viewing app."],
+    test(blob, paths) {
+      return (/\bdata-live-viewing\b/.test(blob));
+    },
+  },
+  {
+    id: "snippet",
+    not: ["A card or packed App Shortcuts is not a snippet."],
+    test(blob, paths) {
+      return (
     /\bdata-snippet\b/.test(blob) ||
     /\bSnippetIntent\b/.test(blob) ||
-    /\bInteractiveSnippetIntent\b/.test(blob)
-  ) {
-    found.push("snippet");
-  }
-  if (
+    /\bInteractiveSnippetIntent\b/.test(blob));
+    },
+  },
+  {
+    id: "genai",
+    not: ["A textarea is not generative AI."],
+    test(blob, paths) {
+      return (
     /\bdata-generative\b/.test(blob) ||
     /\bdata-genai\b/.test(blob) ||
     /\bLanguageModelSession\b/.test(blob) ||
     /\bSystemLanguageModel\b/.test(blob) ||
     /\bImagePlaygroundView\b/.test(blob) ||
-    /\bFoundationModels\b/.test(blob)
-  ) {
-    found.push("genai");
-  }
-  if (
+    /\bFoundationModels\b/.test(blob));
+    },
+  },
+  {
+    id: "alwayson",
+    not: ["Dimmed CSS is not Always On."],
+    test(blob, paths) {
+      return (
     /\bdata-always-on\b/.test(blob) ||
     /\bisLuminanceReduced\b/.test(blob) ||
     /\bWKSupportsAlwaysOnDisplay\b/.test(blob) ||
-    /\bsupportsAlwaysOnDisplay\b/.test(blob)
-  ) {
-    found.push("alwayson");
-  }
-  if (
+    /\bsupportsAlwaysOnDisplay\b/.test(blob));
+    },
+  },
+  {
+    id: "shareplay",
+    not: ["A Share control is not SharePlay."],
+    test(blob, paths) {
+      return (
     /\bdata-shareplay\b/.test(blob) ||
     /\bGroupActivity\b/.test(blob) ||
     /\bGroupSession\b/.test(blob) ||
-    /\bActivitySharingView\b/.test(blob)
-  ) {
-    found.push("shareplay");
-  }
-  if (
+    /\bActivitySharingView\b/.test(blob));
+    },
+  },
+  {
+    id: "nearby",
+    not: ["NFC, geolocation, or a Share control is not Nearby Interaction."],
+    test(blob, paths) {
+      return (
     /\bdata-nearby\b/.test(blob) ||
     /\bNISession\b/.test(blob) ||
     /\bNINearbyPeerConfiguration\b/.test(blob) ||
     /\bNINearbyObject\b/.test(blob) ||
     /\bNIDiscoveryToken\b/.test(blob) ||
-    /\bNearbyInteraction\b/.test(blob)
-  ) {
-    found.push("nearby");
-  }
-  if (
+    /\bNearbyInteraction\b/.test(blob));
+    },
+  },
+  {
+    id: "activityring",
+    not: ["A progress bar or CSS circle is not Activity rings."],
+    test(blob, paths) {
+      return (
     /\bdata-activity-rings\b/.test(blob) ||
     /\bHKActivityRingView\b/.test(blob) ||
-    /\bWKInterfaceActivityRing\b/.test(blob)
-  ) {
-    found.push("activityring");
-  }
-  if (
+    /\bWKInterfaceActivityRing\b/.test(blob));
+    },
+  },
+  {
+    id: "nfc",
+    not: ["Nearby Interaction, Wallet, Tap to Pay, and packed Apple Pay are not NFC."],
+    test(blob, paths) {
+      return (
     /\bdata-nfc\b/.test(blob) ||
     /\bNFCNDEFReaderSession\b/.test(blob) ||
     /\bNFCTagReaderSession\b/.test(blob) ||
     /\bNFCReaderSession\b/.test(blob) ||
-    /\bCoreNFC\b/.test(blob)
-  ) {
-    found.push("nfc");
-  }
-  if (
+    /\bCoreNFC\b/.test(blob));
+    },
+  },
+  {
+    id: "ar",
+    not: ["Every image or CSS 3D is not augmented reality."],
+    test(blob, paths) {
+      return (
     /\bdata-ar\b/.test(blob) ||
     /\bARView\b/.test(blob) ||
     /\bARSCNView\b/.test(blob) ||
     /\bARQuickLookPreviewing\b/.test(blob) ||
-    /\brel=["']ar["']/.test(blob)
-  ) {
-    found.push("ar");
-  }
-  if (
+    /\brel=["']ar["']/.test(blob));
+    },
+  },
+  {
+    id: "taptopay",
+    not: ["NFC and packed Apple Pay are not Tap to Pay."],
+    test(blob, paths) {
+      return (
     /\bdata-tap-to-pay\b/.test(blob) ||
     /\bProximityReader\b/.test(blob) ||
     /\bPaymentCardReader\b/.test(blob) ||
-    /\bPaymentCardReaderSession\b/.test(blob)
-  ) {
-    found.push("taptopay");
-  }
-  if (
+    /\bPaymentCardReaderSession\b/.test(blob));
+    },
+  },
+  {
+    id: "idverifier",
+    not: ["NFC, Tap to Pay, and packed Apple Pay are not ID Verifier."],
+    test(blob, paths) {
+      return (
     /\bdata-id-verifier\b/.test(blob) ||
     /\bMobileDriversLicenseDisplayRequest\b/.test(blob) ||
     /\bMobileDriversLicenseDataRequest\b/.test(blob) ||
-    /\bMobileDriversLicenseRawDataRequest\b/.test(blob)
-  ) {
-    found.push("idverifier");
-  }
-  if (
+    /\bMobileDriversLicenseRawDataRequest\b/.test(blob));
+    },
+  },
+  {
+    id: "iap",
+    not: ["Packed Apple Pay, Tap to Pay, and ID Verifier are not In-App Purchase."],
+    test(blob, paths) {
+      return (
     /\bdata-in-app-purchase\b/.test(blob) ||
     /\bStoreKit\b/.test(blob) ||
     /\bSKPaymentQueue\b/.test(blob) ||
-    /\bProduct\.purchase\b/.test(blob)
-  ) {
-    found.push("iap");
-  }
-  if (
+    /\bProduct\.purchase\b/.test(blob));
+    },
+  },
+  {
+    id: "map",
+    not: ["Packed CarPlay is not a map."],
+    test(blob, paths) {
+      return (
     /\bdata-map\b/.test(blob) ||
     /\bMKMapView\b/.test(blob) ||
     /\bMapKit\b/.test(blob) ||
-    /\bmapkit\.Map\b/.test(blob)
-  ) {
-    found.push("map");
-  }
-  if (
+    /\bmapkit\.Map\b/.test(blob));
+    },
+  },
+  {
+    id: "homekit",
+    not: ["Packed iCloud is not HomeKit."],
+    test(blob, paths) {
+      return (
     /\bdata-homekit\b/.test(blob) ||
     /\bHMHomeManager\b/.test(blob) ||
     /\bHMAccessory\b/.test(blob) ||
-    /\bHMHome\b/.test(blob)
-  ) {
-    found.push("homekit");
-  }
-  if (
+    /\bHMHome\b/.test(blob));
+    },
+  },
+  {
+    id: "workout",
+    not: ["Packed Activity rings are not a workout."],
+    test(blob, paths) {
+      return (
     /\bdata-workout\b/.test(blob) ||
     /\bHKWorkoutSession\b/.test(blob) ||
     /\bHKWorkout\b/.test(blob) ||
-    /\bWorkoutKit\b/.test(blob)
-  ) {
-    found.push("workout");
-  }
-  if (
+    /\bWorkoutKit\b/.test(blob));
+    },
+  },
+  {
+    id: "livephoto",
+    not: ["Every still photo or packed playing-video is not a Live Photo."],
+    test(blob, paths) {
+      return (
     /\bdata-live-photo\b/.test(blob) ||
     /\bPHLivePhotoView\b/.test(blob) ||
-    /\bPHLivePhoto\b/.test(blob)
-  ) {
-    found.push("livephoto");
-  }
-  if (
+    /\bPHLivePhoto\b/.test(blob));
+    },
+  },
+  {
+    id: "icloud",
+    not: ["Packed file-management is not iCloud."],
+    test(blob, paths) {
+      return (
     /\bdata-icloud\b/.test(blob) ||
     /\bCKContainer\b/.test(blob) ||
-    /\bNSUbiquitousKeyValueStore\b/.test(blob)
-  ) {
-    found.push("icloud");
-  }
-  if (
+    /\bNSUbiquitousKeyValueStore\b/.test(blob));
+    },
+  },
+  {
+    id: "siri",
+    not: ["Packed App Shortcuts is not Siri."],
+    test(blob, paths) {
+      return (
     /\bdata-siri\b/.test(blob) ||
     /\bINInteraction\b/.test(blob) ||
-    /\bSiriKit\b/.test(blob)
-  ) {
-    found.push("siri");
-  }
-  if (
+    /\bSiriKit\b/.test(blob));
+    },
+  },
+  {
+    id: "appshortcut",
+    not: ["Packed Siri is not App Shortcuts."],
+    test(blob, paths) {
+      return (
     /\bdata-app-shortcuts\b/.test(blob) ||
     /\bAppShortcutsProvider\b/.test(blob) ||
-    /\bSiriTipUIView\b/.test(blob)
-  ) {
-    found.push("appshortcut");
-  }
-  if (
+    /\bSiriTipUIView\b/.test(blob));
+    },
+  },
+  {
+    id: "healthkit",
+    not: ["Packed HomeKit, packed Activity rings, packed workouts, and packed privacy are not HealthKit."],
+    test(blob, paths) {
+      return (
     /\bdata-healthkit\b/.test(blob) ||
     /\bHKHealthStore\b/.test(blob) ||
-    /\bHKQuantityTypeIdentifier\b/.test(blob)
-  ) {
-    found.push("healthkit");
-  }
-  if (
+    /\bHKQuantityTypeIdentifier\b/.test(blob));
+    },
+  },
+  {
+    id: "carplay",
+    not: ["Packed maps are not CarPlay."],
+    test(blob, paths) {
+      return (
     /\bdata-carplay\b/.test(blob) ||
     /\bCPInterfaceController\b/.test(blob) ||
-    /\bCPTemplateApplicationScene\b/.test(blob)
-  ) {
-    found.push("carplay");
-  }
-  if (
+    /\bCPTemplateApplicationScene\b/.test(blob));
+    },
+  },
+  {
+    id: "siwa",
+    not: ["Packed managing-accounts and packed Apple Pay are not Sign in with Apple."],
+    test(blob, paths) {
+      return (
     /\bdata-siwa\b/.test(blob) ||
     /\bSignInWithAppleButton\b/.test(blob) ||
-    /\bASAuthorizationAppleIDButton\b/.test(blob)
-  ) {
-    found.push("siwa");
-  }
-  if (
+    /\bASAuthorizationAppleIDButton\b/.test(blob));
+    },
+  },
+  {
+    id: "applepay",
+    not: ["Packed Wallet is not Apple Pay."],
+    test(blob, paths) {
+      return (
     /\bdata-apple-pay\b/.test(blob) ||
     /\bPKPaymentButton\b/.test(blob) ||
-    /\bPayWithApplePayButton\b/.test(blob)
-  ) {
-    found.push("applepay");
-  }
-  if (
+    /\bPayWithApplePayButton\b/.test(blob));
+    },
+  },
+  {
+    id: "audioplayer",
+    not: ["A volume slider is not playing audio.","A video element is not playing audio."],
+    test(blob, paths) {
+      return (
     /\bdata-playing-audio\b/.test(blob) ||
     /\bAVAudioSession\b/.test(blob) ||
-    /\bMPNowPlayingInfoCenter\b/.test(blob)
-  ) {
-    found.push("audioplayer");
-  }
-  if (/\bdata-game-center\b/.test(blob) || /\bGKAccessPoint\b/.test(blob)) {
-    found.push("gcaccess");
-  }
-  if (/\bdata-panel\b/.test(blob) || /\bNSPanel\b/.test(blob) || /\bdata-hud\b/.test(blob)) {
-    found.push("panel");
-  }
-  if (/\bdata-path-control\b/.test(blob) || /\bNSPathControl\b/.test(blob)) {
-    found.push("pathcontrol");
-  }
-  if (/\bdata-outline\b/.test(blob) || /\bNSOutlineView\b/.test(blob)) {
-    found.push("outline");
-  }
-  if (/\bdata-sticker-pack\b/.test(blob) || /\bMSSticker\b/.test(blob)) {
-    found.push("stickerpack");
-  }
-  if (/\bdata-action-button\b/.test(blob)) {
-    found.push("actionbutton");
-  }
-  if (/\bdata-camera-control\b/.test(blob) || /\bAVCaptureControl\b/.test(blob)) {
-    found.push("cameracontrol");
-  }
-  if (/\bdata-dock-menu\b/.test(blob) || /\bapplicationDockMenu\b/.test(blob)) {
-    found.push("dockmenu");
-  }
-  if (
+    /\bMPNowPlayingInfoCenter\b/.test(blob));
+    },
+  },
+  {
+    id: "gcaccess",
+    not: ["A Game Center phrase is not the access point.","import GameKit is not the access point."],
+    test(blob, paths) {
+      return (/\bdata-game-center\b/.test(blob) || /\bGKAccessPoint\b/.test(blob));
+    },
+  },
+  {
+    id: "panel",
+    not: ["A sheet is not a panel.","A regular window is not a panel."],
+    test(blob, paths) {
+      return (/\bdata-panel\b/.test(blob) || /\bNSPanel\b/.test(blob) || /\bdata-hud\b/.test(blob));
+    },
+  },
+  {
+    id: "pathcontrol",
+    not: ["A file browser is not a path control.","The status bar is not a path control."],
+    test(blob, paths) {
+      return (/\bdata-path-control\b/.test(blob) || /\bNSPathControl\b/.test(blob));
+    },
+  },
+  {
+    id: "outline",
+    not: ["A plain list is not an outline view."],
+    test(blob, paths) {
+      return (/\bdata-outline\b/.test(blob) || /\bNSOutlineView\b/.test(blob));
+    },
+  },
+  {
+    id: "stickerpack",
+    not: ["An image is not a sticker pack."],
+    test(blob, paths) {
+      return (/\bdata-sticker-pack\b/.test(blob) || /\bMSSticker\b/.test(blob));
+    },
+  },
+  {
+    id: "actionbutton",
+    not: ["An App Shortcut is not an Action button."],
+    test(blob, paths) {
+      return (/\bdata-action-button\b/.test(blob));
+    },
+  },
+  {
+    id: "cameracontrol",
+    not: ["A slider is not a Camera Control."],
+    test(blob, paths) {
+      return (/\bdata-camera-control\b/.test(blob) || /\bAVCaptureControl\b/.test(blob));
+    },
+  },
+  {
+    id: "dockmenu",
+    not: ["A menu is not a Dock menu."],
+    test(blob, paths) {
+      return (/\bdata-dock-menu\b/.test(blob) || /\bapplicationDockMenu\b/.test(blob));
+    },
+  },
+  {
+    id: "gesture",
+    not: ["A button or a tap phrase is not a gesture."],
+    test(blob, paths) {
+      return (
     /\bdata-gesture\b/.test(blob) ||
     /\bonTapGesture\b/.test(blob) ||
     /\bUITapGestureRecognizer\b/.test(blob) ||
     /\bUISwipeGestureRecognizer\b/.test(blob) ||
     /\bUIPanGestureRecognizer\b/.test(blob) ||
-    /\bDragGesture\b/.test(blob)
-  ) {
-    found.push("gesture");
-  }
-  if (
+    /\bDragGesture\b/.test(blob));
+    },
+  },
+  {
+    id: "keyboard",
+    not: ["An input is not a keyboard."],
+    test(blob, paths) {
+      return (
     /\bdata-keyboard\b/.test(blob) ||
     /\bkeyboardShortcut\b/.test(blob) ||
     /\bUIKeyCommand\b/.test(blob) ||
-    /\bkeyEquivalent\b/.test(blob)
-  ) {
-    found.push("keyboard");
-  }
-  if (
+    /\bkeyEquivalent\b/.test(blob));
+    },
+  },
+  {
+    id: "pointer",
+    not: ["A link cursor is not a pointing device."],
+    test(blob, paths) {
+      return (
     /\bdata-pointer\b/.test(blob) ||
     /\bUIPointerStyle\b/.test(blob) ||
     /\bUIPointerInteraction\b/.test(blob) ||
     /\bNSCursor\b/.test(blob) ||
-    /\bcursor:\s*url\(/.test(blob)
-  ) {
-    found.push("pointer");
-  }
-  if (
+    /\bcursor:\s*url\(/.test(blob));
+    },
+  },
+  {
+    id: "pencil",
+    not: ["An import PencilKit is not a pencil canvas."],
+    test(blob, paths) {
+      return (
     /\bdata-pencil\b/.test(blob) ||
     /\bPKCanvasView\b/.test(blob) ||
     /\bPKToolPicker\b/.test(blob) ||
-    /\bUIScribbleInteraction\b/.test(blob)
-  ) {
-    found.push("pencil");
-  }
-  if (/\bdata-game-controls\b/.test(blob)) {
-    found.push("gamecontrol");
-  }
-  if (/\bdata-duo\b/.test(blob)) {
-    found.push("duolayout");
-  }
-  if (/\bdata-carekit\b/.test(blob)) {
-    found.push("carekit");
-  }
-  if (/\bdata-researchkit\b/.test(blob)) {
-    found.push("researchkit");
-  }
-  if (/\bdata-wallet\b/.test(blob)) {
-    found.push("walletpass");
-  }
-  if (/\bdata-app-clip-code\b/.test(blob)) {
-    found.push("appclipcode");
-  }
-  if (
+    /\bUIScribbleInteraction\b/.test(blob));
+    },
+  },
+  {
+    id: "gamecontrol",
+    not: ["An import SpriteKit is not a game control."],
+    test(blob, paths) {
+      return (/\bdata-game-controls\b/.test(blob));
+    },
+  },
+  {
+    id: "duolayout",
+    not: ["An ArrangementView is not a Duo layout."],
+    test(blob, paths) {
+      return (/\bdata-duo\b/.test(blob));
+    },
+  },
+  {
+    id: "carekit",
+    not: ["An import CareKit is not a care plan."],
+    test(blob, paths) {
+      return (/\bdata-carekit\b/.test(blob));
+    },
+  },
+  {
+    id: "researchkit",
+    not: ["An import ResearchKit is not a study."],
+    test(blob, paths) {
+      return (/\bdata-researchkit\b/.test(blob));
+    },
+  },
+  {
+    id: "walletpass",
+    not: ["An import PassKit is not a pass."],
+    test(blob, paths) {
+      return (/\bdata-wallet\b/.test(blob));
+    },
+  },
+  {
+    id: "appclipcode",
+    not: ["An App Clip entitlement is not an App Clip Code."],
+    test(blob, paths) {
+      return (/\bdata-app-clip-code\b/.test(blob));
+    },
+  },
+  {
+    id: "shazam",
+    not: ["An import ShazamKit is not a recognition session."],
+    test(blob, paths) {
+      return (
     /\bdata-shazam\b/.test(blob) ||
     /\bSHSession\b/.test(blob) ||
-    /\bSHManagedSession\b/.test(blob)
-  ) {
-    found.push("shazam");
-  }
-  if (/\bdata-photo-edit\b/.test(blob) || /\bPHContentEditingController\b/.test(blob)) {
-    found.push("photoedit");
+    /\bSHManagedSession\b/.test(blob));
+    },
+  },
+  {
+    id: "photoedit",
+    not: ["An import PhotosUI is not a photo editing session."],
+    test(blob, paths) {
+      return (/\bdata-photo-edit\b/.test(blob) || /\bPHContentEditingController\b/.test(blob));
+    },
+  },
+];
+
+export function scanAffordances(files) {
+  const list = files || [];
+  const blob = list.map((f) => String(f.text || "")).join("\n");
+  const paths = list.map((f) => String(f.path || "")).join("\n");
+  const found = [];
+  for (const row of AFFORDANCE_RECORDS) {
+    if (row.test(blob, paths)) found.push(row.id);
   }
   return found;
 }
-
 function isDocumentScrollSelector(sel) {
   const parts = String(sel || "")
     .replace(/\/\*[\s\S]*?\*\//g, " ")
