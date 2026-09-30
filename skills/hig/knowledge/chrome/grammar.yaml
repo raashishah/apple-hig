@@ -83,3 +83,39 @@ rules:
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/layout
     failWhen: "List or form is wrapped in extra card panels (boxes-in-boxes) instead of system grouped content."
     passWhen: "Lists and forms use grouped system content and hairline separators, not nested cards."
+
+  - id: chrome.split.empty-select
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [patterns-lists-detail]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/split-views
+    failWhen: "Empty list still renders an idle Select detail pane."
+    passWhen: "Empty list omits the idle Select detail; the list owns the empty state."
+
+  - id: chrome.split.list-width
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [patterns-lists-detail, foundations-layout]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/split-views
+    failWhen: "List rail is starved thin beside an empty detail pane."
+    passWhen: "List rail keeps its column when detail is empty."
+
+  - id: chrome.create.short-vs-long
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [patterns-forms, patterns-lists-detail]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/entering-data
+    failWhen: "Long create stays an orphan half-width form in the split, or short create leaves the detail."
+    passWhen: "Long create is a full page; short create stays in the detail."
+
+  - id: chrome.list-status.lifecycle
+    severity: P0
+    mutationClass: structure
+    registers: [product, any]
+    packs: [patterns-lists-detail]
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/lists-and-tables
+    failWhen: "Loading or fault list status still offers Add or a dead detail."
+    passWhen: "Loading and fault list status offer neither Add nor a dead detail."

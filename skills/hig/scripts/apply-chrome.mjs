@@ -9,6 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { checkChrome, walkSource } from "./check-chrome.mjs";
+import { listStatusChrome } from "../knowledge/chrome/list-status.mjs";
+import { detailBody, matchBrace, splitSections, swiftStructs } from "../knowledge/chrome/source-spans.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultSkillRoot = path.resolve(__dirname, "..");
@@ -191,6 +193,148 @@ function applySidebarCollapsible(file) {
   return text;
 }
 
+function widenStarved(inner) {
+  let next = inner.replace(/width:\s*(["']?)(\d+(?:\.\d+)?)rem\1/gi, (all, quote, n) => {
+    if (Number(n) >= 12) return all;
+    return `width: ${quote}20rem${quote}`;
+  });
+  next = next.replace(/width:\s*(["']?)(\d+)px\1/gi, (all, quote, n) => {
+    if (Number(n) >= 160) return all;
+    return `width: ${quote}20rem${quote}`;
+  });
+  next = next.replace(/\.frame\(\s*width:\s*(\d+)\s*\)/g, (all, n) => {
+    if (Number(n) >= 160) return all;
+    return ".frame(minWidth: 220, idealWidth: 320)";
+  });
+  return next;
+}
+
+function applyEmptySelect(file) {
+  let text = file.text.replace(
+    /(<section\b[^>]*\bdata-list-status=["']empty["'][^>]*>)([\s\S]*?)(<\/section>)/gi,
+    (all, open, inner, close) => {
+      if (!/\bdata-split\b/.test(open)) return all;
+      const stripped = inner.replace(
+        /<(aside|p|div)\b[^>]*\bdata-detail\b[^>]*>[\s\S]*?<\/\1>/gi,
+        "",
+      );
+      return `${open}${stripped}${close}`;
+    },
+  );
+  const parts = text.split(/(?=struct )/);
+  text = parts
+    .map((block) => {
+      if (!/struct /.test(block) || !/NavigationSplitView/.test(block)) return block;
+      if (!/\.listStatus\(\.empty\)/.test(block) || !/Select a\b/i.test(block)) return block;
+      return block.replace(/Text\(\s*"Select a[^"]*"\s*\)/, 'Text("No vendors yet")');
+    })
+    .join("");
+  return text;
+}
+
+function applyListWidth(file) {
+  let text = file.text.replace(
+    /<section\b[^>]*\bdata-split\b[^>]*>[\s\S]*?<\/section>/gi,
+    (section) => {
+      if (!/data-empty-detail/.test(section)) return section;
+      if (/width:\s*["']?20rem/.test(section)) return section;
+      return widenStarved(section);
+    },
+  );
+  const parts = text.split(/(?=struct )/);
+  text = parts
+    .map((block) => {
+      if (!/struct /.test(block) || !/NavigationSplitView/.test(block)) return block;
+      if (!/EmptyView\(/.test(block)) return block;
+      if (/minWidth:\s*220|idealWidth:\s*320/.test(block)) return block;
+      return widenStarved(block);
+    })
+    .join("");
+  return text;
+}
+
+function applyShortVsLong(file) {
+  let text = file.text.replace(
+    /<section\b[^>]*\bdata-split\b[^>]*>[\s\S]*?<\/section>/gi,
+    (section) => {
+      if (!/data-create=["']long["']/.test(section)) return section;
+      const form = section.match(/<form\b[^>]*\bdata-create=["']long["'][^>]*>[\s\S]*?<\/form>/i);
+      return form ? form[0] : section;
+    },
+  );
+  const short = text.match(/<form\b[^>]*\bdata-create=["']short["'][^>]*>[\s\S]*?<\/form>/i);
+  if (short && splitSections(text).every((section) => !section.includes(short[0]))) {
+    const host = splitSections(text).find(
+      (section) =>
+        /<ul\b/i.test(section) &&
+        !/data-list-status=["']empty["']/.test(section) &&
+        !/data-create=["'](?:long|short)["']/.test(section),
+    );
+    if (host) {
+      text = text.replace(short[0], "");
+      text = text.replace(host, host.replace(/<\/section>\s*$/i, `${short[0]}</section>`));
+    }
+  }
+  const parts = text.split(/(?=struct )/);
+  text = parts
+    .map((block) => {
+      if (!/struct /.test(block) || !/NavigationSplitView/.test(block)) return block;
+      if (/\.createKind\(\.long\)/.test(block)) {
+        const at = block.search(/NavigationSplitView/);
+        const listOpen = block.indexOf("{", at);
+        const listClose = matchBrace(block, listOpen);
+        if (listOpen < 0 || listClose < 0) return block;
+        const afterList = block.slice(listClose);
+        const detailRel = afterList.search(/detail:\s*\{/);
+        if (detailRel < 0) return block;
+        const detailOpen = listClose + afterList.indexOf("{", detailRel);
+        const detailClose = matchBrace(block, detailOpen);
+        const form = block.match(/Form\s*\{[\s\S]*?\.createKind\(\.long\)/);
+        if (!form || detailClose < 0) return block;
+        return `${block.slice(0, at)}${form[0]}${block.slice(detailClose + 1)}`;
+      }
+      if (!/\.createKind\(\.short\)/.test(block)) return block;
+      if (/\.createKind\(\.short\)/.test(detailBody(block))) return block;
+      const form = block.match(/\n[ \t]*Form\s*\{[\s\S]*?\.createKind\(\.short\)/);
+      if (!form) return block;
+      let next = block.replace(form[0], "");
+      next = next.replace(/detail:\s*\{\s*EmptyView\(\)\s*\}/, `detail: {${form[0]}\n    }`);
+      return next;
+    })
+    .join("");
+  return text;
+}
+
+function applyListStatus(file) {
+  let text = file.text.replace(
+    /(<section\b[^>]*\bdata-list-status=["'](empty|loading|ready|fault)["'][^>]*>)([\s\S]*?)(<\/section>)/gi,
+    (all, open, status, inner, close) => {
+      const policy = listStatusChrome(status);
+      let next = inner;
+      if (!policy.offerAdd) next = next.replace(/<button\b[^>]*>\s*Add\s*<\/button>/gi, "");
+      if (policy.deadDetail === "forbid") {
+        next = next.replace(/<(p|aside|div)\b[^>]*\bdata-detail\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+      }
+      return `${open}${next}${close}`;
+    },
+  );
+  const parts = text.split(/(?=ListStatus\.(?:empty|loading|ready|fault))/);
+  text = parts
+    .map((part) => {
+      const mark = part.match(/^ListStatus\.(empty|loading|ready|fault)/);
+      if (!mark) return part;
+      const policy = listStatusChrome(mark[1]);
+      let next = part;
+      if (!policy.offerAdd) next = next.replace(/\n[ \t]*Button\(\s*"Add"\s*\)\s*\{\s*\}/g, "");
+      if (policy.deadDetail === "forbid") {
+        next = next.replace(/\n[ \t]*Text\(\s*"Select a[^"]*"\s*\)/g, "");
+      }
+      return next;
+    })
+    .join("");
+  return text;
+}
+
 const RECIPES = {
   "chrome.view-mode.icons": applyViewModeIcons,
   "chrome.list-browser.toolbar-budget": applyToolbarBudget,
@@ -201,6 +345,10 @@ const RECIPES = {
   "chrome.materials.fashion-glass": applyFashionGlass,
   "chrome.layout.card-grid-home": applyCardGridHome,
   "chrome.ive.nested-cards": applyNestedCards,
+  "chrome.split.empty-select": applyEmptySelect,
+  "chrome.split.list-width": applyListWidth,
+  "chrome.create.short-vs-long": applyShortVsLong,
+  "chrome.list-status.lifecycle": applyListStatus,
 };
 
 export const MECHANICAL_CHROME_IDS = Object.keys(RECIPES);

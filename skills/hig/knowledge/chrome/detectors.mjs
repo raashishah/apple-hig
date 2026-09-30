@@ -3,6 +3,9 @@
  * Conservative: hit the FAIL, not a passing aria-label.
  */
 
+import { listStatusChrome } from "./list-status.mjs";
+import { detailBody, splitSections, swiftStructs } from "./source-spans.mjs";
+
 function hit(file, evidence) {
   return { file, evidence: String(evidence).replace(/\s+/g, " ").trim().slice(0, 180) };
 }
@@ -167,6 +170,123 @@ function detectCardGridHome(files) {
   return out;
 }
 
+function hasIdleSelect(text) {
+  return /Select a\b/i.test(text);
+}
+
+function detectEmptySelect(files) {
+  const out = [];
+  for (const f of files) {
+    for (const section of splitSections(f.text)) {
+      if (!/data-list-status=["']empty["']/.test(section)) continue;
+      if (hasIdleSelect(section)) {
+        out.push(hit(f.path, "empty list still renders an idle Select detail"));
+      }
+    }
+    for (const block of swiftStructs(f.text)) {
+      if (!/NavigationSplitView/.test(block) || !/\.listStatus\(\.empty\)/.test(block)) continue;
+      if (hasIdleSelect(block)) {
+        out.push(hit(f.path, "empty list still renders an idle Select detail"));
+      }
+    }
+  }
+  return out;
+}
+
+function isStarvedList(inner) {
+  if (!/data-empty-detail|EmptyView\(/.test(inner)) return false;
+  if (/width:\s*["']?20rem|minWidth:\s*220|idealWidth:\s*320/.test(inner)) return false;
+  const rem = inner.match(/width:\s*["']?(\d+(?:\.\d+)?)rem/i);
+  if (rem && Number(rem[1]) < 12) return true;
+  const px = inner.match(/width:\s*["']?(\d+)px/i);
+  if (px && Number(px[1]) < 160) return true;
+  const frame = inner.match(/\.frame\(\s*width:\s*(\d+)/);
+  if (frame && Number(frame[1]) < 160) return true;
+  return false;
+}
+
+function detectListWidth(files) {
+  const out = [];
+  for (const f of files) {
+    for (const section of splitSections(f.text)) {
+      if (isStarvedList(section)) {
+        out.push(hit(f.path, "list rail is starved beside an empty detail"));
+      }
+    }
+    for (const block of swiftStructs(f.text)) {
+      if (!/NavigationSplitView/.test(block)) continue;
+      if (isStarvedList(block)) {
+        out.push(hit(f.path, "list rail is starved beside an empty detail"));
+      }
+    }
+  }
+  return out;
+}
+
+function shortCreateOutside(text) {
+  if (!/data-create=["']short["']/.test(text)) return false;
+  const sections = splitSections(text);
+  if (!sections.length) return false;
+  return sections.every((section) => !/data-create=["']short["']/.test(section));
+}
+
+function detectShortVsLong(files) {
+  const out = [];
+  for (const f of files) {
+    const longInSplit = splitSections(f.text).some((section) =>
+      /data-create=["']long["']/.test(section),
+    );
+    const shortOutside = shortCreateOutside(f.text);
+    const swiftLong = swiftStructs(f.text).some(
+      (block) => /NavigationSplitView/.test(block) && /\.createKind\(\.long\)/.test(block),
+    );
+    const swiftShort = swiftStructs(f.text).some((block) => {
+      if (!/NavigationSplitView/.test(block) || !/\.createKind\(\.short\)/.test(block)) return false;
+      const detail = detailBody(block);
+      return !/\.createKind\(\.short\)/.test(detail);
+    });
+    if (longInSplit || shortOutside || swiftLong || swiftShort) {
+      out.push(hit(f.path, "long create is trapped in the split or short create left the detail"));
+    }
+  }
+  return out;
+}
+
+function statusRegions(text) {
+  const regions = [];
+  const html = [
+    ...text.matchAll(
+      /<section\b[^>]*\bdata-list-status=["'](empty|loading|ready|fault)["'][^>]*>[\s\S]*?<\/section>/gi,
+    ),
+  ];
+  for (const match of html) regions.push({ status: match[1], slice: match[0] });
+  const parts = text.split(/(?=ListStatus\.(?:empty|loading|ready|fault))/);
+  for (const part of parts) {
+    const mark = part.match(/^ListStatus\.(empty|loading|ready|fault)/);
+    if (mark) regions.push({ status: mark[1], slice: part });
+  }
+  return regions;
+}
+
+function offersAdd(slice) {
+  return />\s*Add\s*</.test(slice) || /Button\(\s*"Add"\s*\)/.test(slice);
+}
+
+function detectListStatus(files) {
+  const out = [];
+  for (const f of files) {
+    for (const region of statusRegions(f.text)) {
+      const policy = listStatusChrome(region.status);
+      const add = !policy.offerAdd && offersAdd(region.slice);
+      const dead = policy.deadDetail === "forbid" && hasIdleSelect(region.slice);
+      if (add || dead) {
+        out.push(hit(f.path, `${region.status} list status offers Add or a dead detail`));
+      }
+    }
+  }
+  return out;
+}
+
 function detectNestedCards(files) {
   const out = [];
   for (const f of files) {
@@ -195,4 +315,8 @@ export const DETECTORS = {
   "chrome.materials.fashion-glass": detectFashionGlass,
   "chrome.layout.card-grid-home": detectCardGridHome,
   "chrome.ive.nested-cards": detectNestedCards,
+  "chrome.split.empty-select": detectEmptySelect,
+  "chrome.split.list-width": detectListWidth,
+  "chrome.create.short-vs-long": detectShortVsLong,
+  "chrome.list-status.lifecycle": detectListStatus,
 };

@@ -51,3 +51,30 @@ Product home is a workspace (list, split, or tabs), not a dashboard of marketing
 ## chrome.ive.nested-cards
 
 Do not wrap `List` / `<ul>` / `Form` in extra card panels. Grouped system content + hairline separators. Remove the outer card.
+
+## chrome.split.empty-select
+
+An empty list does not render an idle “Select …” detail. Omit that pane. The list owns the empty state.
+
+**Web:** a `data-split` whose list status is `empty` has no `data-detail` Select pane.
+
+**SwiftUI:** `NavigationSplitView` with `.listStatus(.empty)` does not use `Text("Select a…")` as the detail.
+
+## chrome.split.list-width
+
+When detail is empty, the list rail keeps a real column. A rail under 12rem / 160px beside `data-empty-detail` or `EmptyView()` is starved. Use a column about 20rem, or `minWidth` 220 / `idealWidth` 320.
+
+## chrome.create.short-vs-long
+
+Long create is a full page, outside the split. Short create stays in the detail, with the list still mounted. Do not invent a split or a form the host does not already have. Move a short create into an existing split, or lift a long create out of one.
+
+## chrome.list-status.lifecycle
+
+List status is the union `empty | loading | ready | fault`. Do not model it as optional booleans.
+
+| Status | Add | Dead Select detail |
+|---|---|---|
+| empty | hidden | owned by `chrome.split.empty-select` |
+| loading | hidden | hidden |
+| ready | shown | allowed |
+| fault | hidden | hidden |

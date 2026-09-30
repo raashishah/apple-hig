@@ -4,7 +4,7 @@ What `/hig` actually changed on real apps — and what is still missing.
 
 ## v0.4.1 harness (shipped)
 
-**In scope for this release:** mechanical **chrome** (nine FAIL IDs, `check-chrome.mjs`, `apply-chrome.mjs`, recipes, dual-stack fixtures) plus **catalog infrastructure** (live `catalog.yaml`, `plan-catalog.mjs`, `apply-catalog.mjs`, `dont-heuristics.yaml`, `eval/run-catalog.mjs`). Round-1 apply SSOT stays the **12** `requiredIds` in `surfaces.yaml`; the catalog loop runs after chrome P0 and drives `.hig/catalog-status.yaml`.
+**In scope for this release:** mechanical **chrome** (thirteen FAIL IDs, `check-chrome.mjs`, `apply-chrome.mjs`, recipes, dual-stack fixtures) plus **catalog infrastructure** (live `catalog.yaml`, `plan-catalog.mjs`, `apply-catalog.mjs`, `dont-heuristics.yaml`, `eval/run-catalog.mjs`). Round-1 apply SSOT stays the **12** `requiredIds` in `surfaces.yaml`; the catalog loop runs after chrome P0 and drives `.hig/catalog-status.yaml`.
 
 **Not claimed:** every Apple HIG Don't is auto-fixed. A topic is **accounted** only when every Don't on it has a mechanical scanner (or the pack has no Don't section and chrome is clean). Everything else stays **`pending`** in status — that is expected, not a failed ship.
 
@@ -43,7 +43,7 @@ Re-run proof on the branch: `node eval/run-dry.mjs`, `run-chrome-grammar.mjs`, `
 
 3. **Materials arbitration** — opaque nav/content; glass only on sheets/alerts/pickers with `@supports` fallback. Locked via project rule so later agents stop re-adding glass.
 
-4. **Split / list consistency (recent)** — empty catalogs must not show dead “Select a…” detail; short creates stay in detail; long creates go full-page centered; shared list status lifecycle. These are **learned product rules**; not all are grammar FAIL IDs yet (see Gaps).
+4. **Split / list flow** — empty lists omit the idle Select detail (`chrome.split.empty-select`); the list rail keeps its column when detail is empty (`chrome.split.list-width`); long create is a full page and short create stays in detail (`chrome.create.short-vs-long`); `loading` and `fault` do not offer Add or a dead detail (`chrome.list-status.lifecycle`). Status is the `empty | loading | ready | fault` union.
 
 ### What stayed brand-owned
 
@@ -61,18 +61,9 @@ Used to prove the skill is not “copy Pink Depot CSS.”
 
 ## Gaps (feedback welcome)
 
-Propose these as next `chrome.*` FAIL IDs if you hit them:
-
-| Candidate | Symptom |
-|---|---|
-| `chrome.split.empty-select` | Empty catalog still shows idle “Select a…” detail pane |
-| `chrome.split.list-width` | List rail starved thin beside empty detail whitespace |
-| `chrome.create.short-vs-long` | Long create stuck as orphan half-width form in split |
-| `chrome.list-status.lifecycle` | Loading/fault panes still offer Add or dead detail |
+The four split/list flow IDs are encoded: `chrome.split.empty-select`, `chrome.split.list-width`, `chrome.create.short-vs-long`, `chrome.list-status.lifecycle`. Grammar, recipes, and `apply-chrome.mjs` own them. Dual-stack fixtures fail the antipattern and pass the clean host.
 
 Also deferred: reusable CSS kit extraction after more gold passes.
-
-v0.4.1 adds `check-chrome.mjs`, recipes, and FAIL IDs (`fashion-glass`, `card-grid-home`, `nested-cards`). Those four split/list lifecycle IDs above are still not encoded.
 
 ## How to send feedback
 

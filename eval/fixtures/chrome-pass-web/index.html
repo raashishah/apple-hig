@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<body>
+  <section data-split data-list-status="empty">
+    <p>No vendors yet</p>
+  </section>
+  <section data-split>
+    <div data-list-pane style="width: 20rem"></div>
+    <div data-empty-detail></div>
+  </section>
+  <form data-create="long" data-form-page>
+    <header><h1>New order</h1></header>
+    <div data-form-body>
+      <label>Name <input name="name" /></label>
+    </div>
+  </form>
+  <section data-split>
+    <div data-list-pane>
+      <ul><li>Vendor</li></ul>
+    </div>
+    <form data-create="short" data-form-page>
+      <label>Name <input name="name" /></label>
+    </form>
+  </section>
+  <section data-list-status="loading">
+    <p>Loading vendors</p>
+  </section>
+  <section data-list-status="fault">
+    <p>Could not load vendors</p>
+  </section>
+  <section data-list-status="ready">
+    <button type="button">Add</button>
+    <aside data-detail>Select a vendor</aside>
+  </section>
+</body>
+</html>

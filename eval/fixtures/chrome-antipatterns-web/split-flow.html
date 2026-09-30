@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<body>
+  <section data-split data-list-status="empty">
+    <ul></ul>
+    <aside data-detail>Select a vendor</aside>
+  </section>
+  <section data-split>
+    <div data-list-pane style="width: 4rem"></div>
+    <div data-empty-detail></div>
+  </section>
+  <section data-split>
+    <div data-list-pane>
+      <ul><li>Vendor</li></ul>
+    </div>
+    <form data-create="long" data-form-page>
+      <header><h1>New order</h1></header>
+      <div data-form-body>
+        <label>Name <input name="name" /></label>
+      </div>
+    </form>
+  </section>
+  <section data-split>
+    <div data-list-pane>
+      <ul><li>Vendor</li></ul>
+    </div>
+  </section>
+  <form data-create="short" data-form-page>
+    <label>Name <input name="name" /></label>
+  </form>
+  <section data-list-status="loading">
+    <button type="button">Add</button>
+    <p data-detail>Select a vendor</p>
+  </section>
+  <section data-list-status="fault">
+    <button type="button">Add</button>
+    <p data-detail>Select a vendor</p>
+  </section>
+  <section data-list-status="empty">
+    <button type="button">Add</button>
+    <p>No vendors yet</p>
+  </section>
+</body>
+</html>
