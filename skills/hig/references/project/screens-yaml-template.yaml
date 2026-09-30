@@ -1,4 +1,17 @@
-# Screen list for /hig implement + review
+# Screen list and flow graph for /hig.
+# A row with only id, route, title, priority, and status is kind static.
+# Do not invent screens. Take ids and routes from requirements or routesHint.
+#
+# entry: /                 route the walk starts on; omit until the product names one
+# kind: static             no primary action (omit kind; that is the same)
+# kind: action
+# to: example-detail       destination screen id, required for an action
+# list:
+#   status: ready          exactly one of empty, loading, ready, fault
+# create:
+#   kind: short            stays in the detail pane
+#   kind: long
+#   route: /new            a long create owns this route
 version: 1
 screens:
   - id: example-home

@@ -42,6 +42,8 @@ Write/refresh (Apple-designer voice for **this** product):
 5. `.hig/catalog-status.yaml` from `plan-catalog.mjs --write`
 6. `.hig/swarm/` directory
 
+`.hig/screens.yaml` is the flow graph. A row is `kind: static` (no primary action; a legacy row that omits `kind` is static) or `kind: action` with `to` set to another screen id. A list pane has one `list.status`: `empty`, `loading`, `ready`, or `fault`. Create is `kind: short` (stays in detail) or `kind: long` with its own `route`. `entry` is the route the walk starts on. Repeat none of `list`, `create`, `kind`, `to`, `entry`, or `screens`. Indent with spaces. Do not invent the product. Take ids and routes from `requirementPaths`, `routesHint`, or a graph the product already states. `scripts/flow-graph.ts` `parseFlowYaml` is the check.
+
 On `register: brand`, include:
 
 ```text
