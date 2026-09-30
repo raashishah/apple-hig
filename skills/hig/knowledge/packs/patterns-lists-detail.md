@@ -43,6 +43,10 @@ Load `knowledge/chrome/grammar.yaml`. Cite these IDs in review; implement to PAS
 - `chrome.list-browser.filter-density`
 - `chrome.layout.card-grid-home`
 - `chrome.ive.nested-cards`
+- `chrome.split.empty-select`
+- `chrome.split.list-width`
+- `chrome.create.short-vs-long`
+- `chrome.list-status.lifecycle`
 
 Recipes: `knowledge/chrome/recipes.md`.
 

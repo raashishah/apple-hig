@@ -185,6 +185,93 @@ function detectNestedCards(files) {
   return out;
 }
 
+const LIST_STATUSES = ["empty", "loading", "ready", "fault"];
+
+function listStatusBlocks(text) {
+  const blocks = [];
+  const html = /<([a-z0-9]+)\b[^>]*data-list-status=["'](empty|loading|ready|fault)["'][^>]*>([\s\S]*?)<\/\1>/gi;
+  for (const match of text.matchAll(html)) {
+    blocks.push({ status: match[2], body: match[3] });
+  }
+  const swift = /case\s+\.(empty|loading|ready|fault)\s*:([\s\S]*?)(?=case\s+\.|$)/g;
+  for (const match of text.matchAll(swift)) {
+    blocks.push({ status: match[1], body: match[2] });
+  }
+  return blocks.filter((block) => LIST_STATUSES.includes(block.status));
+}
+
+function offersAdd(body) {
+  return /<button\b[^>]*>\s*Add\s*<\/button>/i.test(body) || /Button\(\s*"Add"\s*\)/.test(body);
+}
+
+function offersIdleSelect(body) {
+  return /Select (?:a|an)\b/.test(body);
+}
+
+function detectSplitEmptySelect(files) {
+  const out = [];
+  for (const f of files) {
+    const split = /data-split|NavigationSplitView/.test(f.text);
+    if (!split) continue;
+    for (const block of listStatusBlocks(f.text)) {
+      if (block.status === "empty" && offersIdleSelect(block.body)) {
+        out.push(hit(f.path, "empty list still shows an idle Select detail"));
+      }
+    }
+    if (
+      /data-list-status=["']empty["']/.test(f.text) &&
+      /data-detail[\s\S]{0,400}Select (?:a|an)\b/.test(f.text)
+    ) {
+      out.push(hit(f.path, "empty list detail still says Select"));
+    }
+  }
+  return out;
+}
+
+function detectSplitListWidth(files) {
+  const out = [];
+  for (const f of files) {
+    if (/data-list-rail=["']starved["']/.test(f.text)) {
+      out.push(hit(f.path, "list rail is a starved column beside empty detail"));
+    }
+    if (/\.frame\(\s*width:\s*48\s*\)/.test(f.text) && /data-detail-empty|detailIsEmpty|Select (?:a|an)\b/.test(f.text)) {
+      out.push(hit(f.path, "list column is 48pt beside an empty detail"));
+    }
+  }
+  return out;
+}
+
+function detectShortVsLong(files) {
+  const out = [];
+  for (const f of files) {
+    const withoutLongPage = f.text
+      .replace(/<main\b[^>]*data-page=["']create["'][^>]*>[\s\S]*?<\/main>/gi, "")
+      .replace(/struct\s+LongCreatePage[\s\S]*?\n\}/, "");
+    const web =
+      /data-split/.test(withoutLongPage) && /data-create=["']long["']/.test(withoutLongPage);
+    const swift =
+      /NavigationSplitView/.test(withoutLongPage) &&
+      /create-long/.test(withoutLongPage);
+    if (web || swift) {
+      out.push(hit(f.path, "long create is stuck inside the split instead of its own page"));
+    }
+  }
+  return out;
+}
+
+function detectListStatusLifecycle(files) {
+  const out = [];
+  for (const f of files) {
+    for (const block of listStatusBlocks(f.text)) {
+      if (block.status !== "loading" && block.status !== "fault") continue;
+      if (offersAdd(block.body) || offersIdleSelect(block.body)) {
+        out.push(hit(f.path, `${block.status} list still offers Add or a dead Select detail`));
+      }
+    }
+  }
+  return out;
+}
+
 export const DETECTORS = {
   "chrome.view-mode.icons": detectViewModeIcons,
   "chrome.list-browser.toolbar-budget": detectToolbarBudget,
@@ -195,4 +282,8 @@ export const DETECTORS = {
   "chrome.materials.fashion-glass": detectFashionGlass,
   "chrome.layout.card-grid-home": detectCardGridHome,
   "chrome.ive.nested-cards": detectNestedCards,
+  "chrome.split.empty-select": detectSplitEmptySelect,
+  "chrome.split.list-width": detectSplitListWidth,
+  "chrome.create.short-vs-long": detectShortVsLong,
+  "chrome.list-status.lifecycle": detectListStatusLifecycle,
 };

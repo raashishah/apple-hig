@@ -173,6 +173,65 @@ function applyFilterDensity(file) {
   return text;
 }
 
+function applySplitEmptySelect(file) {
+  let text = file.text;
+  text = text.replace(
+    /(data-list-status=["']empty["'][\s\S]{0,800}?)Select (?:a|an) [^<.\n]+/gi,
+    "$1No items",
+  );
+  text = text.replace(/Text\(\s*"Select (?:a|an) [^"]*"\s*\)/g, 'Text("No items")');
+  return text;
+}
+
+function applySplitListWidth(file) {
+  let text = file.text;
+  text = text.replace(/data-list-rail=["']starved["']/g, 'data-list-rail="kept"');
+  text = text.replace(/\.frame\(\s*width:\s*48\s*\)/g, ".frame(minWidth: 280)");
+  return text;
+}
+
+function applyShortVsLong(file) {
+  let text = file.text;
+  const form = text.match(/<form\b[^>]*data-create=["']long["'][\s\S]*?<\/form>/i);
+  if (form && /data-split/.test(text) && !/<main\b[^>]*data-page=["']create["']/.test(text)) {
+    text = text.replace(form[0], "");
+    const page = `<main data-page="create">${form[0]}</main>`;
+    if (text.includes("</body>")) text = text.replace("</body>", `${page}\n</body>`);
+    else text += `\n${page}\n`;
+  }
+  if (/NavigationSplitView/.test(text) && /create-long/.test(text) && !/struct LongCreatePage/.test(text)) {
+    text = text.replace(
+      /Form\s*\{[\s\S]*?\.accessibilityIdentifier\(\s*"create-long"\s*\)/,
+      'Text("Detail")',
+    );
+    text += `\nstruct LongCreatePage: View {\n  var body: some View {\n    Form { TextField("Title", text: .constant("")) }\n      .accessibilityIdentifier("create-long")\n  }\n}\n`;
+  }
+  return text;
+}
+
+function applyListStatusLifecycle(file) {
+  let text = file.text;
+  text = text.replace(
+    /(data-list-status=["'](?:loading|fault)["'][^>]*>)([\s\S]*?)(<\/(?:section|div|main)>)/gi,
+    (all, open, body, close) => {
+      const next = body
+        .replace(/<button\b[^>]*>\s*Add\s*<\/button>/gi, "")
+        .replace(/Select (?:a|an) [^<.\n]+/gi, "Could not load");
+      return `${open}${next}${close}`;
+    },
+  );
+  text = text.replace(
+    /(case\s+\.(?:loading|fault)\s*:)([\s\S]*?)(?=case\s+\.|$)/g,
+    (all, open, body) => {
+      const next = body
+        .replace(/Button\(\s*"Add"\s*\)\s*\{[^}]*\}/g, "")
+        .replace(/Text\(\s*"Select (?:a|an) [^"]*"\s*\)/g, 'Text("Could not load")');
+      return `${open}${next}`;
+    },
+  );
+  return text;
+}
+
 function applySidebarCollapsible(file) {
   let text = file.text;
   if (!/<aside\b|data-sidebar|NavigationSplitView/.test(text)) return text;
@@ -201,6 +260,10 @@ const RECIPES = {
   "chrome.materials.fashion-glass": applyFashionGlass,
   "chrome.layout.card-grid-home": applyCardGridHome,
   "chrome.ive.nested-cards": applyNestedCards,
+  "chrome.split.empty-select": applySplitEmptySelect,
+  "chrome.split.list-width": applySplitListWidth,
+  "chrome.create.short-vs-long": applyShortVsLong,
+  "chrome.list-status.lifecycle": applyListStatusLifecycle,
 };
 
 export const MECHANICAL_CHROME_IDS = Object.keys(RECIPES);

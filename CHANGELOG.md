@@ -4,6 +4,8 @@
 
 Mechanical chrome FAIL gate + catalog apply harness so `/hig` is model-proof. Shipped scope: chrome gate + catalog infra; remaining pack Don'ts documented as known gaps in `docs/PROOF.md` (not a claim of full HIG automation).
 
+- Flow graph in `.hig/screens.yaml` (`kind`, branded screen and route ids, list status `empty | loading | ready | fault`, short vs long create). `/hig flow` scaffolds only list, form, overlay, and chrome. Four split/list grammar IDs: `chrome.split.empty-select`, `chrome.split.list-width`, `chrome.create.short-vs-long`, `chrome.list-status.lifecycle`. Catalog apply still skips a missing affordance. Brand landings stay chrome-free.
+
 - Design-principles Don't scanners: a claim that this pack covers Watch, TV, or Vision, and house taste (`768/375-only gold` QA). A clean chrome-pass host accounts `design-principles`. Markers `data-dp-platform` and `data-dp-taste` strip. The prose claims stay pending. Mechanical `done` is remaining 0, not visual any-host Apple-ness. Do not invent Watch, TV, or Vision surfaces. `requiredIds` stay 12.
 
 - `scripts/check-chrome.mjs` scans host UI source; P0 hits block `HIG_CHROME` PASS

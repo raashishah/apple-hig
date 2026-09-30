@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Notes</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-hig-flow-scaffold="1" data-flow-step="list">
+  <header data-hig-pattern="chrome"><a href="list.html">Notes</a></header>
+  <div data-split>
+    <section data-hig-pattern="list" data-list-pane data-list-rail="kept" data-list-status="ready">
+      <ul>
+        <li data-screen="notes"><a data-primary href="detail.html">Field note</a></li>
+        <li data-screen="empty"><a href="empty.html">Empty</a></li>
+        <li data-screen="detail"><a href="detail.html">Detail</a></li>
+        <li data-screen="create"><a href="create.html">New note</a></li>
+        <li data-screen="fault"><a href="fault.html">Fault</a></li>
+      </ul>
+      <a href="create.html">Add</a>
+    </section>
+    <section data-detail><p>Detail</p></section>
+  </div>
+  <section data-hig-pattern="form">
+    <main data-page="create"><form data-create="long" action="create.html"><label>Title <input name="title"></label></form></main>
+  </section>
+  <dialog data-hig-pattern="overlay"><p>Sheet</p><form method="dialog"><button type="submit">Done</button></form></dialog>
+  <p><a data-flow-next href="empty.html">Empty state</a></p>
+</body>
+</html>

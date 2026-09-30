@@ -1,0 +1,42 @@
+version: 1
+entry: list.html
+screens:
+  - id: notes
+    route: list.html
+    title: Notes
+    priority: 1
+    kind: action
+    destination: detail
+    list:
+      status: ready
+  - id: empty
+    route: empty.html
+    title: Empty
+    priority: 2
+    kind: static
+    list:
+      status: empty
+  - id: detail
+    route: detail.html
+    title: Detail
+    priority: 3
+    kind: action
+    destination: notes
+    create:
+      kind: short
+  - id: create
+    route: create.html
+    title: New note
+    priority: 4
+    kind: static
+    create:
+      kind: long
+      route: create.html
+  - id: fault
+    route: fault.html
+    title: Fault
+    priority: 5
+    kind: action
+    destination: notes
+    list:
+      status: fault

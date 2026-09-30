@@ -61,18 +61,9 @@ Used to prove the skill is not “copy Pink Depot CSS.”
 
 ## Gaps (feedback welcome)
 
-Propose these as next `chrome.*` FAIL IDs if you hit them:
-
-| Candidate | Symptom |
-|---|---|
-| `chrome.split.empty-select` | Empty catalog still shows idle “Select a…” detail pane |
-| `chrome.split.list-width` | List rail starved thin beside empty detail whitespace |
-| `chrome.create.short-vs-long` | Long create stuck as orphan half-width form in split |
-| `chrome.list-status.lifecycle` | Loading/fault panes still offer Add or dead detail |
+Split and list lifecycle is grammar now: `chrome.split.empty-select`, `chrome.split.list-width`, `chrome.create.short-vs-long`, and `chrome.list-status.lifecycle`. `/hig flow` may create list, form, overlay, and chrome from `.hig/screens.yaml`. Catalog apply still does not invent a missing widget.
 
 Also deferred: reusable CSS kit extraction after more gold passes.
-
-v0.4.1 adds `check-chrome.mjs`, recipes, and FAIL IDs (`fashion-glass`, `card-grid-home`, `nested-cards`). Those four split/list lifecycle IDs above are still not encoded.
 
 ## How to send feedback
 

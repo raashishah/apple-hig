@@ -51,3 +51,19 @@ Product home is a workspace (list, split, or tabs), not a dashboard of marketing
 ## chrome.ive.nested-cards
 
 Do not wrap `List` / `<ul>` / `Form` in extra card panels. Grouped system content + hairline separators. Remove the outer card.
+
+## chrome.split.empty-select
+
+Empty list: empty state in the detail. Do not leave "Select a…" copy when there is no row.
+
+## chrome.split.list-width
+
+Keep the list column readable when detail is empty (`minmax(18rem, 34%)` or a min width). Do not pin the list to a 48pt / 4rem rail.
+
+## chrome.create.short-vs-long
+
+Short create stays in the detail. Long create is a full page (`data-page="create"` / its own view), not a form trapped in the split.
+
+## chrome.list-status.lifecycle
+
+`loading` and `fault` do not show Add or an idle Select detail. `ready` may offer Add. Status is one of empty, loading, ready, fault.

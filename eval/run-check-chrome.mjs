@@ -233,6 +233,57 @@ function kitOrFont(text) {
   }
 }
 
+{
+  const flowIds = [
+    "chrome.split.empty-select",
+    "chrome.split.list-width",
+    "chrome.create.short-vs-long",
+    "chrome.list-status.lifecycle",
+  ];
+  const webSrc = path.join(__dirname, "fixtures", "flow-split-web");
+  const swiftSrc = path.join(__dirname, "fixtures", "flow-split-swift");
+  const webPass = path.join(__dirname, "fixtures", "flow-split-pass-web");
+  const swiftPass = path.join(__dirname, "fixtures", "flow-split-pass-swift");
+  const webDir = copyFixture(webSrc);
+  const swiftDir = copyFixture(swiftSrc);
+  try {
+    const webBefore = checkChrome({ cwd: webSrc, skillRoot, register: "product" });
+    const swiftBefore = checkChrome({ cwd: swiftSrc, skillRoot, register: "product" });
+    const webClean = checkChrome({ cwd: webPass, skillRoot, register: "product" });
+    const swiftClean = checkChrome({ cwd: swiftPass, skillRoot, register: "product" });
+    const web = applyChrome({ cwd: webDir, skillRoot, register: "product", write: true });
+    const native = applyChrome({ cwd: swiftDir, skillRoot, register: "product", write: true });
+    const webIds = new Set(webBefore.fails.map((f) => f.id));
+    const swiftIds = new Set(swiftBefore.fails.map((f) => f.id));
+    const origWeb = fs.readFileSync(path.join(webSrc, "index.html"), "utf8");
+    const origSwift = fs.readFileSync(path.join(swiftSrc, "Sources", "App", "Split.swift"), "utf8");
+    results.push({
+      case: "flow-split-ids-dual-stack",
+      ok:
+        flowIds.every((id) => webIds.has(id) && swiftIds.has(id)) &&
+        webClean.fails.every((f) => !flowIds.includes(f.id)) &&
+        swiftClean.fails.every((f) => !flowIds.includes(f.id)) &&
+        web.after.fails.every((f) => !flowIds.includes(f.id)) &&
+        native.after.fails.every((f) => !flowIds.includes(f.id)) &&
+        flowIds.every((id) => web.applied.some((a) => a.id === id)) &&
+        flowIds.every((id) => native.applied.some((a) => a.id === id)) &&
+        origWeb.includes("Select an item") &&
+        origSwift.includes('Text("Select an item")'),
+      webFound: [...webIds],
+      swiftFound: [...swiftIds],
+      webClean: webClean.fails.map((f) => f.id),
+      swiftClean: swiftClean.fails.map((f) => f.id),
+      webAfter: web.after.fails.map((f) => f.id),
+      swiftAfter: native.after.fails.map((f) => f.id),
+      webApplied: web.applied.map((a) => a.id),
+      swiftApplied: native.applied.map((a) => a.id),
+    });
+  } finally {
+    fs.rmSync(webDir, { recursive: true, force: true });
+    fs.rmSync(swiftDir, { recursive: true, force: true });
+  }
+}
+
 const failed = results.filter((r) => !r.ok);
 process.stdout.write(JSON.stringify({ results, passed: failed.length === 0 }, null, 2) + "\n");
 process.exit(failed.length === 0 ? 0 : 1);

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<body>
+  <div data-split>
+    <section data-list-pane data-list-rail="kept" data-list-status="empty">
+      <ul></ul>
+    </section>
+    <section data-detail>
+      <p>No items</p>
+      <form data-create="short"><label>Title <input name="title"></label></form>
+    </section>
+  </div>
+  <main data-page="create">
+    <form data-create="long"><label>Title <input name="title"></label></form>
+  </main>
+  <section data-list-status="loading"><p>Loading</p></section>
+  <section data-list-status="fault"><p>Could not load</p></section>
+  <section data-list-status="ready"><button type="button">Add</button></section>
+</body>
+</html>
