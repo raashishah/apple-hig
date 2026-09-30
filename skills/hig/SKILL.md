@@ -22,6 +22,7 @@ Brand tokens stay in the host. `/hig` does not inject a React kit.
 | Invoke | What happens |
 |---|---|
 | `/hig` | **Default:** ingest → design artifacts → **parallel swarm** apply (load `references/verbs/design.md`) |
+| `/hig flow` | Scaffold missing list, form, overlay, and chrome from the flow graph (load `references/verbs/flow.md`). The only command that may create a screen. |
 | `/hig review [screens]` | Report-only gold QA — **never auto-fix** |
 | `/hig adapt [surface]` | One-surface structural fix when the user asks |
 | `/hig upgrade` | Pull latest `apple-hig` from GitHub + `./setup` (also say **HIG upgrade**) |
