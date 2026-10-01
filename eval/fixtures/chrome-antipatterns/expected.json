@@ -7,5 +7,9 @@
   "chrome.bars.system-materials",
   "chrome.materials.fashion-glass",
   "chrome.layout.card-grid-home",
-  "chrome.ive.nested-cards"
+  "chrome.ive.nested-cards",
+  "chrome.split.empty-select",
+  "chrome.split.list-width",
+  "chrome.create.short-vs-long",
+  "chrome.list-status.lifecycle"
 ]

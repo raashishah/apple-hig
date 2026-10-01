@@ -1,4 +1,8 @@
 [
   "chrome.view-mode.icons",
-  "chrome.bars.system-materials"
+  "chrome.bars.system-materials",
+  "chrome.split.empty-select",
+  "chrome.split.list-width",
+  "chrome.create.short-vs-long",
+  "chrome.list-status.lifecycle"
 ]

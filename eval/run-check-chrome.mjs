@@ -11,6 +11,7 @@ import { applyChrome, MECHANICAL_CHROME_IDS } from "../skills/hig/scripts/apply-
 import { checkChrome, walkSource } from "../skills/hig/scripts/check-chrome.mjs";
 import { loadContext } from "../skills/hig/scripts/load-context.mjs";
 import { loadChromeGrammar } from "../skills/hig/scripts/load-chrome-grammar.mjs";
+import { LIST_STATUSES, listStatusChrome } from "../skills/hig/knowledge/chrome/list-status.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.resolve(__dirname, "..");
@@ -116,6 +117,43 @@ function kitOrFont(text) {
       />\s*List\s*</.test(origWeb) && /Text\(\s*"List"\s*\)/.test(origSwift);
     const mechanicalGone = (report) =>
       MECHANICAL_CHROME_IDS.every((id) => !report.after.fails.some((f) => f.id === id));
+    const webFlow = fs.readFileSync(path.join(webDir, "split-flow.html"), "utf8");
+    const swiftFlow = fs.readFileSync(path.join(swiftDir, "Sources", "App", "SplitFlow.swift"), "utf8");
+    const webSections = [...webFlow.matchAll(/<section\b[^>]*>[\s\S]*?<\/section>/gi)].map((m) => m[0]);
+    const emptyWeb = webSections.find((s) => /data-list-status=["']empty["']/.test(s) && /data-split/.test(s));
+    const shortWeb = webFlow.match(/<form\b[^>]*data-create=["']short["'][^>]*>[\s\S]*?<\/form>/i);
+    const longWeb = webFlow.match(/<form\b[^>]*data-create=["']long["'][^>]*>[\s\S]*?<\/form>/i);
+    const shortHost = webSections.find((s) => shortWeb && s.includes(shortWeb[0]));
+    const webShape =
+      emptyWeb &&
+      !/Select a/i.test(emptyWeb) &&
+      !/>\s*Add\s*</.test(emptyWeb) &&
+      /data-list-status=["']empty["']/.test(webFlow) &&
+      /width:\s*20rem/.test(webFlow) &&
+      /data-empty-detail/.test(webFlow) &&
+      longWeb &&
+      !webSections.some((s) => /data-split/.test(s) && s.includes(longWeb[0])) &&
+      shortHost &&
+      /<ul\b/i.test(shortHost) &&
+      !/data-list-status=["']empty["']/.test(shortHost) &&
+      !/>\s*Add\s*</.test(webFlow) &&
+      !/Select a/i.test(webFlow);
+    const swiftStructs = swiftFlow.split(/(?=struct )/);
+    const longStruct = swiftStructs.find((block) => /\.createKind\(\.long\)/.test(block)) || "";
+    const shortStruct = swiftStructs.find((block) => /\.createKind\(\.short\)/.test(block)) || "";
+    const swiftShape =
+      /\.listStatus\(\.empty\)/.test(swiftFlow) &&
+      /Text\(\s*"No vendors yet"\s*\)/.test(swiftFlow) &&
+      !/Text\(\s*"Select a/.test(swiftFlow) &&
+      /\.frame\(minWidth:\s*220,\s*idealWidth:\s*320\)/.test(swiftFlow) &&
+      /EmptyView\(\)/.test(swiftFlow) &&
+      longStruct &&
+      !/NavigationSplitView/.test(longStruct) &&
+      /detail:\s*\{[\s\S]*\.createKind\(\.short\)/.test(shortStruct) &&
+      /ListStatus\.loading/.test(swiftFlow) &&
+      /ListStatus\.fault/.test(swiftFlow) &&
+      /ListStatus\.empty/.test(swiftFlow) &&
+      !/Button\(\s*"Add"\s*\)/.test(swiftFlow);
     const kindsDiffer =
       webCtx.stack.supported &&
       nativeCtx.stack.supported &&
@@ -131,6 +169,8 @@ function kitOrFont(text) {
         native.applied.length > 0 &&
         mechanicalGone(web) &&
         mechanicalGone(native) &&
+        webShape &&
+        swiftShape &&
         kindsDiffer &&
         !kitOrFont(webText) &&
         !kitOrFont(nativeText) &&
@@ -140,6 +180,8 @@ function kitOrFont(text) {
       webApplied: web.applied,
       nativeApplied: native.applied,
       origUnchanged,
+      webShape,
+      swiftShape,
     });
   } finally {
     fs.rmSync(webDir, { recursive: true, force: true });
@@ -231,6 +273,83 @@ function kitOrFont(text) {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+}
+
+const SPLIT_LIST_IDS = [
+  "chrome.split.empty-select",
+  "chrome.split.list-width",
+  "chrome.create.short-vs-long",
+  "chrome.list-status.lifecycle",
+];
+
+{
+  const hosts = [
+    ["web-antipattern", path.join(__dirname, "fixtures", "chrome-antipatterns-web"), true],
+    ["swift-antipattern", path.join(__dirname, "fixtures", "chrome-antipatterns-swift"), true],
+    ["web-clean", path.join(__dirname, "fixtures", "chrome-pass-web"), false],
+    ["swift-clean", path.join(__dirname, "fixtures", "chrome-pass-swift"), false],
+  ];
+  const reports = {};
+  let ok = true;
+  for (const [name, dir, shouldFail] of hosts) {
+    const report = checkChrome({ cwd: dir, skillRoot, register: "product" });
+    const found = new Set(report.fails.map((f) => f.id));
+    const hit = SPLIT_LIST_IDS.filter((id) => found.has(id));
+    const missing = SPLIT_LIST_IDS.filter((id) => !found.has(id));
+    const hostOk = shouldFail ? missing.length === 0 : hit.length === 0 && report.pass === true;
+    reports[name] = { hostOk, hit, missing, pass: report.pass };
+    if (!hostOk) ok = false;
+  }
+  results.push({ case: "split-list-flow-dual-stack", ok, reports });
+}
+
+{
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hig-no-split-"));
+  const file = path.join(dir, "App.tsx");
+  const source = "export default function App() {\n  return <p>Hello</p>;\n}\n";
+  fs.writeFileSync(file, source);
+  try {
+    const chrome = applyChrome({ cwd: dir, skillRoot, register: "product", write: true });
+    const after = fs.readFileSync(file, "utf8");
+    const invented = /data-split|<form\b|NavigationSplitView/.test(after);
+    results.push({
+      case: "apply-does-not-invent-split-or-form",
+      ok: after === source && chrome.applied.length === 0 && !invented,
+      invented,
+      applied: chrome.applied,
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+{
+  const policies = {};
+  let threw = false;
+  try {
+    for (const status of LIST_STATUSES) policies[status] = listStatusChrome(status);
+  } catch {
+    threw = true;
+  }
+  let unknownThrew = false;
+  try {
+    listStatusChrome("busy");
+  } catch {
+    unknownThrew = true;
+  }
+  const ok =
+    !threw &&
+    unknownThrew &&
+    LIST_STATUSES.join("|") === "empty|loading|ready|fault" &&
+    policies.empty.offerAdd === false &&
+    policies.empty.deadDetail === "allow" &&
+    policies.loading.offerAdd === false &&
+    policies.loading.deadDetail === "forbid" &&
+    policies.ready.offerAdd === true &&
+    policies.ready.deadDetail === "allow" &&
+    policies.fault.offerAdd === false &&
+    policies.fault.deadDetail === "forbid";
+  results.push({ case: "list-status-union-exhausted", ok, policies });
 }
 
 const failed = results.filter((r) => !r.ok);
