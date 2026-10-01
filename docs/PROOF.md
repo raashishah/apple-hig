@@ -61,7 +61,7 @@ Used to prove the skill is not “copy Pink Depot CSS.”
 
 ## Gaps (feedback welcome)
 
-The four split/list flow IDs are encoded: `chrome.split.empty-select`, `chrome.split.list-width`, `chrome.create.short-vs-long`, `chrome.list-status.lifecycle`. Grammar, recipes, and `apply-chrome.mjs` own them. Dual-stack fixtures fail the antipattern and pass the clean host.
+The four split/list flow IDs are encoded: `chrome.split.empty-select`, `chrome.split.list-width`, `chrome.create.short-vs-long`, `chrome.list-status.lifecycle`. Grammar, recipes, and `apply-chrome.mjs` own them. Dual-stack fixtures fail the antipattern and pass the clean host. `/hig flow` may create list, form, overlay, and chrome from `.hig/screens.yaml`. Catalog apply still does not invent a missing widget.
 
 Also deferred: reusable CSS kit extraction after more gold passes.
 

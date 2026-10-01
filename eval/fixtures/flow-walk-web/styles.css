@@ -1,0 +1,9 @@
+:root { --ink: #1d1d1f; --paper: #f5f5f7; }
+body { color: var(--ink); background: var(--paper); margin: 0; }
+header { display: flex; }
+[data-split] { display: flex; flex-direction: column; }
+[data-list-pane] ul { list-style: none; margin: 0; padding: 0; }
+form { max-width: 32rem; }
+@media (min-width: 768px) {
+  [data-split] { display: grid; grid-template-columns: minmax(18rem, 34%) 1fr; }
+}

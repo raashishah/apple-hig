@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Detail</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-flow-step="short-create">
+  <header><a href="list.html">Notes</a></header>
+  <div data-split>
+    <section data-list-pane data-list-rail="kept" data-list-status="ready">
+      <ul><li><a data-primary href="create.html">New note</a></li></ul>
+    </section>
+    <section data-detail>
+      <form data-create="short"><label>Title <input name="title"></label><button type="submit">Save</button></form>
+    </section>
+  </div>
+  <p><a data-flow-next href="create.html">Long create</a></p>
+</body>
+</html>

@@ -15,6 +15,10 @@
   },
   "files": [
     "../skills/hig/scripts/flow-graph.ts",
+    "../skills/hig/flow/env.d.ts",
+    "../skills/hig/flow/list-status.ts",
+    "../skills/hig/flow/scaffold.ts",
+    "../skills/hig/scripts/load-context.d.mts",
     "flow-graph-brands.ts"
   ]
 }

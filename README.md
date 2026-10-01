@@ -25,6 +25,7 @@ Then in any Cursor chat:
 | Command | What happens |
 |---|---|
 | `/hig` | **Default.** Preflight → ingest → parallel swarm audit/apply → gold QA (chrome up to 3 rounds) → catalog waves until **mechanically accountable** topics are clean (`remaining` in `.hig/catalog-status.yaml`; many Don'ts stay pending by design — see [PROOF](docs/PROOF.md#catalog-donts--known-gaps)) |
+| `/hig flow` | Create missing list, form, overlay, and chrome from `.hig/screens.yaml`. The only command that may add a screen. |
 | `/hig review [screens] --viewport 768,375` | Report-only gold QA. **Never auto-fixes** |
 | `/hig adapt [surface]` | One-surface structural fix when you ask |
 | `/hig upgrade` | Pull latest from GitHub + re-link skills (also say **HIG upgrade**) |

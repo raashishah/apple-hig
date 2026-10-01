@@ -1,0 +1,26 @@
+version: 1
+entry: /notes
+screens:
+  - id: notes
+    route: /notes
+    title: Notes
+    priority: 1
+    status: designed
+    kind: action
+    to: detail
+    list:
+      status: empty
+  - id: detail
+    route: /notes/detail
+    title: Detail
+    priority: 2
+    status: designed
+    kind: static
+  - id: fault
+    route: /notes/fault
+    title: Fault
+    priority: 3
+    status: designed
+    kind: static
+    list:
+      status: fault
