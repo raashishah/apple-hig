@@ -9,6 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { checkChrome, walkSource } from "./check-chrome.mjs";
+import { listStatusChrome } from "../knowledge/chrome/list-status.mjs";
+import { detailBody, matchBrace, splitSections, swiftStructs } from "../knowledge/chrome/source-spans.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultSkillRoot = path.resolve(__dirname, "..");
@@ -173,65 +175,6 @@ function applyFilterDensity(file) {
   return text;
 }
 
-function applySplitEmptySelect(file) {
-  let text = file.text;
-  text = text.replace(
-    /(data-list-status=["']empty["'][\s\S]{0,800}?)Select (?:a|an) [^<.\n]+/gi,
-    "$1No items",
-  );
-  text = text.replace(/Text\(\s*"Select (?:a|an) [^"]*"\s*\)/g, 'Text("No items")');
-  return text;
-}
-
-function applySplitListWidth(file) {
-  let text = file.text;
-  text = text.replace(/data-list-rail=["']starved["']/g, 'data-list-rail="kept"');
-  text = text.replace(/\.frame\(\s*width:\s*48\s*\)/g, ".frame(minWidth: 280)");
-  return text;
-}
-
-function applyShortVsLong(file) {
-  let text = file.text;
-  const form = text.match(/<form\b[^>]*data-create=["']long["'][\s\S]*?<\/form>/i);
-  if (form && /data-split/.test(text) && !/<main\b[^>]*data-page=["']create["']/.test(text)) {
-    text = text.replace(form[0], "");
-    const page = `<main data-page="create">${form[0]}</main>`;
-    if (text.includes("</body>")) text = text.replace("</body>", `${page}\n</body>`);
-    else text += `\n${page}\n`;
-  }
-  if (/NavigationSplitView/.test(text) && /create-long/.test(text) && !/struct LongCreatePage/.test(text)) {
-    text = text.replace(
-      /Form\s*\{[\s\S]*?\.accessibilityIdentifier\(\s*"create-long"\s*\)/,
-      'Text("Detail")',
-    );
-    text += `\nstruct LongCreatePage: View {\n  var body: some View {\n    Form { TextField("Title", text: .constant("")) }\n      .accessibilityIdentifier("create-long")\n  }\n}\n`;
-  }
-  return text;
-}
-
-function applyListStatusLifecycle(file) {
-  let text = file.text;
-  text = text.replace(
-    /(data-list-status=["'](?:loading|fault)["'][^>]*>)([\s\S]*?)(<\/(?:section|div|main)>)/gi,
-    (all, open, body, close) => {
-      const next = body
-        .replace(/<button\b[^>]*>\s*Add\s*<\/button>/gi, "")
-        .replace(/Select (?:a|an) [^<.\n]+/gi, "Could not load");
-      return `${open}${next}${close}`;
-    },
-  );
-  text = text.replace(
-    /(case\s+\.(?:loading|fault)\s*:)([\s\S]*?)(?=case\s+\.|$)/g,
-    (all, open, body) => {
-      const next = body
-        .replace(/Button\(\s*"Add"\s*\)\s*\{[^}]*\}/g, "")
-        .replace(/Text\(\s*"Select (?:a|an) [^"]*"\s*\)/g, 'Text("Could not load")');
-      return `${open}${next}`;
-    },
-  );
-  return text;
-}
-
 function applySidebarCollapsible(file) {
   let text = file.text;
   if (!/<aside\b|data-sidebar|NavigationSplitView/.test(text)) return text;
@@ -250,6 +193,148 @@ function applySidebarCollapsible(file) {
   return text;
 }
 
+function widenStarved(inner) {
+  let next = inner.replace(/width:\s*(["']?)(\d+(?:\.\d+)?)rem\1/gi, (all, quote, n) => {
+    if (Number(n) >= 12) return all;
+    return `width: ${quote}20rem${quote}`;
+  });
+  next = next.replace(/width:\s*(["']?)(\d+)px\1/gi, (all, quote, n) => {
+    if (Number(n) >= 160) return all;
+    return `width: ${quote}20rem${quote}`;
+  });
+  next = next.replace(/\.frame\(\s*width:\s*(\d+)\s*\)/g, (all, n) => {
+    if (Number(n) >= 160) return all;
+    return ".frame(minWidth: 220, idealWidth: 320)";
+  });
+  return next;
+}
+
+function applyEmptySelect(file) {
+  let text = file.text.replace(
+    /(<section\b[^>]*\bdata-list-status=["']empty["'][^>]*>)([\s\S]*?)(<\/section>)/gi,
+    (all, open, inner, close) => {
+      if (!/\bdata-split\b/.test(open)) return all;
+      const stripped = inner.replace(
+        /<(aside|p|div)\b[^>]*\bdata-detail\b[^>]*>[\s\S]*?<\/\1>/gi,
+        "",
+      );
+      return `${open}${stripped}${close}`;
+    },
+  );
+  const parts = text.split(/(?=struct )/);
+  text = parts
+    .map((block) => {
+      if (!/struct /.test(block) || !/NavigationSplitView/.test(block)) return block;
+      if (!/\.listStatus\(\.empty\)/.test(block) || !/Select a\b/i.test(block)) return block;
+      return block.replace(/Text\(\s*"Select a[^"]*"\s*\)/, 'Text("No vendors yet")');
+    })
+    .join("");
+  return text;
+}
+
+function applyListWidth(file) {
+  let text = file.text.replace(
+    /<section\b[^>]*\bdata-split\b[^>]*>[\s\S]*?<\/section>/gi,
+    (section) => {
+      if (!/data-empty-detail/.test(section)) return section;
+      if (/width:\s*["']?20rem/.test(section)) return section;
+      return widenStarved(section);
+    },
+  );
+  const parts = text.split(/(?=struct )/);
+  text = parts
+    .map((block) => {
+      if (!/struct /.test(block) || !/NavigationSplitView/.test(block)) return block;
+      if (!/EmptyView\(/.test(block)) return block;
+      if (/minWidth:\s*220|idealWidth:\s*320/.test(block)) return block;
+      return widenStarved(block);
+    })
+    .join("");
+  return text;
+}
+
+function applyShortVsLong(file) {
+  let text = file.text.replace(
+    /<section\b[^>]*\bdata-split\b[^>]*>[\s\S]*?<\/section>/gi,
+    (section) => {
+      if (!/data-create=["']long["']/.test(section)) return section;
+      const form = section.match(/<form\b[^>]*\bdata-create=["']long["'][^>]*>[\s\S]*?<\/form>/i);
+      return form ? form[0] : section;
+    },
+  );
+  const short = text.match(/<form\b[^>]*\bdata-create=["']short["'][^>]*>[\s\S]*?<\/form>/i);
+  if (short && splitSections(text).every((section) => !section.includes(short[0]))) {
+    const host = splitSections(text).find(
+      (section) =>
+        /<ul\b/i.test(section) &&
+        !/data-list-status=["']empty["']/.test(section) &&
+        !/data-create=["'](?:long|short)["']/.test(section),
+    );
+    if (host) {
+      text = text.replace(short[0], "");
+      text = text.replace(host, host.replace(/<\/section>\s*$/i, `${short[0]}</section>`));
+    }
+  }
+  const parts = text.split(/(?=struct )/);
+  text = parts
+    .map((block) => {
+      if (!/struct /.test(block) || !/NavigationSplitView/.test(block)) return block;
+      if (/\.createKind\(\.long\)/.test(block)) {
+        const at = block.search(/NavigationSplitView/);
+        const listOpen = block.indexOf("{", at);
+        const listClose = matchBrace(block, listOpen);
+        if (listOpen < 0 || listClose < 0) return block;
+        const afterList = block.slice(listClose);
+        const detailRel = afterList.search(/detail:\s*\{/);
+        if (detailRel < 0) return block;
+        const detailOpen = listClose + afterList.indexOf("{", detailRel);
+        const detailClose = matchBrace(block, detailOpen);
+        const form = block.match(/Form\s*\{[\s\S]*?\.createKind\(\.long\)/);
+        if (!form || detailClose < 0) return block;
+        return `${block.slice(0, at)}${form[0]}${block.slice(detailClose + 1)}`;
+      }
+      if (!/\.createKind\(\.short\)/.test(block)) return block;
+      if (/\.createKind\(\.short\)/.test(detailBody(block))) return block;
+      const form = block.match(/\n[ \t]*Form\s*\{[\s\S]*?\.createKind\(\.short\)/);
+      if (!form) return block;
+      let next = block.replace(form[0], "");
+      next = next.replace(/detail:\s*\{\s*EmptyView\(\)\s*\}/, `detail: {${form[0]}\n    }`);
+      return next;
+    })
+    .join("");
+  return text;
+}
+
+function applyListStatus(file) {
+  let text = file.text.replace(
+    /(<section\b[^>]*\bdata-list-status=["'](empty|loading|ready|fault)["'][^>]*>)([\s\S]*?)(<\/section>)/gi,
+    (all, open, status, inner, close) => {
+      const policy = listStatusChrome(status);
+      let next = inner;
+      if (!policy.offerAdd) next = next.replace(/<button\b[^>]*>\s*Add\s*<\/button>/gi, "");
+      if (policy.deadDetail === "forbid") {
+        next = next.replace(/<(p|aside|div)\b[^>]*\bdata-detail\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+      }
+      return `${open}${next}${close}`;
+    },
+  );
+  const parts = text.split(/(?=ListStatus\.(?:empty|loading|ready|fault))/);
+  text = parts
+    .map((part) => {
+      const mark = part.match(/^ListStatus\.(empty|loading|ready|fault)/);
+      if (!mark) return part;
+      const policy = listStatusChrome(mark[1]);
+      let next = part;
+      if (!policy.offerAdd) next = next.replace(/\n[ \t]*Button\(\s*"Add"\s*\)\s*\{\s*\}/g, "");
+      if (policy.deadDetail === "forbid") {
+        next = next.replace(/\n[ \t]*Text\(\s*"Select a[^"]*"\s*\)/g, "");
+      }
+      return next;
+    })
+    .join("");
+  return text;
+}
+
 const RECIPES = {
   "chrome.view-mode.icons": applyViewModeIcons,
   "chrome.list-browser.toolbar-budget": applyToolbarBudget,
@@ -260,10 +345,10 @@ const RECIPES = {
   "chrome.materials.fashion-glass": applyFashionGlass,
   "chrome.layout.card-grid-home": applyCardGridHome,
   "chrome.ive.nested-cards": applyNestedCards,
-  "chrome.split.empty-select": applySplitEmptySelect,
-  "chrome.split.list-width": applySplitListWidth,
+  "chrome.split.empty-select": applyEmptySelect,
+  "chrome.split.list-width": applyListWidth,
   "chrome.create.short-vs-long": applyShortVsLong,
-  "chrome.list-status.lifecycle": applyListStatusLifecycle,
+  "chrome.list-status.lifecycle": applyListStatus,
 };
 
 export const MECHANICAL_CHROME_IDS = Object.keys(RECIPES);

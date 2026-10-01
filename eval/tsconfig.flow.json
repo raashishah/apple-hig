@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "verbatimModuleSyntax": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true
+  },
+  "files": [
+    "../skills/hig/scripts/flow-graph.ts",
+    "../skills/hig/flow/env.d.ts",
+    "../skills/hig/flow/list-status.ts",
+    "../skills/hig/flow/scaffold.ts",
+    "../skills/hig/scripts/load-context.d.mts",
+    "flow-graph-brands.ts"
+  ]
+}

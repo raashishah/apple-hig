@@ -26,3 +26,15 @@ surfaces:
   - id: nested-cards
     file: surfaces/nested-cards.tsx
     violates: [chrome.ive.nested-cards]
+  - id: split-empty-select
+    file: surfaces/split-empty-select.tsx
+    violates: [chrome.split.empty-select]
+  - id: split-list-width
+    file: surfaces/split-list-width.tsx
+    violates: [chrome.split.list-width]
+  - id: create-short-vs-long
+    file: surfaces/create-short-vs-long.tsx
+    violates: [chrome.create.short-vs-long]
+  - id: list-status-lifecycle
+    file: surfaces/list-status-lifecycle.tsx
+    violates: [chrome.list-status.lifecycle]

@@ -4,18 +4,24 @@ screens:
   - id: notes
     route: list.html
     title: Notes
+    priority: 1
+    status: designed
     kind: action
-    destination: detail
+    to: detail
     list:
       status: empty
   - id: detail
     route: detail.html
     title: Detail
+    priority: 2
+    status: designed
     kind: action
-    destination: notes
+    to: notes
   - id: create
     route: create.html
     title: New note
+    priority: 3
+    status: designed
     kind: static
     create:
       kind: long
@@ -23,6 +29,8 @@ screens:
   - id: fault
     route: fault.html
     title: Fault
+    priority: 4
+    status: designed
     kind: static
     list:
       status: fault

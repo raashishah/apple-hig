@@ -9,20 +9,25 @@ struct NotesWalk: View {
     NavigationSplitView {
       List { }
         .frame(width: 48)
+        .listStatus(.empty)
     } detail: {
+      Text("Select a note")
       switch status {
       case .empty:
-        Text("Select an item")
+        Text("Select a note")
       case .loading:
         Button("Add") { }
-        Text("Select an item")
+        Text("Select a note")
       case .fault:
+        // ListStatus.fault
         Button("Add") { }
+        Text("Select a note")
       default:
         EmptyView()
       }
       Form { TextField("Title", text: .constant("")) }
         .accessibilityIdentifier("create-long")
+        .createKind(.long)
     }
   }
 }

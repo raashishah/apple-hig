@@ -1,35 +1,21 @@
-# Screen list for /hig implement + review.
-# Legacy hosts may keep only id, route, title, priority, and status.
-# A walk adds entry, kind, destination, list.status, and create.
-# kind is static (no primary action) or action (destination is a screen id, not a route).
-# list.status is one of empty, loading, ready, fault.
-# create.kind is short (stays in the detail) or long (own route).
+# Screen list and flow graph for /hig.
+# A row with only id, route, title, priority, and status is kind static.
+# Do not invent screens. Take ids and routes from requirements or routesHint.
+#
+# entry: /                 route the walk starts on; omit until the product names one
+# kind: static             no primary action (omit kind; that is the same)
+# kind: action
+# to: example-detail       destination screen id, required for an action
+# list:
+#   status: ready          exactly one of empty, loading, ready, fault
+# create:
+#   kind: short            stays in the detail pane
+#   kind: long
+#   route: /new            a long create owns this route
 version: 1
-entry: /
 screens:
   - id: example-home
     route: /
     title: Home
     priority: 1
     status: designed
-    kind: static
-  - id: example-list
-    route: /items
-    title: Items
-    priority: 2
-    status: designed
-    kind: action
-    destination: example-home
-    list:
-      status: ready
-    create:
-      kind: short
-  - id: example-create
-    route: /items/new
-    title: New item
-    priority: 3
-    status: designed
-    kind: static
-    create:
-      kind: long
-      route: /items/new

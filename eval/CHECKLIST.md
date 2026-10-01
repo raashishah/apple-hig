@@ -26,9 +26,14 @@ node eval/run-chrome-grammar.mjs
 node eval/run-swarm.mjs
 node eval/run-check-chrome.mjs
 node eval/run-catalog.mjs
+node --experimental-strip-types eval/run-flow-graph.mjs
+node eval/run-flow-scaffold.mjs
+node eval/run-flow-walk.mjs
 ```
 
 - [x] Sparse fixture: preflight passes; mutation open
+- [x] Flow graph: legacy `screens.yaml` still loads; an action with no destination, a list with two statuses, and a create that is both short and long are rejected
+- [x] `/hig flow` scaffolds list, form, overlay, and chrome once, stops on brand landings, and keeps the no-graph stop line
 - [x] Unsupported fixture: `mutation=unsupported` with one-line stop
 - [x] Brand veto: `register: brand` → `review_adapt_mutation=blocked`
 - [x] Grammar loads; required chrome rule IDs present (including filter-density + fashion-glass + card-grid-home)

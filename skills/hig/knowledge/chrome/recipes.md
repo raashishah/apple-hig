@@ -54,16 +54,27 @@ Do not wrap `List` / `<ul>` / `Form` in extra card panels. Grouped system conten
 
 ## chrome.split.empty-select
 
-Empty list: empty state in the detail. Do not leave "Select a…" copy when there is no row.
+An empty list does not render an idle “Select …” detail. Omit that pane. The list owns the empty state.
+
+**Web:** a `data-split` whose list status is `empty` has no `data-detail` Select pane.
+
+**SwiftUI:** `NavigationSplitView` with `.listStatus(.empty)` does not use `Text("Select a…")` as the detail.
 
 ## chrome.split.list-width
 
-Keep the list column readable when detail is empty (`minmax(18rem, 34%)` or a min width). Do not pin the list to a 48pt / 4rem rail.
+When detail is empty, the list rail keeps a real column. A rail under 12rem / 160px beside `data-empty-detail` or `EmptyView()` is starved. Use a column about 20rem, or `minWidth` 220 / `idealWidth` 320.
 
 ## chrome.create.short-vs-long
 
-Short create stays in the detail. Long create is a full page (`data-page="create"` / its own view), not a form trapped in the split.
+Long create is a full page, outside the split. Short create stays in the detail, with the list still mounted. Do not invent a split or a form the host does not already have. Move a short create into an existing split, or lift a long create out of one.
 
 ## chrome.list-status.lifecycle
 
-`loading` and `fault` do not show Add or an idle Select detail. `ready` may offer Add. Status is one of empty, loading, ready, fault.
+List status is the union `empty | loading | ready | fault`. Do not model it as optional booleans.
+
+| Status | Add | Dead Select detail |
+|---|---|---|
+| empty | hidden | owned by `chrome.split.empty-select` |
+| loading | hidden | hidden |
+| ready | shown | allowed |
+| fault | hidden | hidden |

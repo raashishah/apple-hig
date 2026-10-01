@@ -28,6 +28,6 @@ Notes: …
 
 | Archetype | Gates |
 |---|---|
-| list-browser / split-list-detail | view-mode.icons, toolbar-budget, filter-density, nested-cards |
+| list-browser / split-list-detail | view-mode.icons, toolbar-budget, filter-density, nested-cards, split.empty-select, split.list-width, create.short-vs-long, list-status.lifecycle |
 | form-page | form.column-cohesion |
 | app-shell (product) | sidebar.collapsible, bars.system-materials, fashion-glass, card-grid-home |

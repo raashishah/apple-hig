@@ -32,17 +32,23 @@ screens:
   - id: items
     route: /items
     title: Items
+    priority: 1
+    status: designed
     kind: action
-    destination: home
+    to: home
     list:
       status: ready
   - id: home
     route: /
     title: Home
+    priority: 2
+    status: designed
     kind: static
   - id: create
     route: /items/new
     title: New item
+    priority: 3
+    status: designed
     kind: static
     create:
       kind: long
@@ -84,7 +90,7 @@ screens:
       { patterns, flowFails, stopLine: before.stopLine, second: secondJson },
     );
 
-    const extra = `${GRAPH}  - id: archive\n    route: /archive\n    title: Archive\n    kind: static\n`;
+    const extra = `${GRAPH}  - id: archive\n    route: /archive\n    title: Archive\n    priority: 4\n    status: designed\n    kind: static\n`;
     fs.writeFileSync(path.join(dir, ".hig", "screens.yaml"), extra);
     const third = JSON.parse(runFlow(dir).stdout);
     const grown = fs.readFileSync(path.join(dir, "index.html"), "utf8");

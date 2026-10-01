@@ -4,7 +4,7 @@
 
 Mechanical chrome FAIL gate + catalog apply harness so `/hig` is model-proof. Shipped scope: chrome gate + catalog infra; remaining pack Don'ts documented as known gaps in `docs/PROOF.md` (not a claim of full HIG automation).
 
-- Flow graph in `.hig/screens.yaml` (`kind`, branded screen and route ids, list status `empty | loading | ready | fault`, short vs long create). `/hig flow` scaffolds only list, form, overlay, and chrome. Four split/list grammar IDs: `chrome.split.empty-select`, `chrome.split.list-width`, `chrome.create.short-vs-long`, `chrome.list-status.lifecycle`. Catalog apply still skips a missing affordance. Brand landings stay chrome-free.
+- `/hig flow` scaffolds only list, form, overlay, and chrome from the flow graph in `.hig/screens.yaml`. Brand landings stay chrome-free. Catalog apply still skips a missing affordance.
 
 - Design-principles Don't scanners: a claim that this pack covers Watch, TV, or Vision, and house taste (`768/375-only gold` QA). A clean chrome-pass host accounts `design-principles`. Markers `data-dp-platform` and `data-dp-taste` strip. The prose claims stay pending. Mechanical `done` is remaining 0, not visual any-host Apple-ness. Do not invent Watch, TV, or Vision surfaces. `requiredIds` stay 12.
 
@@ -22,6 +22,7 @@ Mechanical chrome FAIL gate + catalog apply harness so `/hig` is model-proof. Sh
 - Mechanical apply for dual-stack P0s: `scripts/apply-chrome.mjs` (`chrome.view-mode.icons`, `chrome.bars.system-materials`) on a web host and a Swift host; no kit or font rewrite. Other P0s still use `recipes.md`.
 - Mechanical apply for remaining P0 IDs (`toolbar-budget`, `form.column-cohesion`, `fashion-glass`, `card-grid-home`) plus `nested-cards` on tmp copies of `chrome-antipatterns`. Filter-density and sidebar still use `recipes.md`. Committed fixtures stay dirty.
 - Mechanical apply for remaining P1 IDs (`filter-density`, `sidebar.collapsible`). `apply-chrome.mjs` now owns every grammar ID. Committed fixtures stay dirty.
+- Split/list flow FAILs: `chrome.split.empty-select`, `chrome.split.list-width`, `chrome.create.short-vs-long`, `chrome.list-status.lifecycle`. List status is `empty | loading | ready | fault`. Antipattern and clean fixtures on web and Swift. Apply does not invent a missing split or form.
 - Catalog apply: `scripts/apply-catalog.mjs` accounts packed topics whose `chromeIds` are clean after chrome P0. Pack-only pending topics stay pending. Eval on tmp `chrome-pass` and `chrome-antipatterns`.
 - Catalog apply joins pack **Chrome gates** into topic `chromeIds` and accounts pack **Don't** backtick tokens (strip `scaleX(-1)`, map physical margin/padding, no kit). Prose-only Don'ts stay pending. Remaining is not a frozen integer.
 - Catalog apply mechanically scans required-surface prose Don'ts (type, color, motion, a11y) and accounts a topic only when every Don't has a scanner. Host fonts stay. Optional packed Don'ts stay pending. Remaining is not a frozen integer.

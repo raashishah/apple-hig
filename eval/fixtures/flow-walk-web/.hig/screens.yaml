@@ -5,14 +5,16 @@ screens:
     route: list.html
     title: Notes
     priority: 1
+    status: designed
     kind: action
-    destination: detail
+    to: detail
     list:
       status: ready
   - id: empty
     route: empty.html
     title: Empty
     priority: 2
+    status: designed
     kind: static
     list:
       status: empty
@@ -20,14 +22,16 @@ screens:
     route: detail.html
     title: Detail
     priority: 3
+    status: designed
     kind: action
-    destination: notes
+    to: notes
     create:
       kind: short
   - id: create
     route: create.html
     title: New note
     priority: 4
+    status: designed
     kind: static
     create:
       kind: long
@@ -36,7 +40,8 @@ screens:
     route: fault.html
     title: Fault
     priority: 5
+    status: designed
     kind: action
-    destination: notes
+    to: notes
     list:
       status: fault

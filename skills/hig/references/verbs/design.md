@@ -37,10 +37,12 @@ Write/refresh (Apple-designer voice for **this** product):
 
 1. `DESIGN.md` using `references/project/design-md-template.md`
 2. `.hig/app-design.md` using `references/project/app-design-template.md`
-3. `.hig/screens.yaml` using `references/project/screens-yaml-template.yaml`. A walkable product adds a flow graph in that same file: `entry` is a route, each screen is `kind: static` or `kind: action` with a screen id destination, list status is one of `empty | loading | ready | fault`, and create is `short` (stays in detail) or `long` (own route). Do not invent screens. The graph comes from requirements, `routesHint`, or an explicit flow file. Hosts that only have id, route, title, priority, and status stay valid. `/hig flow` is the only command that may create a missing screen, and only as list, form, overlay, or chrome.
+3. `.hig/screens.yaml` using `references/project/screens-yaml-template.yaml`
 4. `.hig/progress.yaml` — screens + swarm round status
 5. `.hig/catalog-status.yaml` from `plan-catalog.mjs --write`
 6. `.hig/swarm/` directory
+
+`.hig/screens.yaml` is the flow graph. A row is `kind: static` (no primary action; a legacy row that omits `kind` is static) or `kind: action` with `to` set to another screen id. A list pane has one `list.status`: `empty`, `loading`, `ready`, or `fault`. Create is `kind: short` (stays in detail) or `kind: long` with its own `route`. `entry` is the route the walk starts on. Repeat none of `list`, `create`, `kind`, `to`, `entry`, or `screens`. Indent with spaces. Do not invent the product. Take ids and routes from `requirementPaths`, `routesHint`, or a graph the product already states. `scripts/flow-graph.ts` `parseFlowYaml` is the check. `/hig flow` is the only command that may create a missing screen, and only as list, form, overlay, or chrome.
 
 On `register: brand`, include:
 

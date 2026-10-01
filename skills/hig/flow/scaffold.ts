@@ -8,12 +8,12 @@ import path from "node:path";
 import { loadContext } from "../scripts/load-context.mjs";
 import {
   parseFlowYaml,
-  routeForScreen,
+  primaryDestination,
   type FlowGraph,
-  type FlowScreen,
   type RouteId,
+  type Screen,
   type ScreenId,
-} from "./graph.ts";
+} from "../scripts/flow-graph.ts";
 import { chromeForListStatus, type ListStatus } from "./list-status.ts";
 
 export const PATTERN_KINDS = ["list", "form", "overlay", "chrome"] as const;
@@ -68,13 +68,20 @@ function listStatus(graph: FlowGraph): ListStatus {
   return "ready";
 }
 
-function hrefFor(graph: FlowGraph, screen: FlowScreen): RouteId {
-  if (screen.kind === "static") return screen.route;
-  const route = routeForScreen({ graph, id: screen.destination });
-  return route ?? screen.route;
+function routeForScreen(graph: FlowGraph, id: ScreenId): RouteId | null {
+  for (const screen of graph.screens) {
+    if (screen.id === id) return screen.route;
+  }
+  return null;
 }
 
-function screenRow(graph: FlowGraph, screen: FlowScreen): string {
+function hrefFor(graph: FlowGraph, screen: Screen): RouteId {
+  const destination = primaryDestination(screen);
+  if (destination === null) return screen.route;
+  return routeForScreen(graph, destination) ?? screen.route;
+}
+
+function screenRow(graph: FlowGraph, screen: Screen): string {
   const href = hrefFor(graph, screen);
   return `<li data-screen="${screen.id}"><a data-primary href="${href}">${screen.title}</a></li>`;
 }
@@ -283,8 +290,10 @@ export function scaffoldFlow(input: { cwd: string }): ScaffoldResult {
     return { ok: false, reason: "no-graph", stopLine: context.stopLine };
   }
   if (context.register === "brand") return { ok: false, reason: "brand" };
-  const parsed = parseFlowYaml({ text: fs.readFileSync(graphPath, "utf8") });
-  if (!parsed.ok) return { ok: false, reason: "parse", code: parsed.code, path: parsed.path };
+  const parsed = parseFlowYaml(fs.readFileSync(graphPath, "utf8"));
+  if (!parsed.ok) {
+    return { ok: false, reason: "parse", code: parsed.errors[0] ?? "invalid flow graph", path: graphPath };
+  }
   const graph = parsed.graph;
   const stack = hostStack(cwd);
   if (stack === "swift") return scaffoldSwift({ cwd, graph });

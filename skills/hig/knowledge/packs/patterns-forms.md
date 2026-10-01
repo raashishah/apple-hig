@@ -34,7 +34,7 @@ Field: default / focus / error / disabled. Button: default / hover / pressed / d
 Load `knowledge/chrome/grammar.yaml`. Cite in review; implement to PASS:
 
 - `chrome.form.column-cohesion` — title, actions, and fields share one column width
-- `chrome.create.short-vs-long` — long create is its own page; short create stays in the detail
+- `chrome.create.short-vs-long` — long create is a full page; short create stays in detail
 
 Recipes: `knowledge/chrome/recipes.md`.
 

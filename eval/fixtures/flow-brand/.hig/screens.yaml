@@ -4,4 +4,6 @@ screens:
   - id: landing
     route: /
     title: Studio
+    priority: 1
+    status: designed
     kind: static

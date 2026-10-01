@@ -87,35 +87,35 @@ rules:
   - id: chrome.split.empty-select
     severity: P0
     mutationClass: structure
-    registers: [product]
+    registers: [product, any]
     packs: [patterns-lists-detail]
-    appleUrl: https://developer.apple.com/design/human-interface-guidelines/lists-and-tables
-    failWhen: "An empty list still renders an idle Select detail."
-    passWhen: "An empty list shows an empty state. The detail does not ask the user to select a row that is not there."
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/split-views
+    failWhen: "Empty list still renders an idle Select detail pane."
+    passWhen: "Empty list omits the idle Select detail; the list owns the empty state."
 
   - id: chrome.split.list-width
     severity: P0
     mutationClass: structure
-    registers: [product]
-    packs: [patterns-lists-detail]
+    registers: [product, any]
+    packs: [patterns-lists-detail, foundations-layout]
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/split-views
-    failWhen: "The list rail collapses to a thin strip when the detail is empty."
-    passWhen: "The list keeps a readable column when the detail is empty. The detail flexes."
+    failWhen: "List rail is starved thin beside an empty detail pane."
+    passWhen: "List rail keeps its column when detail is empty."
 
   - id: chrome.create.short-vs-long
     severity: P0
     mutationClass: structure
-    registers: [product]
+    registers: [product, any]
     packs: [patterns-forms, patterns-lists-detail]
     appleUrl: https://developer.apple.com/design/human-interface-guidelines/entering-data
-    failWhen: "A long create is stuck as a half-width form inside the split."
-    passWhen: "A long create is its own page. A short create stays in the detail."
+    failWhen: "Long create stays an orphan half-width form in the split, or short create leaves the detail."
+    passWhen: "Long create is a full page; short create stays in the detail."
 
   - id: chrome.list-status.lifecycle
     severity: P0
     mutationClass: structure
-    registers: [product]
+    registers: [product, any]
     packs: [patterns-lists-detail]
-    appleUrl: https://developer.apple.com/design/human-interface-guidelines/loading
-    failWhen: "A loading or fault list still offers Add or a dead detail."
-    passWhen: "Loading and fault lists wait or explain the failure. Add and an idle detail belong to a ready list."
+    appleUrl: https://developer.apple.com/design/human-interface-guidelines/lists-and-tables
+    failWhen: "Loading or fault list status still offers Add or a dead detail."
+    passWhen: "Loading and fault list status offer neither Add nor a dead detail."
