@@ -1,0 +1,20 @@
+/*
+  Fig spec slot for web projects. Import this file.
+  Fill a custom property only when Fig supplies the value, with a source note.
+  Do not invent type, spacing, colour, material, or motion values.
+
+  type:     --hig-font-size-body
+  spacing:  --hig-space-1
+  colour:   --hig-color-label
+  material: --hig-material-regular
+  margin:   --hig-margin-min
+
+  Motion maps to SwiftUI .smooth, .snappy, and .bouncy.
+  Web curves are approximations of those springs. Fig supplies the curve values.
+  --hig-ease-smooth
+  --hig-ease-snappy
+  --hig-ease-bouncy
+*/
+
+:root {
+}

@@ -1,0 +1,14 @@
+[
+  "more than 4 type sizes or off Apple's text scale",
+  "more than 2 weights",
+  "misaligned leading edges or off-grid spacing",
+  "margins tighter than Apple's kit",
+  "tap targets under 44pt",
+  "body contrast under 4.5:1",
+  "non-token colour or more than 1 accent",
+  "custom component where a native one exists",
+  "content under the notch or home bar",
+  "more than 1 primary action",
+  "mismatched or non-nesting corner radii",
+  "invented animation timings instead of Apple springs, or ignoring Reduce Motion"
+]

@@ -1,0 +1,4 @@
+{
+  "components": ["a", "button", "h1", "input", "label", "li", "p", "ul"],
+  "overrides": []
+}

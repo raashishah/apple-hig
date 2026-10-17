@@ -1,8 +1,8 @@
 {
   "name": "apple-hig",
   "displayName": "Apple HIG",
-  "version": "0.4.1",
-  "description": "Apply Apple Human Interface Guidelines 1:1 via a /hig swarm. Framework-agnostic (SwiftUI, UIKit, web/CSS). Optional React mapping. Preserves brand. Hard chrome FAIL grammar.",
+  "version": "1.0.0",
+  "description": "Build and hillclimb interfaces from Apple's Human Interface Guidelines. /hig routes to eight topic pages, a token slot, and a list/detail practice fixture.",
   "author": {
     "name": "Raashi Shah"
   },

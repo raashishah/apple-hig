@@ -1,100 +1,36 @@
 ---
 name: hig
-description: >-
-  Apply Apple Human Interface Guidelines 1:1 to the current project with a swarm
-  of surface agents (layout, type, color, spacing, motion, controls, navigation,
-  lists/split, sheets, forms, accessibility) until the UI feels Apple-native.
-  Use for /hig (default design+implement), /hig review, /hig adapt, /hig upgrade
-  (or "HIG upgrade"). Works on SwiftUI/UIKit, web/CSS, and other UI stacks —
-  not React-only. Preserves project brand colors and fonts.
-argument-hint: "[review|adapt|upgrade] [target]"
+description: Use when the user runs /hig or asks to build or hillclimb a screen against Apple's Human Interface Guidelines. Loads the eight topic pages and routes to the new-screen or hillclimb playbook.
 user-invocable: true
+argument-hint: "[new-screen|hillclimb]"
 ---
 
-# Apple HIG (`/hig`)
+# /hig
 
-One command reads **this** project, then swarms HIG surfaces in place until the UI is Apple-native: extreme simplicity, clarity, restraint.
+Read `principles.md` and `brand.md` before building.
 
-Brand tokens stay in the host. `/hig` does not inject a React kit.
+Build from the page files below. Do not replace them with memory.
 
-## Commands
+| Topic | Page | Skill |
+|---|---|---|
+| Typography | `pages/typography.md` | `hig-typography` |
+| Color | `pages/color.md` | `hig-color` |
+| Dark Mode | `pages/dark-mode.md` | `hig-dark-mode` |
+| Tab bars | `pages/tab-bars.md` | `hig-tab-bars` |
+| Lists | `pages/lists-and-tables.md` | `hig-lists` |
+| Buttons | `pages/buttons.md` | `hig-buttons` |
+| Text fields | `pages/text-fields.md` | `hig-text-fields` |
+| Motion | `pages/motion.md` | `hig-motion` |
 
-| Invoke | What happens |
-|---|---|
-| `/hig` | **Default:** ingest → design artifacts → **parallel swarm** apply (load `references/verbs/design.md`) |
-| `/hig flow` | Scaffold missing list, form, overlay, and chrome from the flow graph (load `references/verbs/flow.md`). The only command that may create a screen. |
-| `/hig review [screens]` | Report-only gold QA — **never auto-fix** |
-| `/hig adapt [surface]` | One-surface structural fix when the user asks |
-| `/hig upgrade` | Pull latest `apple-hig` from GitHub + `./setup` (also say **HIG upgrade**) |
+Each topic skill points at its page and ends in a check. Load a page only when the screen uses that topic.
 
-Internal only: old `teach` / `craft` / `section` files may exist; do not route users through them.
+Tokens live in `tokens/web.css` and `tokens/ios.swift`. Do not invent values Fig has not supplied. Web motion curves are approximations of SwiftUI `.smooth`, `.snappy`, and `.bouncy`.
 
-For `/hig upgrade`, load `references/verbs/upgrade.md` (or skill `hig-upgrade`) and **do not** run design/review preflight.
+## Playbooks
 
-## Setup (non-optional)
+- New screen: `playbooks/new-screen.md`
+- Hillclimb: `playbooks/hillclimb.md`
 
-Before mutating project files:
+## Check
 
-1. Resolve skill root (directory of this `SKILL.md`).
-2. Run `node <skill>/scripts/load-context.mjs` and consume **full** JSON.
-3. Read `HIG_PREFLIGHT`. If `mutation=unsupported`, print `stopLine` and stop (backend/docs with no UI).
-4. Load `knowledge/canon.md` + matching verb (`design.md` by default).
-5. If `stack.family` is `web` and `stack.kind` is React/Next, also load sibling skill `hig-react` (optional mapping only).
-6. Emit:
-
-```text
-HIG_PREFLIGHT: <value from JSON>
-```
-
-## Any-model contract (non-optional)
-
-Works even when Task/swarm is unavailable. Soft “feels Apple” is not a PASS.
-
-1. Do not rewrite host fonts or invent a face. Colors and typeface stay with the product.
-2. Wave 0 **apply** only `requiredIds` (12) from `knowledge/surfaces.yaml` (the apply SSOT) until `check-chrome.mjs` is P0-clean. Optional/gated surfaces may audit.
-3. After each apply round, run `node <skill>/scripts/check-chrome.mjs` on the host and consume the JSON.
-4. If `pass` is false (any P0 in `fails[]`), you may **not** print `HIG_CHROME` PASS. Run `node <skill>/scripts/apply-chrome.mjs --cwd <host> --write`, then re-check. Remaining hits: fix from `knowledge/chrome/recipes.md` and re-check.
-5. Apply using `scripts/apply-chrome.mjs` for the grammar IDs it owns, then `knowledge/chrome/recipes.md` in the host language. No kit injection. Do not rewrite host fonts.
-6. When chrome P0 is clean, run `node <skill>/scripts/apply-catalog.mjs --cwd <host> --write`. It accounts packed catalog topics whose `chromeIds` are clean **and whose pack has no Don't bullets** (including IDs cited in pack **Chrome gates**), applies pack **Don't** backtick tokens onto existing widgets, then mechanically applies prose Don'ts whose **every** bullet has a scanner (required type/color/motion/a11y, plus search, writing, privacy, branding, icons, images, app-icons, inclusion, optional-widget Don'ts for settings, undo, loading, feedback, onboarding, drag, notifications, and launching when that widget exists, chrome-backed layout, materials, lists, forms, and navigation Don'ts, host-widget Don'ts for menus, pickers, progress, controls, sliders, scroll-views, popovers, collections, page-controls, labels, text-views, image-views, charts, disclosure-controls, boxes, edit-menus, offering-help, web-views, activity-views, and printing, and going-full-screen, and file-management, and focus-and-selection, and managing-accounts, and tab-views, and multitasking, and ratings-and-reviews, and windows, and playing-video, and playing-haptics, and airplay, and gyro-and-accelerometer, and home-screen-quick-actions, and live-viewing-apps, and snippets, and generative-ai, and always-on, and shareplay, and nearby-interactions, and activity-rings, and nfc, and augmented-reality, and tap-to-pay-on-iphone, and id-verifier, and apple-in-app-purchase, and maps, and homekit, and workouts, and live-photos, and icloud, and siri, and app-shortcuts, and healthkit, and carplay, and sign-in-with-apple, and apple-pay, and playing-audio, and game-center, and panels, and path-controls, and outline-views, and imessage-apps-and-stickers, and action-button, and camera-control, and dock-menus, and gestures, and keyboards, and pointing-devices, and apple-pencil, and game-controls, and iphone-duo, and carekit, and system-chrome Don'ts for widgets, Live Activities, status bars, and Control Center when that capability exists, and RTL Don'ts for right-to-left, and nested-modal Don'ts for sheets/alerts/action-sheets/modality). Composed `also:` Apple articles (dark-mode, SF Symbols, context/pull-down/pop-up menus, notifications glanceability, charting-data) ride the parent pack Don't scanners — no second swarm lease. Packs with Don't bullets account through Don't scanners, not clean chromeIds. Other optional packed Don'ts stay pending when the host has that widget. Skip unmatched Watch/TV/Vision. Topics with no pack are `skipped-no-pack`, not injected. Surfaces with an `affordance` are `skipped-no-affordance` when the host has no matching widget — do not invent one. Required pattern kinds: `list` / `form` / `overlay` / `chrome` (collection/card grids count as `list`). Optional widget kinds: `menu` / `picker` / `progress` / `search` / `notification` / `loading` / `feedback` / `onboarding` / `drag` / `settings` / `undo` / `slider` / `scroll` / `popover` / `collection` / `pagecontrol` / `label` / `textview` / `imageview` / `chart` / `disclosure` / `box` / `editmenu` / `help` / `webview` / `activityview` / `print` / `fullscreen` / `filebrowser` / `focus` / `account` / `tabview` / `multitask` / `reviewprompt` / `appwindow` / `videoplayer` / `haptic` / `airplay` / `gyro` / `quickaction` / `liveviewing` / `snippet` / `genai` / `alwayson` / `shareplay` / `nearby` / `activityring` / `nfc` / `ar` / `taptopay` / `idverifier` / `iap` / `map` / `homekit` / `workout` / `livephoto` / `icloud` / `siri` / `appshortcut` / `healthkit` / `carplay` / `siwa` / `applepay` / `audioplayer` / `gcaccess` / `panel` / `pathcontrol` / `outline` / `stickerpack` / `actionbutton` / `cameracontrol` / `dockmenu`. What does not count as a widget is the `not` list on that affordance record. A 12-surface lease is not catalog done.
-7. Catalog done when chrome P0 is clean and `remaining` is 0 (every catalog row is terminal). Chrome retries use a 3-round cap; catalog waves continue until accounted or the user stops. Persist `.hig/catalog-status.yaml`. Print `HIG_CATALOG` from the plan JSON (loaded/applicable/remaining are data, not a frozen pass integer).
-
-## Shared laws
-
-1. **Brand vs structure.** Colors, fonts, voice = `DESIGN.md` only. Packs = structure, density, materials, interaction.
-2. **Apple docs, not patient apps.** Packs cite Apple HIG URLs. Do not copy Pink Depot / personal-site brand into another project.
-3. **Materials.** Opaque nav and content chrome. Glass only on functional overlays (sheets, alerts, pickers) with a solid fallback (`@supports` on the web).
-4. **List columns are browsers.** Compact toolbar, dense rows. Detail owns the large title and primary page chrome.
-5. **Chrome grammar.** Load `knowledge/chrome/grammar.yaml`. Solved chrome FAILs have stable IDs (`chrome.view-mode.icons`, toolbar budget, filter density, form column cohesion, sidebar collapse). Review must cite `structure:<id>`. Soft pack prose is not a substitute.
-6. **Kit lock.** Use the host’s components/tokens. Do not invent a parallel CSS or React system.
-7. **Brand veto.** On `register: brand`, or when `brand_mutation_veto: spacing_and_touch_targets_locked` is in `DESIGN.md`, `/hig review` and `/hig adapt` must **not** change spacing or touch-target CSS. Report only. Structure chrome FAILs still report.
-8. **Marketing ≠ app chrome.** Never force bottom tab bars or NavigationSplitView onto `register: brand` landings.
-9. **Stack fidelity.** SwiftUI/UIKit stay on system containers. Web stays CSS. Detected stack from preflight wins. `native-apple` wins over incidental help/webview HTML; LaunchScreen.storyboard / leftover `.xib` do not make a SwiftUI app UIKit. Load `hig-react` only when `stack.kind` is React/Next.
-
-## Default pipeline (swarm)
-
-1. Preflight (`load-context.mjs`).
-2. Follow `references/verbs/design.md` end-to-end: ingest → design artifacts → **fan-out surface agents** → exclusive-file apply → gold QA → chrome P0 → **catalog waves** until remaining is 0.
-3. Summarize evidence (web: 768 and 375; native: compact + regular width).
-
-## Swarm surfaces
-
-Load `knowledge/surfaces.yaml` (`node <skill>/scripts/load-surfaces.mjs`). Launch **parallel** Task agents for **required + matching gated** ids (not every authored pack). Skip unmatched optional surfaces. Use `references/agents/surface-worker.md`.
-
-Always-on: layout · spacing · typography · color · materials · motion · controls · navigation · lists-split · sheets · forms · accessibility
-
-Optional examples (gate, not `requiredIds`): game-center · mac-chrome · gs-iphone-duo
-
-Then `references/agents/synthesizer.md` → leased apply workers (`references/agents/apply-worker.md`).
-
-## Pattern packs
-
-Compose from `knowledge/packs/`:
-
-- `foundations-layout`, `foundations-spacing`, `foundations-materials`, `foundations-color`, `foundations-typography`, `foundations-motion`, `foundations-accessibility`
-- `patterns-navigation`, `patterns-lists-detail`, `patterns-forms`, `patterns-sheets`, `patterns-controls`
-
-Chrome FAIL criteria: `knowledge/chrome/grammar.yaml` (packs only cite IDs). Recipes: `knowledge/chrome/recipes.md`. Rubric: `knowledge/chrome/review-rubric.md`. Scanner: `scripts/check-chrome.mjs`. Mechanical apply: `scripts/apply-chrome.mjs`.
-
-Deep Apple URLs remain in `knowledge/registry.yaml` for rare leaves. That file is not the apply catalog.
-
-Live Apple article inventory: `knowledge/catalog.yaml` (refresh with `scripts/sync-hig-catalog.mjs`). Planner: `scripts/plan-catalog.mjs`. Catalog apply: `scripts/apply-catalog.mjs`. It does not replace wave-0 apply. Catalog `failWhen` / `passWhen` are derived at load from `grammar.yaml` plus pack **Do** / **Don't** (not the title stub, and not **Apply in host**). Required-surface, writing, privacy, branding, icons, images, app-icons, inclusion, optional-widget (settings, undo, loading, feedback, onboarding, drag, notifications, launching), chrome-backed layout/materials/lists/forms/navigation, host-widget (menus, pickers, progress, controls, sliders, scroll-views, popovers, collections, page-controls, labels, text-views, image-views, charts, disclosure-controls, boxes, edit-menus, offering-help, web-views, activity-views, printing, going-full-screen, file-management, focus-and-selection, managing-accounts, tab-views, multitasking, ratings-and-reviews, windows, playing-video, playing-haptics, airplay, gyro-and-accelerometer, home-screen-quick-actions, live-viewing-apps, snippets, generative-ai, always-on, shareplay, nearby-interactions, activity-rings, nfc, augmented-reality, tap-to-pay-on-iphone, id-verifier, apple-in-app-purchase, maps, homekit, workouts, live-photos, icloud, siri, app-shortcuts, healthkit, carplay, sign-in-with-apple, apple-pay, playing-audio, game-center, panels, path-controls, outline-views, imessage-apps-and-stickers, action-button, camera-control, dock-menus, gestures, keyboards, pointing-devices, apple-pencil, game-controls, iphone-duo, carekit, researchkit, wallet, app-clips, shazamkit, photo-editing), and system-chrome (widgets, Live Activities, status bars, Control Center) prose Don'ts use `knowledge/chrome/dont-heuristics.yaml`.
+Run `node skills/hig/scripts/score-practice.mjs`. Do not claim done when it exits non-zero.

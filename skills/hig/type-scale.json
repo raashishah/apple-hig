@@ -1,0 +1,17 @@
+{
+  "source": "https://developer.apple.com/design/human-interface-guidelines/typography",
+  "table": "iOS, iPadOS Dynamic Type sizes, Large (default)",
+  "styles": [
+    { "style": "Large Title", "weight": "Regular", "size": 34, "leading": 41 },
+    { "style": "Title 1", "weight": "Regular", "size": 28, "leading": 34 },
+    { "style": "Title 2", "weight": "Regular", "size": 22, "leading": 28 },
+    { "style": "Title 3", "weight": "Regular", "size": 20, "leading": 25 },
+    { "style": "Headline", "weight": "Semibold", "size": 17, "leading": 22 },
+    { "style": "Body", "weight": "Regular", "size": 17, "leading": 22 },
+    { "style": "Callout", "weight": "Regular", "size": 16, "leading": 21 },
+    { "style": "Subhead", "weight": "Regular", "size": 15, "leading": 20 },
+    { "style": "Footnote", "weight": "Regular", "size": 13, "leading": 18 },
+    { "style": "Caption 1", "weight": "Regular", "size": 12, "leading": 16 },
+    { "style": "Caption 2", "weight": "Regular", "size": 11, "leading": 13 }
+  ]
+}

@@ -1,0 +1,16 @@
+name: practice
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test skills/hig/scripts/score.test.mjs
+      - run: node skills/hig/scripts/coverage.mjs

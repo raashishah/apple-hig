@@ -1,89 +1,55 @@
 # Apple HIG (`/hig`)
 
-> Early feedback release (**v0.4.1**). Works. Not finished — [send feedback](docs/PROOF.md#how-to-send-feedback).
-
-A Cursor **skill repo** that applies [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) **1:1** to whatever project you run `/hig` in — SwiftUI, UIKit, web/CSS, React/Next, or similar. It fans out surface agents and applies rules **in place** until the UI feels Apple-native. Your brand colors and fonts stay in the project; `/hig` teaches **structure** (navigation, lists, forms, sheets, materials), not a parallel component library.
+`/hig` builds a screen from eight Human Interface Guidelines pages, then hillclimbs the open defects on a list that opens a detail.
 
 ## Install
-
-**Requirements:** [Cursor](https://cursor.com/), Git, Node.js 18+
 
 ```bash
 npx skills add raashishah/apple-hig -g -y
 ```
 
-Then in any Cursor chat:
+Or clone this repo and run `./setup`.
 
-```text
-/hig
+## What `/hig` reads
+
+The router is `skills/hig/SKILL.md`. It loads `principles.md`, `brand.md`, and only the topic page a screen needs:
+
+| Skill | Page |
+|---|---|
+| `hig-typography` | `skills/hig/pages/typography.md` |
+| `hig-color` | `skills/hig/pages/color.md` |
+| `hig-dark-mode` | `skills/hig/pages/dark-mode.md` |
+| `hig-tab-bars` | `skills/hig/pages/tab-bars.md` |
+| `hig-lists` | `skills/hig/pages/lists-and-tables.md` |
+| `hig-buttons` | `skills/hig/pages/buttons.md` |
+| `hig-text-fields` | `skills/hig/pages/text-fields.md` |
+| `hig-motion` | `skills/hig/pages/motion.md` |
+
+Each page restates Apple's guidance and links the source. Do not treat the page text as a substitute for the live article when they disagree.
+
+`DESIGN.md` wins on look. Apple wins on behaviour. Logged look overrides are not defects.
+
+Token slots, still empty until Fig supplies values:
+
+- `skills/hig/tokens/web.css`
+- `skills/hig/tokens/ios.swift`
+
+Web motion curves are approximations of SwiftUI `.smooth`, `.snappy`, and `.bouncy`. The web font stack is `-apple-system, system-ui, sans-serif`. Do not ship SF font files.
+
+## Practice fixture
+
+`practice/list-detail/` is a list that opens a detail. Score it with:
+
+```bash
+node skills/hig/scripts/score-practice.mjs
+node skills/hig/scripts/coverage.mjs
+node --test skills/hig/scripts/score.test.mjs
 ```
 
-**Contributors:** clone [`raashishah/apple-hig`](https://github.com/raashishah/apple-hig), run `./setup` (symlinks `hig`, `hig-upgrade`, `hig-react` into `~/.cursor/skills/`). See [`setup`](setup) and [`skills/hig-upgrade/SKILL.md`](skills/hig-upgrade/SKILL.md) for other install shapes.
+`score-practice.mjs` exits non-zero when the open-defect count rises above `practice/list-detail/baseline.json`.
 
-## Commands
-
-| Command | What happens |
-|---|---|
-| `/hig` | **Default.** Preflight → ingest → parallel swarm audit/apply → gold QA (chrome up to 3 rounds) → catalog waves until **mechanically accountable** topics are clean (`remaining` in `.hig/catalog-status.yaml`; many Don'ts stay pending by design — see [PROOF](docs/PROOF.md#catalog-donts--known-gaps)) |
-| `/hig flow` | Create missing list, form, overlay, and chrome from `.hig/screens.yaml`. The only command that may add a screen. |
-| `/hig review [screens] --viewport 768,375` | Report-only gold QA. **Never auto-fixes** |
-| `/hig adapt [surface]` | One-surface structural fix when you ask |
-| `/hig upgrade` | Pull latest from GitHub + re-link skills (also say **HIG upgrade**) |
-
-Pipeline detail: [`skills/hig/SKILL.md`](skills/hig/SKILL.md) and [`skills/hig/references/verbs/design.md`](skills/hig/references/verbs/design.md). Surface list: [`skills/hig/knowledge/surfaces.yaml`](skills/hig/knowledge/surfaces.yaml).
-
-## Upgrade
-
-Nothing auto-updates. When we push to GitHub, say **HIG upgrade** or `/hig upgrade`. Full flow: [`skills/hig-upgrade/SKILL.md`](skills/hig-upgrade/SKILL.md).
-
-## What it enforces (hard)
-
-Chrome grammar ([`skills/hig/knowledge/chrome/grammar.yaml`](skills/hig/knowledge/chrome/grammar.yaml)) — soft prose is not enough:
-
-| FAIL ID | Meaning |
-|---|---|
-| `chrome.view-mode.icons` | List/Grid must be icon segmented control, not text labels |
-| `chrome.list-browser.toolbar-budget` | One compact toolbar band; rows dominate |
-| `chrome.list-browser.filter-density` | Compact toggles/chips, not full-phrase checkboxes |
-| `chrome.form.column-cohesion` | Title, actions, and fields share one column width |
-| `chrome.sidebar.collapsible` | Product md+ sidebar can collapse |
-| `chrome.bars.system-materials` | No custom opaque bar fills fighting system materials / Liquid Glass |
-| `chrome.materials.fashion-glass` | Blur/glass only on overlays, never nav or content cards |
-| `chrome.layout.card-grid-home` | Product home is a workspace, not a marketing card grid |
-| `chrome.ive.nested-cards` | Lists/forms are not wrapped in extra card panels |
-
-After apply, `/hig` runs `node skills/hig/scripts/check-chrome.mjs` on the host. P0 hits block PASS. Solved P0s are applied by [`skills/hig/scripts/apply-chrome.mjs`](skills/hig/scripts/apply-chrome.mjs) (no kit, no font rewrite). Other recipes: [`skills/hig/knowledge/chrome/recipes.md`](skills/hig/knowledge/chrome/recipes.md). Host fonts stay. Live Apple article inventory: [`skills/hig/knowledge/catalog.yaml`](skills/hig/knowledge/catalog.yaml) (not the round-1 apply list). After chrome is clean, `scripts/apply-catalog.mjs` accounts packed catalog topics whose chrome IDs already pass, including IDs cited in pack Chrome gates, applies pack Don't code spans onto existing widgets, and mechanically applies required-surface prose Don'ts when every Don't on the topic has a scanner. Other prose-only Don'ts stay pending until they map onto existing widgets. Pattern surfaces skip when the host has no matching widget. Catalog apply rules are derived at load from chrome grammar and pack Do/Don't, not title stubs. The same chrome FAILs are proven on a web host and a Swift host; the rule text does not name those stacks.
-
-Principles (materials arbitration, list-as-browser, brand veto): [`skills/hig/knowledge/canon.md`](skills/hig/knowledge/canon.md). Optional React mapping (no kit): [`skills/hig-react/SKILL.md`](skills/hig-react/SKILL.md).
-
-## How the skill “learns”
-
-Skill files are **static** — they do not silently rewrite after a session. Per-project prefs live in `DESIGN.md`, `AGENTS.md`, and `.hig/`. Proven chrome FAILs get promoted into `grammar.yaml` + fixtures here; everyone else runs **HIG upgrade**.
-
-## Proof
-
-- **Pink Depot** — dogfood inventory app; gold QA @768/@375 PASS 2026-07-09
-- **admissionsdemo** — portable React patient; structure without stealing Pink Depot tokens
-
-Details, gaps, and feedback template: [`docs/PROOF.md`](docs/PROOF.md).
-
-## Repo layout
-
-```text
-skills/hig/              # /hig orchestrator + Apple canon + swarm
-skills/hig-react/        # optional React/DOM mapping (not a kit)
-skills/hig-upgrade/      # "HIG upgrade" entry skill
-eval/                    # dry harnesses (no patient mutation)
-```
-
-Contributors: verify with [`eval/CHECKLIST.md`](eval/CHECKLIST.md).
-
-## Not for
-
-- Backend-only repos (no UI → preflight stops)
-- Forcing app chrome onto marketing landings (`register: brand`)
-- Injecting a parallel component library or CSS kit
+Playbooks: `skills/hig/playbooks/new-screen.md` and `skills/hig/playbooks/hillclimb.md`.
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT. See [LICENSE](LICENSE).

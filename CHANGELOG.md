@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0 — 2026-10-17
+
+`/hig` is a thin router over eight topic pages, two playbooks, an empty Fig token slot, and a list/detail practice fixture. The score is the open count on `skills/hig/defects.json`. A run that raises that count fails `score-practice.mjs`.
+
 ## 0.4.1 — 2026-09-28
 
 Mechanical chrome FAIL gate + catalog apply harness so `/hig` is model-proof. Shipped scope: chrome gate + catalog infra; remaining pack Don'ts documented as known gaps in `docs/PROOF.md` (not a claim of full HIG automation).
