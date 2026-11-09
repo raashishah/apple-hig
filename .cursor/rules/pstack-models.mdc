@@ -1,0 +1,32 @@
+---
+description: pstack per-role model choices (overrides skill defaults). grok-4.7, fast off. Medium by default, high for the hard roles. No xhigh default.
+alwaysApply: true
+---
+
+# pstack model configuration. One line per role. Keep every line. A missing line falls back to a fast model.
+# grok-4.7 with fast off. No slug ends in `-fast`. No role defaults to xhigh.
+# Default effort is medium (`grok-4.7-medium`).
+# High (`grok-4.7-high`) is for hard debugging, migrations, `bug-fix`, `hardest tasks`, `arena runners`, `arena cross-judge pool`, and `architect runners`.
+# xhigh only when the person launching the agent asks for it for a big multi-part plan and states why. Never a file default. Never for audit or design work.
+# Never `auto`, `default`, or `inherit-parent`. Those omit the model and the helper falls back to a fast model.
+# Never composer. Never any slug ending in `-fast`, including `grok-4.7-xhigh-fast` and `composer-2.5-fast`.
+# Do not turn fast on, including when a job is urgent or a skill says to pick a speed.
+# If you cannot set the line's slug, do that work yourself. Do not substitute a fast model.
+# budget: mixed (medium default, high for bug-fix, hardest tasks, arena, and architect), fast off. No xhigh default.
+feature, refactoring: grok-4.7-medium
+bug-fix: grok-4.7-high
+perf-issue: grok-4.7-medium
+hillclimb: grok-4.7-medium
+judgment and prose: grok-4.7-medium
+hardest tasks: grok-4.7-high
+how explorer: grok-4.7-medium
+how explainer: grok-4.7-medium
+why investigators: grok-4.7-medium
+why synthesizer: grok-4.7-medium
+reflect tooling: grok-4.7-medium
+reflect judgment, divergent, synthesizer: grok-4.7-medium
+arena runners: grok-4.7-high
+arena cross-judge pool: grok-4.7-high
+swarm workers: grok-4.7-medium
+architect runners: grok-4.7-high
+interrogate reviewers: grok-4.7-medium
